@@ -1,7 +1,7 @@
 name: Compilar np21debug x64
 
 on:
-  workflow_dispatch:        # boton "Run workflow" en la pestana Actions
+  workflow_dispatch:
   push:
     branches: [ master ]
 
@@ -25,6 +25,19 @@ jobs:
           $yasm = (Resolve-Path vsyasm).Path + '\'
           "YASMPATH=$yasm" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Get-ChildItem $bc -Filter 'vsyasm*'
+
+      - name: Instalar Visual C++ 2010 (vsyasm lo necesita para arrancar)
+        shell: pwsh
+        run: |
+          choco install vcredist2010 -y --no-progress
+          if ($LASTEXITCODE -notin 0, 1641, 3010) { throw "No se pudo instalar vcredist2010 (codigo $LASTEXITCODE)" }
+          $global:LASTEXITCODE = 0
+
+      - name: Comprobar que vsyasm arranca
+        shell: pwsh
+        run: |
+          & "$env:YASMPATH\vsyasm.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "vsyasm no arranca (codigo $LASTEXITCODE)" }
 
       - name: Preparar MSBuild
         uses: microsoft/setup-msbuild@v2
