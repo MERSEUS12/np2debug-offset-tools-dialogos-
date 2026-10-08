@@ -835,12 +835,6 @@ static void OnCommand(HWND hWnd, WPARAM wParam)
 			update |= SYS_UPDATEOSCFG;
 			break;
 
-		case IDM_JUMPDLG:
-			winuienter();
-			dialog_jump(hWnd);
-			winuileave();
-			break;
-
 		case IDM_DEBUGUTY:
 			viewer_open(g_hInstance);
 			break;
