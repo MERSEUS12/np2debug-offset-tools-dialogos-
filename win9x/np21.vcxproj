@@ -346,7 +346,7 @@
     <ClCompile Include="..\win9x\joymng.cpp" />
     <ClCompile Include="..\win9x\menu.cpp" />
     <ClCompile Include="..\win9x\mousemng.cpp" />
-    <ClCompile Include="..\win9x\dialog\d_addr.cpp" />
+    <ClCompile Include="..\win9x\d_jump.cpp" />
     <ClCompile Include="..\win9x\np2.cpp" />
     <ClCompile Include="..\win9x\np2arg.cpp" />
     <ClCompile Include="..\win9x\oemtext.cpp" />
