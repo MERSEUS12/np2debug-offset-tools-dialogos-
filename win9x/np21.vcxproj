@@ -368,7 +368,6 @@
     <ClCompile Include="..\win9x\dialog\d_config.cpp" />
     <ClCompile Include="..\win9x\dialog\d_disk.cpp" />
     <ClCompile Include="..\win9x\dialog\d_edit.cpp" />
-    <ClCompile Include="..\win9x\dialog\d_jump.cpp" />
     <ClCompile Include="..\win9x\dialog\d_mpu98.cpp" />
     <ClCompile Include="..\win9x\dialog\d_screen.cpp" />
     <ClCompile Include="..\win9x\dialog\d_serial.cpp" />
