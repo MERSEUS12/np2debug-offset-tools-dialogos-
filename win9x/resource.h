@@ -32,6 +32,7 @@
 #define IDD_ABOUT                       171
 #define IDD_ADDRESS                     181
 #define IDD_EDIT                        191
+#define IDD_JUMPDLG                     192
 #define IDR_SYS                         201
 #define IDR_SYSKEYDISP                  202
 #define IDR_SYSSOFTKBD                  203
@@ -263,6 +264,12 @@
 #define IDC_ADDR_SEG                    18101
 #define IDC_ADDR_OFF                    18102
 #define IDC_ADDR_REAL                   18103
+#define IDC_JUMP_OFF                    20101
+#define IDC_JUMP_PTR                    20102
+#define IDC_JUMP_ADD                    20103
+#define IDC_JUMP_32                     20104
+#define IDC_JUMP_READ                   20105
+#define IDC_JUMP_INFO                   20106
 #define IDC_EDIT_GROUP                  19101
 #define IDC_EDIT_STR                    19102
 #define IDC_EDIT_TYPE_HEX               19103
@@ -393,6 +400,7 @@
 #define IDM_MEMORYDUMP                  40010
 #define IDM_DEBUGUTY                    40011
 #define IDM_VIEWER                      40012
+#define IDM_JUMPDLG                     40013
 #define IDM_SCRNMUL                     40050
 #define IDM_SCRNMUL4                    40054
 #define IDM_SCRNMUL6                    40056

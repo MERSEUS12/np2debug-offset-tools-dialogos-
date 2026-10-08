@@ -211,6 +211,7 @@ IDR_STAT MENU
 IDR_SYSDEBUG MENU
 {
     MENUITEM "Debug utility", IDM_DEBUGUTY
+    MENUITEM "Jump to dialogue...", IDM_JUMPDLG
 }
 
 IDR_SYSKEYDISP MENU
@@ -342,6 +343,24 @@ FONT 8, "MS Shell Dlg"
     GROUPBOX        "Real address", -1, 83, 7, 50, 30
     EDITTEXT        IDC_ADDR_REAL, 90, 19, 37, 12, WS_DISABLED | ES_RIGHT
     LTEXT           "You can enter 16- and 32-bit CPU register names\n(e.g. ip, eax) to apply the current value in that register.", -1, 10, 43, 170, 16, SS_LEFT
+}
+
+IDD_JUMPDLG DIALOG 0, 0, 236, 112
+STYLE DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_POPUP | WS_SYSMENU
+CAPTION "Jump to dialogue"
+FONT 8, "MS Shell Dlg"
+{
+    LTEXT           "Dialogue offset in the .BIN (hex):", -1, 8, 8, 150, 8, SS_LEFT
+    EDITTEXT        IDC_JUMP_OFF, 8, 18, 60, 12, ES_AUTOHSCROLL
+    LTEXT           "Script pointer address (hex or seg:off):", -1, 8, 36, 150, 8, SS_LEFT
+    EDITTEXT        IDC_JUMP_PTR, 8, 46, 80, 12, ES_AUTOHSCROLL
+    AUTOCHECKBOX    "32-bit pointer", IDC_JUMP_32, 100, 47, 60, 10, WS_TABSTOP
+    LTEXT           "Add to offset (hex, e.g. .BIN base):", -1, 8, 64, 150, 8, SS_LEFT
+    EDITTEXT        IDC_JUMP_ADD, 8, 74, 60, 12, ES_AUTOHSCROLL
+    PUSHBUTTON      "Read pointer", IDC_JUMP_READ, 84, 73, 60, 14
+    LTEXT           "", IDC_JUMP_INFO, 8, 94, 160, 10, SS_LEFT
+    DEFPUSHBUTTON   "Jump", IDOK, 178, 7, 50, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 178, 23, 50, 14
 }
 
 IDD_CALENDAR DIALOGEX 0, 0, 164, 80

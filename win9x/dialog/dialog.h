@@ -6,6 +6,7 @@ LRESULT CALLBACK ClndDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
 LRESULT CALLBACK AddrDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
 LRESULT CALLBACK EditDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
 LRESULT CALLBACK FindDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+LRESULT CALLBACK JumpDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
 
 void dialog_scropt(HWND hWnd);
 void dialog_sndopt(HWND hWnd);
@@ -20,4 +21,5 @@ void dialog_changehdd(HWND hWnd, REG8 drv);
 void dialog_changedir(HWND hWnd, UINT drive);
 void dialog_font(HWND hWnd);
 void dialog_writebmp(HWND hWnd);
+void dialog_jump(HWND hWnd);
 
