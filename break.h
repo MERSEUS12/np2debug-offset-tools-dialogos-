@@ -61,6 +61,16 @@ void np2break_reset();
 void np2break_destroy();
 /// -----------
 
+/// Jump tool hook
+/// -----------------
+// Armed by the "Jump to dialogue" tool: when execution reaches cs:ip with ES==es,
+// ESI is set to esi once and the hook disarms itself.
+void np2jump_arm(UINT16 cs, UINT32 ip, UINT16 es, UINT32 esi);
+void np2jump_disarm(void);
+BOOL np2jump_is_armed(void);
+UINT np2jump_count(void);
+/// -----------------
+
 /// Helper
 /// ------
 typedef struct _UNASM_t _UNASM, *UNASM;

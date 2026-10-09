@@ -30,6 +30,38 @@ np2break_t	np2breakflags[sizeof(mem)];
 LISTARRAY	np2breakaddrs = NULL;
 /// =======
 
+/// Jump tool hook
+/// =======
+static BOOL		np2jump_armed = FALSE;
+static UINT32	np2jump_addr = 0;
+static UINT16	np2jump_es = 0;
+static UINT32	np2jump_esi = 0;
+static UINT		np2jump_done = 0;
+
+void np2jump_arm(UINT16 cs, UINT32 ip, UINT16 es, UINT32 esi)
+{
+	np2jump_addr = ((UINT32)cs << 4) + ip;
+	np2jump_es = es;
+	np2jump_esi = esi;
+	np2jump_armed = TRUE;
+}
+
+void np2jump_disarm(void)
+{
+	np2jump_armed = FALSE;
+}
+
+BOOL np2jump_is_armed(void)
+{
+	return np2jump_armed;
+}
+
+UINT np2jump_count(void)
+{
+	return np2jump_done;
+}
+/// =======
+
 void np2active_renewal(UINT8 breakflag) {										// ver0.30
 
 	if (breakflag & (~NP2BREAK_MAIN)) {
@@ -224,6 +256,15 @@ UINT32 np2break_is_next()	{
 	_UNASM una;
 	UINT32 addr = 0;
 	np2break_t type = NP2BP_NONE;
+
+	if (np2jump_armed) {
+		if ((((UINT32)CPU_CS << 4) + CPU_EIP) == np2jump_addr &&
+			(UINT16)CPU_ES == np2jump_es) {
+			CPU_ESI = np2jump_esi;
+			np2jump_armed = FALSE;
+			np2jump_done++;
+		}
+	}
 
 #ifdef DEBUG
 	addr = np2break_memory_write_naive();

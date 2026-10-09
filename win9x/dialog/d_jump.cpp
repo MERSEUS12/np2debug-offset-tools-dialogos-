@@ -6,6 +6,10 @@
 //      script buffer of the game (segment "Script segment"), and
 //   2. sets ESI to the chosen entry offset, so the interpreter continues
 //      from there when the game gets the next key press.
+// ESI only holds the script pointer while the CPU runs inside the script
+// interpreter, so the jump is applied by a hook: when execution reaches the
+// given CS:IP (with ES = script segment) ESI is set once.  Without a hook, ESI
+// is set immediately.
 // Optionally it also writes the offset into a pointer variable in memory.
 // All values are remembered in np2jump.ini (next to the executable).
 
@@ -15,6 +19,7 @@
 #include	"dialog.h"
 #include	"pccore.h"
 #include	"cpucore.h"
+#include	"break.h"
 
 #define	JUMP_DEFSEG		0x4458
 
@@ -26,6 +31,7 @@ typedef struct {
 	UINT32	seg;
 	UINT32	ptr;
 	UINT	is32;
+	TCHAR	hook[32];
 } JUMPCFG;
 
 static const TCHAR s_sect[] = TEXT("jump");
@@ -111,6 +117,7 @@ static void jump_load(JUMPCFG *cfg) {
 	jump_inistr(path, TEXT("ptr"), TEXT("0"), work, 32);
 	cfg->ptr = (UINT32)jump_parse(work);
 	cfg->is32 = (UINT)GetPrivateProfileInt(s_sect, TEXT("ptr32"), 0, path);
+	jump_inistr(path, TEXT("hook"), TEXT("2FF9:01D6"), cfg->hook, 32);
 }
 
 static void jump_save(const JUMPCFG *cfg) {
@@ -136,6 +143,7 @@ static void jump_save(const JUMPCFG *cfg) {
 	WritePrivateProfileString(s_sect, TEXT("ptr"), work, path);
 	WritePrivateProfileString(s_sect, TEXT("ptr32"),
 							cfg->is32 ? TEXT("1") : TEXT("0"), path);
+	WritePrivateProfileString(s_sect, TEXT("hook"), cfg->hook, path);
 }
 
 static void jump_collect(HWND hWnd, JUMPCFG *cfg) {
@@ -147,13 +155,28 @@ static void jump_collect(HWND hWnd, JUMPCFG *cfg) {
 	cfg->seg = (UINT32)jump_gethex(hWnd, IDC_JUMP_SEG);
 	cfg->ptr = (UINT32)jump_gethex(hWnd, IDC_JUMP_PTR);
 	cfg->is32 = (IsDlgButtonChecked(hWnd, IDC_JUMP_32) == BST_CHECKED) ? 1 : 0;
+	GetDlgItemText(hWnd, IDC_JUMP_HOOK, cfg->hook, 32);
+}
+
+// "SSSS:OOOO" -> seg, off.  Returns false if the text is empty or has no ':'
+static bool jump_parsehook(const TCHAR *s, UINT32 *seg, UINT32 *off) {
+
+	const TCHAR	*colon;
+
+	colon = _tcschr(s, _T(':'));
+	if (!colon) {
+		return false;
+	}
+	*seg = (UINT32)_tcstoul(s, NULL, 16);
+	*off = (UINT32)_tcstoul(colon + 1, NULL, 16);
+	return true;
 }
 
 // shows ES, ESI, the next bytes of the script and the size of the buffer
 static void jump_state(HWND hWnd) {
 
-	TCHAR	work[400];
-	TCHAR	part[32];
+	TCHAR	work[480];
+	TCHAR	part[64];
 	UINT32	esi;
 	UINT32	es;
 	UINT32	seg;
@@ -163,7 +186,12 @@ static void jump_state(HWND hWnd) {
 	esi = i386core.s.cpu_regs.reg[CPU_ESI_INDEX].d;
 	es = (UINT32)i386core.s.cpu_regs.sreg[CPU_ES_INDEX];
 	seg = (UINT32)jump_gethex(hWnd, IDC_JUMP_SEG);
-	wsprintf(work, TEXT("ES=%04X  ESI=%08X\r\n"), es, esi);
+	wsprintf(work, TEXT("CS:EIP=%04X:%08X  ES=%04X  ESI=%08X\r\n"),
+			(UINT)i386core.s.cpu_regs.sreg[CPU_CS_INDEX],
+			(UINT)i386core.s.cpu_regs.eip.d, es, esi);
+	wsprintf(part, TEXT("Hook armed: %s   Jumps applied: %u\r\n"),
+			np2jump_is_armed() ? TEXT("yes (waiting)") : TEXT("no"), np2jump_count());
+	lstrcat(work, part);
 	if (seg) {
 		addr = (seg << 4) + esi;
 		lstrcat(work, TEXT("Bytes at script segment:ESI: "));
@@ -182,8 +210,8 @@ static void jump_state(HWND hWnd) {
 		}
 	}
 	if (es != seg) {
-		lstrcat(work, TEXT("\r\nWarning: ES is not the script segment. ")
-					TEXT("Open this window while a dialogue is waiting."));
+		lstrcat(work, TEXT("\r\nES is not the script segment right now; use the hook ")
+					TEXT("(CS:IP) so the jump is applied inside the interpreter."));
 	}
 	SetDlgItemText(hWnd, IDC_JUMP_INFO, work);
 }
@@ -270,9 +298,14 @@ static bool jump_apply(HWND hWnd) {
 	UINT32	es;
 	UINT32	target;
 
+	UINT32	hseg;
+	UINT32	hoff;
+	bool	usehook;
+
 	jump_collect(hWnd, &cfg);
 	es = (UINT32)i386core.s.cpu_regs.sreg[CPU_ES_INDEX];
-	if ((cfg.seg) && (es != cfg.seg)) {
+	usehook = jump_parsehook(cfg.hook, &hseg, &hoff);
+	if ((!usehook) && (cfg.seg) && (es != cfg.seg)) {
 		if (MessageBox(hWnd,
 				TEXT("ES is not the script segment, so the game may not be reading its script now.\n")
 				TEXT("The jump only works while a dialogue is waiting. Continue anyway?"),
@@ -286,7 +319,15 @@ static bool jump_apply(HWND hWnd) {
 		}
 	}
 	target = (UINT32)((INT32)cfg.off + cfg.adj);
-	i386core.s.cpu_regs.reg[CPU_ESI_INDEX].d = target;
+	if (usehook) {
+		np2jump_arm((UINT16)hseg, hoff, (UINT16)cfg.seg, target);
+		if (np2stopemulate) {
+			np2active_set(1);
+		}
+	}
+	else {
+		i386core.s.cpu_regs.reg[CPU_ESI_INDEX].d = target;
+	}
 	if (cfg.ptr) {
 		if (cfg.is32) {
 			memp_write32(cfg.ptr, target);
@@ -319,6 +360,7 @@ LRESULT CALLBACK JumpDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 			}
 			jump_sethex(hWnd, IDC_JUMP_SEG, cfg.seg);
 			jump_sethex(hWnd, IDC_JUMP_PTR, cfg.ptr);
+			SetDlgItemText(hWnd, IDC_JUMP_HOOK, cfg.hook);
 			CheckDlgButton(hWnd, IDC_JUMP_32, cfg.is32 ? BST_CHECKED : BST_UNCHECKED);
 			jump_state(hWnd);
 			SendDlgItemMessage(hWnd, IDC_JUMP_OFF, EM_SETSEL, 0, -1);
@@ -329,6 +371,16 @@ LRESULT CALLBACK JumpDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 			switch (LOWORD(wParam)) {
 				case IDC_JUMP_READ:
 					jump_state(hWnd);
+					return TRUE;
+
+				case IDC_JUMP_CUR:
+					{
+						TCHAR cur[32];
+						wsprintf(cur, TEXT("%04X:%04X"),
+								(UINT)i386core.s.cpu_regs.sreg[CPU_CS_INDEX],
+								(UINT)(i386core.s.cpu_regs.eip.d & 0xffff));
+						SetDlgItemText(hWnd, IDC_JUMP_HOOK, cur);
+					}
 					return TRUE;
 
 				case IDOK:

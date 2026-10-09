@@ -345,7 +345,7 @@ FONT 8, "MS Shell Dlg"
     LTEXT           "You can enter 16- and 32-bit CPU register names\n(e.g. ip, eax) to apply the current value in that register.", -1, 10, 43, 170, 16, SS_LEFT
 }
 
-IDD_JUMPDLG DIALOG 0, 0, 252, 212
+IDD_JUMPDLG DIALOG 0, 0, 252, 246
 STYLE DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_POPUP | WS_SYSMENU
 CAPTION "Jump to dialogue"
 FONT 8, "MS Shell Dlg"
@@ -363,8 +363,11 @@ FONT 8, "MS Shell Dlg"
     LTEXT           "Optional: pointer address in memory:", -1, 108, 90, 138, 8, SS_LEFT
     EDITTEXT        IDC_JUMP_PTR, 108, 100, 60, 12, ES_AUTOHSCROLL
     AUTOCHECKBOX    "32-bit", IDC_JUMP_32, 176, 101, 40, 10, WS_TABSTOP
-    PUSHBUTTON      "Read state", IDC_JUMP_READ, 8, 120, 60, 14
-    EDITTEXT        IDC_JUMP_INFO, 8, 140, 236, 64, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL
+    LTEXT           "Hook at CS:IP (inside the script interpreter; empty = jump now):", -1, 8, 118, 236, 8, SS_LEFT
+    EDITTEXT        IDC_JUMP_HOOK, 8, 128, 70, 12, ES_AUTOHSCROLL
+    PUSHBUTTON      "Use current CS:IP", IDC_JUMP_CUR, 84, 127, 70, 14
+    PUSHBUTTON      "Read state", IDC_JUMP_READ, 8, 148, 60, 14
+    EDITTEXT        IDC_JUMP_INFO, 8, 168, 236, 70, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL
     DEFPUSHBUTTON   "Jump", IDOK, 194, 7, 50, 14
     PUSHBUTTON      "Cancel", IDCANCEL, 194, 23, 50, 14
 }

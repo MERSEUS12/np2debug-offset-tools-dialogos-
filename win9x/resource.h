@@ -273,6 +273,8 @@
 #define IDC_JUMP_DIR                    20110
 #define IDC_JUMP_BIN                    20111
 #define IDC_JUMP_SEG                    20112
+#define IDC_JUMP_HOOK                   20113
+#define IDC_JUMP_CUR                    20114
 #define IDC_EDIT_GROUP                  19101
 #define IDC_EDIT_STR                    19102
 #define IDC_EDIT_TYPE_HEX               19103
