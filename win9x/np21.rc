@@ -363,7 +363,7 @@ FONT 8, "MS Shell Dlg"
     LTEXT           "Optional: pointer address in memory:", -1, 108, 90, 138, 8, SS_LEFT
     EDITTEXT        IDC_JUMP_PTR, 108, 100, 60, 12, ES_AUTOHSCROLL
     AUTOCHECKBOX    "32-bit", IDC_JUMP_32, 176, 101, 40, 10, WS_TABSTOP
-    LTEXT           "Hook at CS:IP (inside the script interpreter; empty = jump now):", -1, 8, 118, 236, 8, SS_LEFT
+    LTEXT           "Optional: only at these CS:IP (e.g. 1EF0:043E 2FF9:01D6); empty = automatic:", -1, 8, 118, 236, 8, SS_LEFT
     EDITTEXT        IDC_JUMP_HOOK, 8, 128, 70, 12, ES_AUTOHSCROLL
     PUSHBUTTON      "Use current CS:IP", IDC_JUMP_CUR, 84, 127, 70, 14
     PUSHBUTTON      "Read state", IDC_JUMP_READ, 8, 148, 60, 14

@@ -33,14 +33,23 @@ LISTARRAY	np2breakaddrs = NULL;
 /// Jump tool hook
 /// =======
 static BOOL		np2jump_armed = FALSE;
-static UINT32	np2jump_addr = 0;
 static UINT16	np2jump_es = 0;
 static UINT32	np2jump_esi = 0;
+static UINT32	np2jump_addrs[NP2JUMP_MAXADDR];
+static UINT		np2jump_naddr = 0;
 static UINT		np2jump_done = 0;
 
-void np2jump_arm(UINT16 cs, UINT32 ip, UINT16 es, UINT32 esi)
+void np2jump_arm(UINT16 es, UINT32 esi, const UINT32 *addrs, UINT naddr)
 {
-	np2jump_addr = ((UINT32)cs << 4) + ip;
+	UINT i;
+
+	if (naddr > NP2JUMP_MAXADDR) {
+		naddr = NP2JUMP_MAXADDR;
+	}
+	for (i = 0; i < naddr; i++) {
+		np2jump_addrs[i] = addrs[i];
+	}
+	np2jump_naddr = naddr;
 	np2jump_es = es;
 	np2jump_esi = esi;
 	np2jump_armed = TRUE;
@@ -257,12 +266,23 @@ UINT32 np2break_is_next()	{
 	UINT32 addr = 0;
 	np2break_t type = NP2BP_NONE;
 
-	if (np2jump_armed) {
-		if ((((UINT32)CPU_CS << 4) + CPU_EIP) == np2jump_addr &&
-			(UINT16)CPU_ES == np2jump_es) {
-			CPU_ESI = np2jump_esi;
-			np2jump_armed = FALSE;
-			np2jump_done++;
+	if (np2jump_armed && (UINT16)CPU_ES == np2jump_es && CPU_ESI < 0x10000) {
+		UINT32 sp = ((UINT32)np2jump_es << 4) + CPU_ESI;
+		if (memp_read8(sp) == 'H' && memp_read8(sp + 1) == 'A' &&
+			memp_read8(sp + 2) == '\\') {
+			UINT32 cur = ((UINT32)CPU_CS << 4) + CPU_EIP;
+			UINT i;
+			BOOL ok = (np2jump_naddr == 0);
+			for (i = 0; i < np2jump_naddr; i++) {
+				if (np2jump_addrs[i] == cur) {
+					ok = TRUE;
+				}
+			}
+			if (ok) {
+				CPU_ESI = np2jump_esi;
+				np2jump_armed = FALSE;
+				np2jump_done++;
+			}
 		}
 	}
 

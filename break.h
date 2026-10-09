@@ -63,9 +63,12 @@ void np2break_destroy();
 
 /// Jump tool hook
 /// -----------------
-// Armed by the "Jump to dialogue" tool: when execution reaches cs:ip with ES==es,
-// ESI is set to esi once and the hook disarms itself.
-void np2jump_arm(UINT16 cs, UINT32 ip, UINT16 es, UINT32 esi);
+// Armed by the "Jump to dialogue" tool.  The jump is applied once, the first time
+// the script interpreter (ES = script segment) is waiting at a "\HA" command
+// (ES:ESI points to "HA\").  If naddr > 0, execution must also be at one of the
+// given linear CS:IP addresses.
+#define	NP2JUMP_MAXADDR	8
+void np2jump_arm(UINT16 es, UINT32 esi, const UINT32 *addrs, UINT naddr);
 void np2jump_disarm(void);
 BOOL np2jump_is_armed(void);
 UINT np2jump_count(void);
