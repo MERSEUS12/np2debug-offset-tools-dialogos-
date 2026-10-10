@@ -1,0 +1,42 @@
+VERSION 8 - "GO TO SCENE" (IR A ESCENA) EN TU FORK np2debug
+==========================================================
+Incluye todo lo de la version 7 (avance rapido) y anade el menu  Debug > Go to scene...
+
+IDEA
+En vez de buscar a mano la direccion de RAM donde el juego guarda el nombre de la escena, el emulador
+intercepta la llamada de DOS "abrir archivo" (INT 21h, AH=3Dh):
+  1. Anota cada archivo que abre el juego y la direccion de memoria donde esta su nombre
+     (esa direccion ES el buffer del nombre de escena; sale en el cuadro de informacion).
+  2. Con una escena "armada", el siguiente script .BIN que el juego intente abrir
+     (menos SYSTEM.BIN y START.BIN) se cambia en esa misma direccion por la escena elegida,
+     que es lo que habias pedido: escribir el nombre de la escena en la RAM.
+  3. Mientras llega ese momento, el emulador pulsa Enter solo (velocidad sin espera) en cada "\HA";
+     al cargar la escena nueva, sigue pulsando Enter hasta saltar N dialogos y se detiene en el siguiente.
+
+COMO SUBIRLO
+Sube a tu repositorio (Add file > Upload files) respetando las carpetas:
+  raiz:           break.c, break.h
+  win9x/:         np2.cpp, np21.rc, resource.h, np21.vcxproj, np21.vcxproj.filters
+  win9x/dialog/:  d_jump.cpp, d_scene.cpp (NUEVO), dialog.h
+(o aplica v8_ir_a_escena.patch con "git apply"). GitHub Actions compila el .exe.
+Estos archivos se basan en tu repositorio tal como estaba hoy; si cambiaste algo despues, usa el parche.
+
+PRUEBAS, EN ORDEN
+PRUEBA 1 - el registro de archivos (no cambia nada, solo observa)
+  Juega hasta cambiar de escena una vez. Menu Debug > Go to scene... > "Refresh log".
+  Deberias ver una lista de archivos (.BIN, etc.) con su direccion. Si sale vacia, el juego no usa
+  INT 21h/3Dh para cargar y este metodo no sirve: copiame ese texto.
+PRUEBA 2 - ir a una escena
+  Debug > Go to scene...  Nombre: H14_R07.BIN   Skip N: 0   Segmento: 4458   > Go.
+  El emulador avanza solo hasta que el juego abre su siguiente escena, la cambia por H14_R07.BIN
+  y se detiene en su primer dialogo. Con Skip N = 5 se detiene en el sexto (ID 5).
+CANCELAR: abre el dialogo, deja Nombre vacio y N = 0, y pulsa Go.
+
+LIMITES
+- Si el juego carga las escenas de otra forma (otra funcion de DOS o lectura directa de disco) el registro saldra vacio.
+- Se cambia el PRIMER .BIN que abra el juego (salvo SYSTEM.BIN y START.BIN); si entre escenas carga un menu
+  (ADV/ARM), puede redirigir ese. Mira el registro para ver el orden real.
+- El nombre se escribe en el sitio: se asume un buffer de al menos 13 bytes (nombre 8.3 + 0).
+- Solo se cuentan los bloques que terminan en \HA (los \WT no).
+- No he podido compilar ni ejecutar el emulador. La logica (deteccion de INT 21h, cambio de nombre, registro,
+  avance con Enter y conteo) la probe con simulaciones en C; el resto lo comprobaras al compilar.

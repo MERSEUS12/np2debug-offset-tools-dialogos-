@@ -1,0 +1,1399 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\CALENDAR.C" />
+    <ClCompile Include="..\DEBUGSUB386.C" />
+    <ClCompile Include="..\KEYSTAT.C" />
+    <ClCompile Include="..\NEVENT.C" />
+    <ClCompile Include="..\PCCORE.C" />
+    <ClCompile Include="..\STATSAVE.C" />
+    <ClCompile Include="..\TIMING.C" />
+    <ClCompile Include="..\BIOS\BIOS1B.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS1A.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS1C.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS1F.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS09.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS12.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS13.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS0C.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS18.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS19.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\BIOS.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BIOS\SXSIBIOS.C">
+      <Filter>bios</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\AMD98.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\ATAPICMD.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\BOARDX2.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\BOARD118.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\BOARD14.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\BOARD26K.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\BOARD86.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\BOARDSPB.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\CBUSCORE.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\IDEIO.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\CS4231IO.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\ARC.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\ARCUNZIP.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\BMPDATA.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\CMMIDI.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_SOUND.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_ABOUT.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_BMP.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_CLND.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_CONFIG.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_DISK.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_MPU98.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_SCREEN.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\D_SERIAL.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\DIALOGS.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DIALOG\NP2CLASS.CPP">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\COMMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\CMPARA.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\CMSERIAL.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\TRACE.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DD2.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DOSIO.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\cpucore.c">
+      <Filter>i386c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\cpumem.c">
+      <Filter>i386c</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\cpu.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\cpu_io.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\cpuio.c">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\CGROM.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\ARTIC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\CRTC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\DIPSW.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\DIPSWBMP.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\CMJASTS.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\CMNDRAW.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\WIN32SUB.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\WINLOC.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\WINKBD.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\ADPCMC.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\BEEPG.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\ADPCMG.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\BEEPC.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\CS4231C.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\CS4231G.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\FMBOARD.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\FMTIMER.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\OPNGENC.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\bin_arith.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\bit_byte.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\ctrl_trans.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\data_trans.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\flag_ctrl.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\fpu.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\logic_arith.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\misc_inst.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\seg_reg.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\shift_rotate.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\string_inst.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\system_inst.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\fpu\fpdummy.c">
+      <Filter>i386c\ia32\instructions\fpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\cpu_mem.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\ctrlxfer.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\debug.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\disasm.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\ia32.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\zlib\adler32.c">
+      <Filter>zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\zlib\crc32.c">
+      <Filter>zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\zlib\inffast.c">
+      <Filter>zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\zlib\inftrees.c">
+      <Filter>zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\zlib\inflate.c">
+      <Filter>zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\zlib\zutil.c">
+      <Filter>zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DCLOCK.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEW1MB.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWASM.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWCMN.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWER.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWMEM.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWMENU.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWREG.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWSEG.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\DEBUGUTY\VIEWSND.CPP">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\DMAC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\EGC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\EMSIO.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\EPSONIO.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\FDC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\FDD320.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\SYSMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\SUBWIND.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\TASKMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\TIMEMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\TOOLWIN.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\SCRNMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\OEMTEXT.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\RECVIDEO.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\NP2ARG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\MOUSEMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\MENU.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\JOYMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\INI.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\FONTMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\EXT\EXTERNALCHIPMANAGER.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\EXT\EXTERNALOPNA.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\EXT\MT32SND.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\EXT\C86CTL\C86CTLIF.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\EXT\SCCI\SCCIIF.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\EXT\ROMEO\JULIET.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\MISC\OPNA.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\MISC\EXTROM.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\MISC\THREADBASE.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\MISC\TICKCOUNTER.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\instructions\dec_arith.c">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\SYSPORT.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\UPD4990.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\SERIAL.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\PRINTIF.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\PIT.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\PIC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\PCIDEV.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\NP2SYSP.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\NMIIO.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\NECIO.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\MOUSEIF.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\IOCORE.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\GDC_SUB.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\GDC_PSET.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IO\GDC.C">
+      <Filter>io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONT.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTDATA.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTFM7.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTMAKE.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTPC88.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTPC98.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTV98.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTX1.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FONT\FONTX68K.C">
+      <Filter>font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\UNASM.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\SOFTKBD.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\MEMDBG32.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\KEYDISP.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\HOSTDRVS.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\HOSTDRV.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\DISKDRV.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\FDD_D88.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\FDD_MTR.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\FDD_XDF.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\FDDFILE.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\NEWDISK.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\SXSI.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\SXSICD.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FDD\SXSIHDD.C">
+      <Filter>fdd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\MAKEGREX.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\MAKETEXT.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\DISPSYNC.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\MAKETGRP.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\VRAM.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\SDRAW.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\SCRNSAVE.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\SCRNDRAW.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VRAM\PALETTES.C">
+      <Filter>vram</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\exception.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\groups.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\resolve.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\paging.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\segments.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\interface.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\inst_table.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LIO\GCIRCLE.C">
+      <Filter>lio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LIO\GLINE.C">
+      <Filter>lio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LIO\GPSET.C">
+      <Filter>lio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LIO\GPUT1.C">
+      <Filter>lio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LIO\GSCREEN.C">
+      <Filter>lio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\LIO\LIO.C">
+      <Filter>lio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\VERMOUTH\MIDIMOD.C">
+      <Filter>sound\vermouth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\VERMOUTH\MIDINST.C">
+      <Filter>sound\vermouth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\VERMOUTH\MIDIOUT.C">
+      <Filter>sound\vermouth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\VERMOUTH\MIDTABLE.C">
+      <Filter>sound\vermouth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\VERMOUTH\MIDVOICE.C">
+      <Filter>sound\vermouth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\GETSND\GETSMIX.C">
+      <Filter>sound\getsnd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\GETSND\GETSND.C">
+      <Filter>sound\getsnd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\GETSND\GETWAVE.C">
+      <Filter>sound\getsnd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TRAP\INTTRAP.C">
+      <Filter>trap</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TRAP\STEPTRAP.C">
+      <Filter>trap</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\DMAX86.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\MEMEGC.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\MEMEMS.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\MEMEPP.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\MEMTRAM.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\MEMVGA.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MEM\MEMVRAM.C">
+      <Filter>mem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\WAVEFILE.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\TEXTFILE.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\STRRES.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\PROFILE.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\MIMPIDEF.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\MILSTR.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\LSTARRAY.C">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\MPU98II.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\PCM86IO.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\SASIIO.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\SCSICMD.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\SCSIIO.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CBUS\PC9861K.C">
+      <Filter>cbus</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\SOUNDROM.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\SOUND.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\S98.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\RHYTHMC.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\PCMMIX.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\PSGGENG.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\PSGGENC.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\PCM86G.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\PCM86C.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CODECNV\UCS2UTF8.C">
+      <Filter>codecnv</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CODECNV\UTF8UCS2.C">
+      <Filter>codecnv</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GENERIC\NP2INFO.C">
+      <Filter>generic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\I386C\ia32\task.c">
+      <Filter>i386c\ia32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CODECNV\TCSWAP16.C">
+      <Filter>codecnv</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\TMS3631G.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\TMS3631C.C">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SOUND\opngeng.c">
+      <Filter>sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\NP2.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WIN9X\SOUNDMNG.CPP">
+      <Filter>Win9x</Filter>
+    </ClCompile>
+    <ClCompile Include="..\break.c" />
+    <ClCompile Include="..\win9x\dialog\d_addr.cpp">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\_memory.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\rect.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\COMMON\resize.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\debuguty\viewstat.cpp">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\dialog\d_jump.cpp">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\dialog\d_scene.cpp">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\dialog\d_edit.cpp">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\debuguty\viewstk.cpp">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\debuguty\viewpaint.cpp">
+      <Filter>Win9x\debuguty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\mountdir\mountdir.c">
+      <Filter>Win9x\mountdir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\mountdir\md_dir.c">
+      <Filter>Win9x\mountdir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\mountdir\md_file.c">
+      <Filter>Win9x\mountdir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\mountdir\md_util.c">
+      <Filter>Win9x\mountdir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\win9x\mountdir\md_fcb.c">
+      <Filter>Win9x\mountdir</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="bios">
+      <UniqueIdentifier>{a3a80554-0a5f-4e69-a96a-db97a038d0db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cbus">
+      <UniqueIdentifier>{52c22d2d-e674-4242-82e3-c4dea53911fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{96a6b201-b054-42ea-84f0-1d45fea2c056}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win9x">
+      <UniqueIdentifier>{651422a4-01d6-458d-b45a-fe983499bf19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win9x\dialog">
+      <UniqueIdentifier>{7a1d941e-c50b-4e5e-8622-1b149290645d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win9x\x86">
+      <UniqueIdentifier>{83a61f4c-9dcf-4f27-940c-7021fecea10a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="i386c">
+      <UniqueIdentifier>{dfca4b07-c4f0-4aee-9c66-462471de83c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="i386c\ia32">
+      <UniqueIdentifier>{ddaa58df-2e17-44d9-934b-39f2a85d25e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="io">
+      <UniqueIdentifier>{c46d8e1b-7e5b-4e2c-9d72-7cf8dff024ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="generic">
+      <UniqueIdentifier>{fee8df72-4e24-42d1-9262-58dc2d2fa280}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lio">
+      <UniqueIdentifier>{e02859d3-8947-4b88-9182-7dd6dd0839c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sound">
+      <UniqueIdentifier>{c47e7481-9342-4391-85f8-6f1e8d39a5c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="i386c\ia32\instructions">
+      <UniqueIdentifier>{7fdd9689-5987-4004-92e7-d28ad3d149c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="i386c\ia32\instructions\fpu">
+      <UniqueIdentifier>{23d24a5d-a6d5-4752-a0db-163e603d7efe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="zlib">
+      <UniqueIdentifier>{a7210611-24cd-4fd7-8fb1-331767a42fe5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win9x\debuguty">
+      <UniqueIdentifier>{76a722a7-195e-4e9d-afd3-c5160a958d5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="font">
+      <UniqueIdentifier>{e88168c6-d7fb-4a7a-86b5-fe88c9eb56e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="fdd">
+      <UniqueIdentifier>{3d657566-c791-48ca-9c6f-175399226feb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vram">
+      <UniqueIdentifier>{0aa97407-7d93-4b4b-96e5-caaa0d5f2b65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sound\vermouth">
+      <UniqueIdentifier>{4324a890-26c8-4c05-ab73-92ef1a41951d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sound\getsnd">
+      <UniqueIdentifier>{c74a6c0d-1228-48cd-91d1-975fe4b8dfa5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="trap">
+      <UniqueIdentifier>{55fc5fa3-15bc-4796-979d-07c232ef564c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mem">
+      <UniqueIdentifier>{4a1fc102-f847-47e8-bd57-6a691c105929}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="codecnv">
+      <UniqueIdentifier>{facf2c37-edac-41c7-82ce-b9887a19b2c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win9x\x64">
+      <UniqueIdentifier>{115df256-6452-4dcd-936e-74ea463e6d6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win9x\mountdir">
+      <UniqueIdentifier>{645aa02f-da3b-4195-9848-9dec7866938b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\BIOS\bios.h">
+      <Filter>bios</Filter>
+    </ClInclude>
+    <ClInclude Include="..\BIOS\rsbios.h">
+      <Filter>bios</Filter>
+    </ClInclude>
+    <ClInclude Include="..\BIOS\biosmem.h">
+      <Filter>bios</Filter>
+    </ClInclude>
+    <ClInclude Include="..\BIOS\fdfmt.h">
+      <Filter>bios</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\mpu98ii.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\pc9861k.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\pcm86io.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\sasiio.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\scsicmd.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\scsiio.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\amd98.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\atapicmd.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\board14.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\board26k.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\board86.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\board118.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\boardpx.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\boardspb.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\boardx2.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\cbuscore.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\cs4231io.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CBUS\ideio.h">
+      <Filter>cbus</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\flag_ctrl.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\logic_arith.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\misc_inst.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\seg_reg.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\shift_rotate.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\string_inst.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\system_inst.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\bin_arith.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\bit_byte.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\ctrl_trans.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\data_trans.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\dec_arith.h">
+      <Filter>i386c\ia32\instructions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\instructions\fpu\fp.h">
+      <Filter>i386c\ia32\instructions\fpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\zconf.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\zlib.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\zutil.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\crc32.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\inffast.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\inffixed.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\inflate.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\zlib\inftrees.h">
+      <Filter>zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\newdisk.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\sxsi.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\sxsicd.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\sxsihdd.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\d88head.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\diskdrv.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\fdd_d88.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\fdd_mtr.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\fdd_xdf.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FDD\fddfile.h">
+      <Filter>fdd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\scrndraw.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\scrnsave.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\sdraw.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\vram.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\dispsync.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\makegrex.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\makegrph.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\maketext.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\maketgrp.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\VRAM\palettes.h">
+      <Filter>vram</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\cpu_io.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\cpu_mem.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\ctrlxfer.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\exception.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\groups.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\inst_table.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\interface.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\paging.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\resolve.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\segments.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\task.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\i386c\ia32\cpu.h">
+      <Filter>i386c\ia32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\LIO\lio.h">
+      <Filter>lio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\opna.h">
+      <Filter>sound</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\pcmmix.h">
+      <Filter>sound</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\VERMOUTH\midinst.h">
+      <Filter>sound\vermouth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\VERMOUTH\midiout.h">
+      <Filter>sound\vermouth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\VERMOUTH\midtable.h">
+      <Filter>sound\vermouth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\VERMOUTH\midvoice.h">
+      <Filter>sound\vermouth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\VERMOUTH\vermouth.h">
+      <Filter>sound\vermouth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOUND\VERMOUTH\midimod.h">
+      <Filter>sound\vermouth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\arc.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\arcunzip.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\bmpdata.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\lstarray.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\milstr.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\mimpidef.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\parts.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\profile.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\rect.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\resize.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\strres.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\textfile.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\wavefile.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\COMMON\_memory.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\dclock.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\targetver.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\compiler.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\commng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\cmserial.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\cmpara.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\cmmidi.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\dd2.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\dosio.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\fontmng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ini.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\joymng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\menu.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\mousemng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\winloc.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\winkbd.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\trace.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\win32sub.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\toolwin.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\timemng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\taskmng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\sysmng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\subwind.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\np2.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\np2arg.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\oemtext.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\recvideo.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\resource.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\scrnmng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\soundmng.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\view1mb.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewsnd.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewasm.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewcmn.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewer.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewmem.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewmenu.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewreg.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewseg.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\DEBUGUTY\viewstat.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\dialog\dialog.h">
+      <Filter>Win9x\dialog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\externalchip.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\externalopna.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\mt32snd.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\c86ctl\c86ctl.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\c86ctl\c86ctlif.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\c86ctl\cbus_boardtype.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\scci\scciif.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\scci\scci.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\scci\SCCIDefines.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\externalchipmanager.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\romeo\juliet.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\ext\romeo\romeo.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\misc\extrom.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\misc\guard.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\misc\threadbase.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\misc\tickcounter.h">
+      <Filter>Win9x</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common.h" />
+    <ClInclude Include="..\debugsub.h" />
+    <ClInclude Include="..\keystat.h" />
+    <ClInclude Include="..\nevent.h" />
+    <ClInclude Include="..\np2ver.h" />
+    <ClInclude Include="..\pccore.h" />
+    <ClInclude Include="..\statsave.h" />
+    <ClInclude Include="..\timing.h" />
+    <ClInclude Include="..\break.h" />
+    <ClInclude Include="..\win9x\dialog\np2class.h" />
+    <ClInclude Include="..\win9x\debuguty\viewstk.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\debuguty\viewpaint.h">
+      <Filter>Win9x\debuguty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\dialog\dialogs.h">
+      <Filter>Win9x\dialog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\mountdir\md_dir.h">
+      <Filter>Win9x\mountdir</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\mountdir\mountdir.h">
+      <Filter>Win9x\mountdir</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\mountdir\md_file.h">
+      <Filter>Win9x\mountdir</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\mountdir\md_util.h">
+      <Filter>Win9x\mountdir</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\mountdir\md_fcb.h">
+      <Filter>Win9x\mountdir</Filter>
+    </ClInclude>
+    <ClInclude Include="..\win9x\misc\vc6macros.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <YASM Include="..\win9x\DCLOCKD.X86" />
+    <YASM Include="..\win9x\x86\OPNGENG.X86">
+      <Filter>Win9x\x86</Filter>
+    </YASM>
+    <YASM Include="..\win9x\x86\MAKEGRPH.X86">
+      <Filter>Win9x\x86</Filter>
+    </YASM>
+    <YASM Include="..\win9x\x86\PARTS.X86">
+      <Filter>Win9x\x86</Filter>
+    </YASM>
+    <YASM Include="..\win9x\x86\CPUTYPE.X86">
+      <Filter>Win9x\x86</Filter>
+    </YASM>
+    <YASM Include="..\win9x\x64\makegrph.x64">
+      <Filter>Win9x\x64</Filter>
+    </YASM>
+    <YASM Include="..\win9x\x64\parts.x64">
+      <Filter>Win9x\x64</Filter>
+    </YASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="np21.rc">
+      <Filter>Win9x</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\keystat.tbl" />
+    <None Include="..\statsave.tbl" />
+  </ItemGroup>
+</Project>

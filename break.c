@@ -100,6 +100,304 @@ BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *
 	*newv = np2jump_trace[idx].newv;
 	return TRUE;
 }
+/// Scene redirect (v8): intercepts DOS "open file" (INT 21h, AH=3Dh)
+/// =======
+// Every time the game opens a file, the name is logged together with the memory address
+// of the file name string (this is the buffer that holds the scene name).  If a target scene
+// is armed, the name of the next scene script (*.BIN, except SYSTEM.BIN / START.BIN) the game
+// opens is overwritten in place with the target, so the game loads that scene instead.
+static char		np2scene_target[16] = "";
+static BOOL		np2scene_armed = FALSE;
+static UINT		np2scene_done = 0;
+static UINT		np2scene_nlog = 0;
+static struct {
+	char	name[16];
+	UINT32	linear;
+	BOOL	redir;
+} np2scene_log[NP2SCENE_LOGMAX];
+
+static char np2scene_up(char c)
+{
+	if ((c >= 'a') && (c <= 'z')) {
+		c = (char)(c - 'a' + 'A');
+	}
+	return c;
+}
+
+static BOOL np2scene_same(const char *a, const char *b)
+{
+	while ((*a) && (*b)) {
+		if (np2scene_up(*a) != np2scene_up(*b)) {
+			return FALSE;
+		}
+		a++;
+		b++;
+	}
+	return (*a == 0) && (*b == 0);
+}
+
+static BOOL np2scene_isscript(const char *n)
+{
+	UINT len = 0;
+
+	while (n[len]) {
+		len++;
+	}
+	if (len < 5) {
+		return FALSE;
+	}
+	if ((np2scene_up(n[len - 4]) != '.') || (np2scene_up(n[len - 3]) != 'B') ||
+		(np2scene_up(n[len - 2]) != 'I') || (np2scene_up(n[len - 1]) != 'N')) {
+		return FALSE;
+	}
+	return !(np2scene_same(n, "SYSTEM.BIN") || np2scene_same(n, "START.BIN"));
+}
+
+void np2scene_arm(const char *name)
+{
+	UINT i;
+
+	for (i = 0; (i < 15) && (name[i]); i++) {
+		np2scene_target[i] = np2scene_up(name[i]);
+	}
+	np2scene_target[i] = '\0';
+	np2scene_armed = (i != 0);
+}
+
+void np2scene_cancel(void)
+{
+	np2scene_armed = FALSE;
+}
+
+BOOL np2scene_is_armed(void)
+{
+	return np2scene_armed;
+}
+
+UINT np2scene_redirect_count(void)
+{
+	return np2scene_done;
+}
+
+UINT np2scene_log_count(void)
+{
+	return (np2scene_nlog < NP2SCENE_LOGMAX) ? np2scene_nlog : NP2SCENE_LOGMAX;
+}
+
+// idx 0 = the most recent file opened
+BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir)
+{
+	UINT n = np2scene_log_count();
+	UINT pos;
+	UINT i;
+
+	if (idx >= n) {
+		return FALSE;
+	}
+	pos = (np2scene_nlog - 1 - idx) % NP2SCENE_LOGMAX;
+	for (i = 0; i < 16; i++) {
+		name[i] = np2scene_log[pos].name[i];
+	}
+	*linear = np2scene_log[pos].linear;
+	*redir = np2scene_log[pos].redir;
+	return TRUE;
+}
+
+static void np2scene_check(void)
+{
+	UINT32	cur;
+	UINT32	vec;
+	UINT32	lin;
+	UINT32	base;
+	UINT	i;
+	UINT	len;
+	UINT	slot;
+	BOOL	redir;
+	char	full[80];
+
+	cur = ((UINT32)(UINT16)CPU_CS << 4) + (CPU_EIP & 0xffff);
+	vec = ((UINT32)memp_read16(0x86) << 4) + (UINT32)memp_read16(0x84);
+	if ((cur != vec) || (CPU_AH != 0x3d)) {
+		return;
+	}
+	lin = ((UINT32)(UINT16)CPU_DS << 4) + (UINT32)(UINT16)CPU_DX;
+	len = 0;
+	while (len < 79) {
+		UINT8 c = memp_read8(lin + len);
+		if (!c) {
+			break;
+		}
+		full[len++] = (c >= 0x20) && (c < 0x7f) ? (char)c : '?';
+	}
+	full[len] = '\0';
+	base = 0;										// start of the name after the last '\' or ':'
+	for (i = 0; i < len; i++) {
+		if ((full[i] == '\\') || (full[i] == ':')) {
+			base = i + 1;
+		}
+	}
+
+	redir = FALSE;
+	if ((np2scene_armed) && (np2scene_isscript(full + base)) &&
+		(!np2scene_same(full + base, np2scene_target))) {
+		UINT tlen = 0;
+
+		while (np2scene_target[tlen]) {
+			tlen++;
+		}
+		if (tlen <= 12) {							// a DOS 8.3 name always fits the usual buffers
+			memp_writes(lin + base, np2scene_target, tlen + 1);		// includes the final 0
+			redir = TRUE;
+			np2scene_armed = FALSE;
+			np2scene_done++;
+		}
+	}
+
+	slot = np2scene_nlog % NP2SCENE_LOGMAX;
+	for (i = 0; i < 15; i++) {
+		np2scene_log[slot].name[i] = (full[base + i]) ? full[base + i] : '\0';
+		if (!full[base + i]) {
+			break;
+		}
+	}
+	np2scene_log[slot].name[(i < 15) ? i : 15] = '\0';
+	np2scene_log[slot].linear = lin + base;
+	np2scene_log[slot].redir = redir;
+	np2scene_nlog++;
+}
+/// =======
+
+/// Fast-forward (skip) mode
+/// =======
+#define	NP2SKIP_KEYDOWN_TIME	200000		// instructions Enter stays pressed
+#define	NP2SKIP_RETRY_TIME		1500000		// instructions before pressing again if the game ignored the key
+static BOOL		np2skip_active = FALSE;
+static BOOL		np2skip_finished = FALSE;
+static UINT		np2skip_wait = 0;			// 0 = counting, 1 = until the ESI jump, 2 = until the scene redirect
+static UINT		np2skip_jumpbase = 0;
+static UINT		np2skip_scenebase = 0;
+static UINT16	np2skip_es = 0;
+static UINT		np2skip_target = 0;
+static UINT		np2skip_pressed = 0;
+static UINT32	np2skip_lastesi = 0xffffffff;
+static BOOL		np2skip_keydown = FALSE;
+static UINT		np2skip_keytimer = 0;
+static UINT		np2skip_retry = 0;
+static UINT8	np2skip_savednowait = 0;
+
+void np2skip_arm(UINT16 es, UINT count, UINT wait_kind)
+{
+	np2skip_cancel();
+	np2skip_es = es;
+	np2skip_target = count;
+	np2skip_pressed = 0;
+	np2skip_lastesi = 0xffffffff;
+	np2skip_keydown = FALSE;
+	np2skip_keytimer = 0;
+	np2skip_retry = 0;
+	np2skip_finished = FALSE;
+	np2skip_wait = wait_kind;
+	np2skip_jumpbase = np2jump_done;
+	np2skip_scenebase = np2scene_done;
+	np2skip_active = ((count > 0) || (wait_kind == 2));
+#ifdef WIN32
+	if (np2skip_active) {
+		np2skip_savednowait = np2oscfg.NOWAIT;
+		np2oscfg.NOWAIT = 1;
+	}
+#endif
+}
+
+void np2skip_cancel(void)
+{
+	if (np2skip_keydown) {
+		keystat_senddata(0x9c);		// release Enter
+		np2skip_keydown = FALSE;
+	}
+#ifdef WIN32
+	if (np2skip_active) {
+		np2oscfg.NOWAIT = np2skip_savednowait;
+	}
+#endif
+	np2skip_active = FALSE;
+}
+
+void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished)
+{
+	*active = np2skip_active;
+	*pressed = np2skip_pressed;
+	*target = np2skip_target;
+	*finished = np2skip_finished;
+}
+
+static void np2skip_press(void)
+{
+	if (np2skip_keydown) {
+		keystat_senddata(0x9c);		// release first: a clean break + make pair
+	}
+	keystat_senddata(0x1c);			// Enter down
+	np2skip_keydown = TRUE;
+	np2skip_keytimer = NP2SKIP_KEYDOWN_TIME;
+}
+
+// called once per emulated instruction (from np2break_is_next)
+static void np2skip_step(void)
+{
+	UINT32 sp;
+
+	if (!np2skip_active) {
+		return;
+	}
+	if ((np2skip_wait == 1) && (np2jump_done == np2skip_jumpbase)) {
+		return;							// the ESI jump has not been applied yet
+	}
+	if ((np2skip_wait == 2) && (np2scene_done != np2skip_scenebase)) {
+		np2skip_lastesi = 0xffffffff;	// the scene was redirected: start counting in the new scene
+		np2skip_wait = 0;
+	}
+	if (np2skip_wait == 1) {
+		np2skip_wait = 0;
+	}
+	if (np2skip_keydown) {
+		if (np2skip_keytimer) {
+			np2skip_keytimer--;
+		}
+		if (!np2skip_keytimer) {
+			keystat_senddata(0x9c);		// Enter up
+			np2skip_keydown = FALSE;
+			np2skip_retry = NP2SKIP_RETRY_TIME;
+		}
+	}
+	else if (np2skip_retry) {
+		np2skip_retry--;
+	}
+	if (((UINT16)CPU_ES != np2skip_es) || (CPU_ESI >= 0x10000)) {
+		return;
+	}
+	sp = ((UINT32)np2skip_es << 4) + CPU_ESI;
+	if ((memp_read8(sp) != 'H') || (memp_read8(sp + 1) != 'A') ||
+		(memp_read8(sp + 2) != '\\')) {
+		return;
+	}
+	if (CPU_ESI != np2skip_lastesi) {			// a new wait for a key
+		np2skip_lastesi = CPU_ESI;
+		if (np2skip_wait == 2) {				// still in the old scene: keep pressing Enter, no counting
+			np2skip_press();
+			return;
+		}
+		if (np2skip_pressed >= np2skip_target) {
+			np2skip_finished = TRUE;
+			np2skip_cancel();
+			return;
+		}
+		np2skip_pressed++;
+		np2skip_press();
+	}
+	else if ((!np2skip_keydown) && (!np2skip_retry) &&
+			((np2skip_pressed) || (np2skip_wait == 2))) {
+		np2skip_press();						// same wait, the game ignored the key
+	}
+}
 /// =======
 
 void np2active_renewal(UINT8 breakflag) {										// ver0.30
@@ -296,6 +594,9 @@ UINT32 np2break_is_next()	{
 	_UNASM una;
 	UINT32 addr = 0;
 	np2break_t type = NP2BP_NONE;
+
+	np2scene_check();
+	np2skip_step();
 
 	if (np2jump_watch) {
 		if ((UINT16)CPU_ES == np2jump_es && CPU_ESI != np2jump_watchesi) {

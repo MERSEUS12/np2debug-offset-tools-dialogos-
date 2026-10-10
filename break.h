@@ -76,6 +76,26 @@ UINT np2jump_count(void);
 // entries, only while ES == script segment): instruction address, old and new ESI.
 #define	NP2JUMP_TRACEMAX	12
 UINT np2jump_trace_count(void);
+
+// Scene redirect (v8): intercepts the DOS "open file" call (INT 21h, AH=3Dh).  Every file the
+// game opens is logged with the memory address of its name.  When a scene is armed, the next scene
+// script (*.BIN except SYSTEM.BIN and START.BIN) the game opens is replaced by the armed one.
+#define	NP2SCENE_LOGMAX	16
+void np2scene_arm(const char *name);
+void np2scene_cancel(void);
+BOOL np2scene_is_armed(void);
+UINT np2scene_redirect_count(void);
+UINT np2scene_log_count(void);
+BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir);
+
+// Fast-forward mode (v7): each time the interpreter (ES = script segment) waits at a "\HA"
+// command, the emulator presses Enter by itself (with no-wait speed) until [count] dialogues
+// have been skipped; it then stops at the next wait so that dialogue is on screen.
+// wait_kind: 0 = start counting now, 1 = after the ESI jump (np2jump_arm) has been applied,
+// 2 = keep pressing Enter (without counting) until the scene redirect happens, then count.
+void np2skip_arm(UINT16 es, UINT count, UINT wait_kind);
+void np2skip_cancel(void);
+void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished);
 BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *newv);
 /// -----------------
 

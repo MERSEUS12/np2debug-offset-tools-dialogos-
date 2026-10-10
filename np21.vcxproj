@@ -1,0 +1,634 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug NT|Win32">
+      <Configuration>Debug NT</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug NT|x64">
+      <Configuration>Debug NT</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release NT|Win32">
+      <Configuration>Release NT</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release NT|x64">
+      <Configuration>Release NT</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Trace|Win32">
+      <Configuration>Trace</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Trace|x64">
+      <Configuration>Trace</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Trap|Win32">
+      <Configuration>Trap</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Trap|x64">
+      <Configuration>Trap</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <SccProjectName />
+    <SccLocalPath />
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Trap'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Trace'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release NT'" Label="Configuration">
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug NT'" Label="Configuration">
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x64'" Label="Configuration">
+    <PlatformToolset>Windows7.1SDK</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\vsyasm.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="np21base.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Platform)'=='Win32'" Label="PropertySheets">
+    <Import Project="np21x86.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Platform)'=='x64'" Label="PropertySheets">
+    <Import Project="np21x64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)'=='Debug NT'" Label="PropertySheets">
+    <Import Project="np21debug.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <LinkIncremental Condition="'$(Configuration)'=='Debug NT'">true</LinkIncremental>
+    <TargetName Condition="'$(Configuration)'=='Debug NT'">$(ProjectName)dnt</TargetName>
+    <TargetName Condition="'$(Configuration)'=='Release NT'">$(ProjectName)nt</TargetName>
+    <TargetName Condition="'$(Configuration)'=='Trace'">$(ProjectName)t</TargetName>
+    <TargetName Condition="'$(Configuration)'=='Trap'">$(ProjectName)tr</TargetName>
+    <TargetName Condition="'$(Platform)'=='x64'">$(TargetName)_x64</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release NT'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <Optimization>Full</Optimization>
+      <StringPooling>true</StringPooling>
+    </ClCompile>
+    <Link>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+    <ResourceCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Trace'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;TRACE;NP2APPDEV;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+    <ResourceCompile>
+      <Culture>0x0411</Culture>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Trap'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;DEBUG;NP2APPDEV;ENABLE_TRAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <ResourceCompile>
+      <Culture>0x0009</Culture>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\calendar.c" />
+    <ClCompile Include="..\common\rect.c" />
+    <ClCompile Include="..\common\resize.c" />
+    <ClCompile Include="..\common\_memory.c" />
+    <ClCompile Include="..\debugsub386.c" />
+    <ClCompile Include="..\break.c" />
+    <ClCompile Include="..\io\cpuio.c" />
+    <ClCompile Include="..\keystat.c" />
+    <ClCompile Include="..\nevent.c" />
+    <ClCompile Include="..\pccore.c" />
+    <ClCompile Include="..\sound\opngeng.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\statsave.c" />
+    <ClCompile Include="..\timing.c" />
+    <ClCompile Include="..\common\arc.c" />
+    <ClCompile Include="..\common\arcunzip.c" />
+    <ClCompile Include="..\common\bmpdata.c" />
+    <ClCompile Include="..\common\lstarray.c" />
+    <ClCompile Include="..\common\milstr.c" />
+    <ClCompile Include="..\common\mimpidef.c" />
+    <ClCompile Include="..\common\profile.c" />
+    <ClCompile Include="..\common\strres.c" />
+    <ClCompile Include="..\common\textfile.c" />
+    <ClCompile Include="..\common\wavefile.c" />
+    <ClCompile Include="..\codecnv\tcswap16.c" />
+    <ClCompile Include="..\codecnv\ucs2utf8.c" />
+    <ClCompile Include="..\codecnv\utf8ucs2.c" />
+    <ClCompile Include="..\i386c\cpucore.c" />
+    <ClCompile Include="..\i386c\cpumem.c" />
+    <ClCompile Include="..\i386c\ia32\cpu.c" />
+    <ClCompile Include="..\i386c\ia32\cpu_io.c" />
+    <ClCompile Include="..\i386c\ia32\cpu_mem.c" />
+    <ClCompile Include="..\i386c\ia32\ctrlxfer.c" />
+    <ClCompile Include="..\i386c\ia32\debug.c" />
+    <ClCompile Include="..\i386c\ia32\disasm.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\i386c\ia32\exception.c" />
+    <ClCompile Include="..\i386c\ia32\groups.c" />
+    <ClCompile Include="..\i386c\ia32\ia32.c" />
+    <ClCompile Include="..\i386c\ia32\inst_table.c" />
+    <ClCompile Include="..\i386c\ia32\interface.c" />
+    <ClCompile Include="..\i386c\ia32\paging.c" />
+    <ClCompile Include="..\i386c\ia32\resolve.c" />
+    <ClCompile Include="..\i386c\ia32\segments.c" />
+    <ClCompile Include="..\i386c\ia32\task.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\bin_arith.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\bit_byte.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\ctrl_trans.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\data_trans.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\dec_arith.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\flag_ctrl.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\fpu.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\fpu\fpdummy.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\logic_arith.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\misc_inst.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\seg_reg.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\shift_rotate.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\string_inst.c" />
+    <ClCompile Include="..\i386c\ia32\instructions\system_inst.c" />
+    <ClCompile Include="..\mem\dmax86.c" />
+    <ClCompile Include="..\mem\memegc.c" />
+    <ClCompile Include="..\mem\memems.c" />
+    <ClCompile Include="..\mem\memepp.c" />
+    <ClCompile Include="..\mem\memtram.c" />
+    <ClCompile Include="..\mem\memvga.c" />
+    <ClCompile Include="..\mem\memvram.c" />
+    <ClCompile Include="..\io\artic.c" />
+    <ClCompile Include="..\io\cgrom.c" />
+    <ClCompile Include="..\io\crtc.c" />
+    <ClCompile Include="..\io\dipsw.c" />
+    <ClCompile Include="..\io\dmac.c" />
+    <ClCompile Include="..\io\egc.c" />
+    <ClCompile Include="..\io\emsio.c" />
+    <ClCompile Include="..\io\epsonio.c" />
+    <ClCompile Include="..\io\fdc.c" />
+    <ClCompile Include="..\io\fdd320.c" />
+    <ClCompile Include="..\io\gdc.c" />
+    <ClCompile Include="..\io\gdc_pset.c" />
+    <ClCompile Include="..\io\gdc_sub.c" />
+    <ClCompile Include="..\io\iocore.c" />
+    <ClCompile Include="..\io\mouseif.c" />
+    <ClCompile Include="..\io\necio.c" />
+    <ClCompile Include="..\io\nmiio.c" />
+    <ClCompile Include="..\io\np2sysp.c" />
+    <ClCompile Include="..\io\pcidev.c" />
+    <ClCompile Include="..\io\pic.c" />
+    <ClCompile Include="..\io\pit.c" />
+    <ClCompile Include="..\io\printif.c" />
+    <ClCompile Include="..\io\serial.c" />
+    <ClCompile Include="..\io\sysport.c" />
+    <ClCompile Include="..\io\upd4990.c" />
+    <ClCompile Include="..\cbus\amd98.c" />
+    <ClCompile Include="..\cbus\atapicmd.c" />
+    <ClCompile Include="..\cbus\board118.c" />
+    <ClCompile Include="..\cbus\board14.c" />
+    <ClCompile Include="..\cbus\board26k.c" />
+    <ClCompile Include="..\cbus\board86.c" />
+    <ClCompile Include="..\cbus\boardspb.c" />
+    <ClCompile Include="..\cbus\boardx2.c" />
+    <ClCompile Include="..\cbus\cbuscore.c" />
+    <ClCompile Include="..\cbus\cs4231io.c" />
+    <ClCompile Include="..\cbus\ideio.c" />
+    <ClCompile Include="..\cbus\mpu98ii.c" />
+    <ClCompile Include="..\cbus\pc9861k.c" />
+    <ClCompile Include="..\cbus\pcm86io.c" />
+    <ClCompile Include="..\cbus\sasiio.c" />
+    <ClCompile Include="..\cbus\scsicmd.c" />
+    <ClCompile Include="..\cbus\scsiio.c" />
+    <ClCompile Include="..\bios\bios.c" />
+    <ClCompile Include="..\bios\bios09.c" />
+    <ClCompile Include="..\bios\bios0c.c" />
+    <ClCompile Include="..\bios\bios12.c" />
+    <ClCompile Include="..\bios\bios13.c" />
+    <ClCompile Include="..\bios\bios18.c" />
+    <ClCompile Include="..\bios\bios19.c" />
+    <ClCompile Include="..\bios\bios1a.c" />
+    <ClCompile Include="..\bios\bios1b.c" />
+    <ClCompile Include="..\bios\bios1c.c" />
+    <ClCompile Include="..\bios\bios1f.c" />
+    <ClCompile Include="..\bios\sxsibios.c" />
+    <ClCompile Include="..\lio\gcircle.c" />
+    <ClCompile Include="..\lio\gline.c" />
+    <ClCompile Include="..\lio\gpset.c" />
+    <ClCompile Include="..\lio\gput1.c" />
+    <ClCompile Include="..\lio\gscreen.c" />
+    <ClCompile Include="..\lio\lio.c" />
+    <ClCompile Include="..\vram\dispsync.c" />
+    <ClCompile Include="..\vram\makegrex.c" />
+    <ClCompile Include="..\vram\maketext.c" />
+    <ClCompile Include="..\vram\maketgrp.c" />
+    <ClCompile Include="..\vram\palettes.c" />
+    <ClCompile Include="..\vram\scrndraw.c" />
+    <ClCompile Include="..\vram\scrnsave.c" />
+    <ClCompile Include="..\vram\sdraw.c" />
+    <ClCompile Include="..\vram\vram.c" />
+    <ClCompile Include="..\sound\adpcmc.c" />
+    <ClCompile Include="..\sound\adpcmg.c" />
+    <ClCompile Include="..\sound\beepc.c" />
+    <ClCompile Include="..\sound\beepg.c" />
+    <ClCompile Include="..\sound\cs4231c.c" />
+    <ClCompile Include="..\sound\cs4231g.c" />
+    <ClCompile Include="..\sound\fmboard.c" />
+    <ClCompile Include="..\sound\fmtimer.c" />
+    <ClCompile Include="..\sound\opngenc.c" />
+    <ClCompile Include="..\sound\pcm86c.c" />
+    <ClCompile Include="..\sound\pcm86g.c" />
+    <ClCompile Include="..\sound\pcmmix.c" />
+    <ClCompile Include="..\sound\psggenc.c" />
+    <ClCompile Include="..\sound\psggeng.c" />
+    <ClCompile Include="..\sound\rhythmc.c" />
+    <ClCompile Include="..\sound\s98.c" />
+    <ClCompile Include="..\sound\sound.c" />
+    <ClCompile Include="..\sound\soundrom.c" />
+    <ClCompile Include="..\sound\tms3631c.c" />
+    <ClCompile Include="..\sound\tms3631g.c" />
+    <ClCompile Include="..\sound\vermouth\midimod.c" />
+    <ClCompile Include="..\sound\vermouth\midinst.c" />
+    <ClCompile Include="..\sound\vermouth\midiout.c" />
+    <ClCompile Include="..\sound\vermouth\midtable.c" />
+    <ClCompile Include="..\sound\vermouth\midvoice.c" />
+    <ClCompile Include="..\sound\getsnd\getsmix.c" />
+    <ClCompile Include="..\sound\getsnd\getsnd.c" />
+    <ClCompile Include="..\sound\getsnd\getwave.c" />
+    <ClCompile Include="..\fdd\diskdrv.c" />
+    <ClCompile Include="..\fdd\fdd_d88.c" />
+    <ClCompile Include="..\fdd\fdd_mtr.c" />
+    <ClCompile Include="..\fdd\fdd_xdf.c" />
+    <ClCompile Include="..\fdd\fddfile.c" />
+    <ClCompile Include="..\fdd\newdisk.c" />
+    <ClCompile Include="..\fdd\sxsi.c" />
+    <ClCompile Include="..\fdd\sxsicd.c" />
+    <ClCompile Include="..\fdd\sxsihdd.c" />
+    <ClCompile Include="..\font\font.c" />
+    <ClCompile Include="..\font\fontdata.c" />
+    <ClCompile Include="..\font\fontfm7.c" />
+    <ClCompile Include="..\font\fontmake.c" />
+    <ClCompile Include="..\font\fontpc88.c" />
+    <ClCompile Include="..\font\fontpc98.c" />
+    <ClCompile Include="..\font\fontv98.c" />
+    <ClCompile Include="..\font\fontx1.c" />
+    <ClCompile Include="..\font\fontx68k.c" />
+    <ClCompile Include="..\generic\cmjasts.c" />
+    <ClCompile Include="..\generic\cmndraw.c" />
+    <ClCompile Include="..\generic\dipswbmp.c" />
+    <ClCompile Include="..\generic\hostdrv.c" />
+    <ClCompile Include="..\generic\hostdrvs.c" />
+    <ClCompile Include="..\generic\keydisp.c" />
+    <ClCompile Include="..\generic\memdbg32.c" />
+    <ClCompile Include="..\generic\np2info.c" />
+    <ClCompile Include="..\generic\softkbd.c" />
+    <ClCompile Include="..\generic\unasm.c" />
+    <ClCompile Include="..\trap\inttrap.c" />
+    <ClCompile Include="..\trap\steptrap.c" />
+    <ClCompile Include="..\win9x\cmmidi.cpp" />
+    <ClCompile Include="..\win9x\cmpara.cpp" />
+    <ClCompile Include="..\win9x\cmserial.cpp" />
+    <ClCompile Include="..\win9x\commng.cpp" />
+    <ClCompile Include="..\win9x\dclock.cpp" />
+    <ClCompile Include="..\win9x\dd2.cpp" />
+    <ClCompile Include="..\win9x\dosio.cpp" />
+    <ClCompile Include="..\win9x\fontmng.cpp" />
+    <ClCompile Include="..\win9x\ini.cpp" />
+    <ClCompile Include="..\win9x\joymng.cpp" />
+    <ClCompile Include="..\win9x\menu.cpp" />
+    <ClCompile Include="..\win9x\mousemng.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_addr.cpp" />
+    <ClCompile Include="..\win9x\np2.cpp" />
+    <ClCompile Include="..\win9x\np2arg.cpp" />
+    <ClCompile Include="..\win9x\oemtext.cpp" />
+    <ClCompile Include="..\win9x\recvideo.cpp" />
+    <ClCompile Include="..\win9x\scrnmng.cpp" />
+    <ClCompile Include="..\win9x\soundmng.cpp" />
+    <ClCompile Include="..\win9x\subwind.cpp" />
+    <ClCompile Include="..\win9x\sysmng.cpp" />
+    <ClCompile Include="..\win9x\taskmng.cpp" />
+    <ClCompile Include="..\win9x\timemng.cpp" />
+    <ClCompile Include="..\win9x\toolwin.cpp" />
+    <ClCompile Include="..\win9x\trace.cpp" />
+    <ClCompile Include="..\win9x\win32sub.cpp" />
+    <ClCompile Include="..\win9x\winkbd.cpp" />
+    <ClCompile Include="..\win9x\winloc.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_about.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_bmp.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_clnd.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_config.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_disk.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_edit.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_jump.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_scene.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_mpu98.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_screen.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_serial.cpp" />
+    <ClCompile Include="..\win9x\dialog\d_sound.cpp" />
+    <ClCompile Include="..\win9x\dialog\dialogs.cpp" />
+    <ClCompile Include="..\win9x\dialog\np2class.cpp" />
+    <ClCompile Include="..\win9x\debuguty\view1mb.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewasm.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewcmn.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewer.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewmem.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewmenu.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewpaint.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewreg.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewseg.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewsnd.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewstat.cpp" />
+    <ClCompile Include="..\win9x\debuguty\viewstk.cpp" />
+    <ClCompile Include="..\win9x\ext\externalchipmanager.cpp" />
+    <ClCompile Include="..\win9x\ext\externalopna.cpp" />
+    <ClCompile Include="..\win9x\ext\mt32snd.cpp" />
+    <ClCompile Include="..\win9x\ext\c86ctl\c86ctlif.cpp" />
+    <ClCompile Include="..\win9x\ext\scci\scciif.cpp" />
+    <ClCompile Include="..\win9x\ext\romeo\juliet.cpp" />
+    <ClCompile Include="..\win9x\ext\opna.cpp" />
+    <ClCompile Include="..\win9x\misc\extrom.cpp" />
+    <ClCompile Include="..\win9x\misc\threadbase.cpp" />
+    <ClCompile Include="..\win9x\misc\tickcounter.cpp" />
+    <ClCompile Include="..\zlib\adler32.c" />
+    <ClCompile Include="..\zlib\crc32.c" />
+    <ClCompile Include="..\zlib\inffast.c" />
+    <ClCompile Include="..\zlib\inflate.c" />
+    <ClCompile Include="..\zlib\inftrees.c" />
+    <ClCompile Include="..\zlib\zutil.c" />
+    <ClCompile Include="..\win9x\mountdir\md_dir.c" />
+    <ClCompile Include="..\win9x\mountdir\md_fcb.c" />
+    <ClCompile Include="..\win9x\mountdir\md_file.c" />
+    <ClCompile Include="..\win9x\mountdir\md_util.c" />
+    <ClCompile Include="..\win9x\mountdir\mountdir.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <YASM Include="..\win9x\x86\PARTS.X86">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+    <YASM Include="..\win9x\x86\MAKEGRPH.X86">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+    <YASM Include="..\win9x\x86\OPNGENG.X86">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+    <YASM Include="..\win9x\x86\CPUTYPE.X86">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+    <YASM Include="..\win9x\DCLOCKD.X86">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+  </ItemGroup>
+  <ItemGroup>
+    <YASM Include="..\win9x\x64\makegrph.x64">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+    <YASM Include="..\win9x\x64\parts.x64">
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </YASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="np21.rc">
+      <Culture>0x0009</Culture>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\bios\bios.h" />
+    <ClInclude Include="..\bios\biosmem.h" />
+    <ClInclude Include="..\bios\fdfmt.h" />
+    <ClInclude Include="..\bios\rsbios.h" />
+    <ClInclude Include="..\cbus\amd98.h" />
+    <ClInclude Include="..\cbus\atapicmd.h" />
+    <ClInclude Include="..\cbus\board118.h" />
+    <ClInclude Include="..\cbus\board14.h" />
+    <ClInclude Include="..\cbus\board26k.h" />
+    <ClInclude Include="..\cbus\board86.h" />
+    <ClInclude Include="..\cbus\boardpx.h" />
+    <ClInclude Include="..\cbus\boardspb.h" />
+    <ClInclude Include="..\cbus\boardx2.h" />
+    <ClInclude Include="..\cbus\cbuscore.h" />
+    <ClInclude Include="..\cbus\cs4231io.h" />
+    <ClInclude Include="..\cbus\ideio.h" />
+    <ClInclude Include="..\cbus\mpu98ii.h" />
+    <ClInclude Include="..\cbus\pc9861k.h" />
+    <ClInclude Include="..\cbus\pcm86io.h" />
+    <ClInclude Include="..\cbus\sasiio.h" />
+    <ClInclude Include="..\cbus\scsicmd.h" />
+    <ClInclude Include="..\cbus\scsiio.h" />
+    <ClInclude Include="..\common.h" />
+    <ClInclude Include="..\common\arc.h" />
+    <ClInclude Include="..\common\arcunzip.h" />
+    <ClInclude Include="..\common\bmpdata.h" />
+    <ClInclude Include="..\common\lstarray.h" />
+    <ClInclude Include="..\common\milstr.h" />
+    <ClInclude Include="..\common\mimpidef.h" />
+    <ClInclude Include="..\common\parts.h" />
+    <ClInclude Include="..\common\profile.h" />
+    <ClInclude Include="..\common\rect.h" />
+    <ClInclude Include="..\common\resize.h" />
+    <ClInclude Include="..\common\strres.h" />
+    <ClInclude Include="..\common\textfile.h" />
+    <ClInclude Include="..\common\wavefile.h" />
+    <ClInclude Include="..\common\_memory.h" />
+    <ClInclude Include="..\debugsub.h" />
+    <ClInclude Include="..\fdd\d88head.h" />
+    <ClInclude Include="..\fdd\diskdrv.h" />
+    <ClInclude Include="..\fdd\fddfile.h" />
+    <ClInclude Include="..\fdd\fdd_d88.h" />
+    <ClInclude Include="..\fdd\fdd_mtr.h" />
+    <ClInclude Include="..\fdd\fdd_xdf.h" />
+    <ClInclude Include="..\fdd\newdisk.h" />
+    <ClInclude Include="..\fdd\sxsi.h" />
+    <ClInclude Include="..\fdd\sxsicd.h" />
+    <ClInclude Include="..\fdd\sxsihdd.h" />
+    <ClInclude Include="..\break.h" />
+    <ClInclude Include="..\i386c\ia32\cpu.h" />
+    <ClInclude Include="..\i386c\ia32\cpu_io.h" />
+    <ClInclude Include="..\i386c\ia32\cpu_mem.h" />
+    <ClInclude Include="..\i386c\ia32\ctrlxfer.h" />
+    <ClInclude Include="..\i386c\ia32\exception.h" />
+    <ClInclude Include="..\i386c\ia32\groups.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\bin_arith.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\bit_byte.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\ctrl_trans.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\data_trans.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\dec_arith.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\flag_ctrl.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\fpu\fp.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\logic_arith.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\misc_inst.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\seg_reg.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\shift_rotate.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\string_inst.h" />
+    <ClInclude Include="..\i386c\ia32\instructions\system_inst.h" />
+    <ClInclude Include="..\i386c\ia32\inst_table.h" />
+    <ClInclude Include="..\i386c\ia32\interface.h" />
+    <ClInclude Include="..\i386c\ia32\paging.h" />
+    <ClInclude Include="..\i386c\ia32\resolve.h" />
+    <ClInclude Include="..\i386c\ia32\segments.h" />
+    <ClInclude Include="..\i386c\ia32\task.h" />
+    <ClInclude Include="..\keystat.h" />
+    <ClInclude Include="..\lio\lio.h" />
+    <ClInclude Include="..\nevent.h" />
+    <ClInclude Include="..\np2ver.h" />
+    <ClInclude Include="..\pccore.h" />
+    <ClInclude Include="..\sound\opna.h" />
+    <ClInclude Include="..\sound\pcmmix.h" />
+    <ClInclude Include="..\sound\vermouth\midimod.h" />
+    <ClInclude Include="..\sound\vermouth\midinst.h" />
+    <ClInclude Include="..\sound\vermouth\midiout.h" />
+    <ClInclude Include="..\sound\vermouth\midtable.h" />
+    <ClInclude Include="..\sound\vermouth\midvoice.h" />
+    <ClInclude Include="..\sound\vermouth\vermouth.h" />
+    <ClInclude Include="..\statsave.h" />
+    <ClInclude Include="..\timing.h" />
+    <ClInclude Include="..\vram\dispsync.h" />
+    <ClInclude Include="..\vram\makegrex.h" />
+    <ClInclude Include="..\vram\makegrph.h" />
+    <ClInclude Include="..\vram\maketext.h" />
+    <ClInclude Include="..\vram\maketgrp.h" />
+    <ClInclude Include="..\vram\palettes.h" />
+    <ClInclude Include="..\vram\scrndraw.h" />
+    <ClInclude Include="..\vram\scrnsave.h" />
+    <ClInclude Include="..\vram\sdraw.h" />
+    <ClInclude Include="..\vram\vram.h" />
+    <ClInclude Include="..\zlib\crc32.h" />
+    <ClInclude Include="..\zlib\inffast.h" />
+    <ClInclude Include="..\zlib\inffixed.h" />
+    <ClInclude Include="..\zlib\inflate.h" />
+    <ClInclude Include="..\zlib\inftrees.h" />
+    <ClInclude Include="..\zlib\zconf.h" />
+    <ClInclude Include="..\zlib\zlib.h" />
+    <ClInclude Include="..\zlib\zutil.h" />
+    <ClInclude Include="..\win9x\cmmidi.h" />
+    <ClInclude Include="..\win9x\cmpara.h" />
+    <ClInclude Include="..\win9x\cmserial.h" />
+    <ClInclude Include="..\win9x\commng.h" />
+    <ClInclude Include="..\win9x\compiler.h" />
+    <ClInclude Include="..\win9x\dclock.h" />
+    <ClInclude Include="..\win9x\dd2.h" />
+    <ClInclude Include="..\win9x\debuguty\view1mb.h" />
+    <ClInclude Include="..\win9x\debuguty\viewasm.h" />
+    <ClInclude Include="..\win9x\debuguty\viewcmn.h" />
+    <ClInclude Include="..\win9x\debuguty\viewer.h" />
+    <ClInclude Include="..\win9x\debuguty\viewmem.h" />
+    <ClInclude Include="..\win9x\debuguty\viewmenu.h" />
+    <ClInclude Include="..\win9x\debuguty\viewpaint.h" />
+    <ClInclude Include="..\win9x\debuguty\viewreg.h" />
+    <ClInclude Include="..\win9x\debuguty\viewseg.h" />
+    <ClInclude Include="..\win9x\debuguty\viewsnd.h" />
+    <ClInclude Include="..\win9x\debuguty\viewstat.h" />
+    <ClInclude Include="..\win9x\debuguty\viewstk.h" />
+    <ClInclude Include="..\win9x\dialog\dialog.h" />
+    <ClInclude Include="..\win9x\dialog\dialogs.h" />
+    <ClInclude Include="..\win9x\dialog\np2class.h" />
+    <ClInclude Include="..\win9x\dosio.h" />
+    <ClInclude Include="..\win9x\fontmng.h" />
+    <ClInclude Include="..\win9x\ini.h" />
+    <ClInclude Include="..\win9x\joymng.h" />
+    <ClInclude Include="..\win9x\menu.h" />
+    <ClInclude Include="..\win9x\mousemng.h" />
+    <ClInclude Include="..\win9x\np2.h" />
+    <ClInclude Include="..\win9x\np2arg.h" />
+    <ClInclude Include="..\win9x\oemtext.h" />
+    <ClInclude Include="..\win9x\recvideo.h" />
+    <ClInclude Include="..\win9x\resource.h" />
+    <ClInclude Include="..\win9x\scrnmng.h" />
+    <ClInclude Include="..\win9x\soundmng.h" />
+    <ClInclude Include="..\win9x\subwind.h" />
+    <ClInclude Include="..\win9x\sysmng.h" />
+    <ClInclude Include="..\win9x\targetver.h" />
+    <ClInclude Include="..\win9x\taskmng.h" />
+    <ClInclude Include="..\win9x\timemng.h" />
+    <ClInclude Include="..\win9x\toolwin.h" />
+    <ClInclude Include="..\win9x\trace.h" />
+    <ClInclude Include="..\win9x\win32sub.h" />
+    <ClInclude Include="..\win9x\winkbd.h" />
+    <ClInclude Include="..\win9x\winloc.h" />
+    <ClInclude Include="..\win9x\ext\c86ctl\c86ctl.h" />
+    <ClInclude Include="..\win9x\ext\c86ctl\c86ctlif.h" />
+    <ClInclude Include="..\win9x\ext\c86ctl\cbus_boardtype.h" />
+    <ClInclude Include="..\win9x\ext\scci\scciif.h" />
+    <ClInclude Include="..\win9x\ext\scci\scci.h" />
+    <ClInclude Include="..\win9x\ext\scci\SCCIDefines.h" />
+    <ClInclude Include="..\win9x\ext\externalchipmanager.h" />
+    <ClInclude Include="..\win9x\ext\externalopna.h" />
+    <ClInclude Include="..\win9x\ext\externalchip.h" />
+    <ClInclude Include="..\win9x\ext\mt32snd.h" />
+    <ClInclude Include="..\win9x\ext\juliet.h" />
+    <ClInclude Include="..\win9x\ext\romeo.h" />
+    <ClInclude Include="..\win9x\misc\extrom.h" />
+    <ClInclude Include="..\win9x\misc\guard.h" />
+    <ClInclude Include="..\win9x\misc\threadbase.h" />
+    <ClInclude Include="..\win9x\misc\tickcounter.h" />
+    <ClInclude Include="..\win9x\misc\vc6macros.h" />
+    <ClInclude Include="..\win9x\mountdir\md_dir.h" />
+    <ClInclude Include="..\win9x\mountdir\md_fcb.h" />
+    <ClInclude Include="..\win9x\mountdir\md_file.h" />
+    <ClInclude Include="..\win9x\mountdir\md_util.h" />
+    <ClInclude Include="..\win9x\mountdir\mountdir.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\keystat.tbl" />
+    <None Include="..\statsave.tbl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\vsyasm.targets" />
+  </ImportGroup>
+</Project>

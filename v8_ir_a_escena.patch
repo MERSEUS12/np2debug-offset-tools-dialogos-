@@ -1,0 +1,774 @@
+diff --git a/break.c b/break.c
+index 581fb496..afd28acc 100644
+--- a/break.c
++++ b/break.c
+@@ -100,6 +100,304 @@ BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *
+ 	*newv = np2jump_trace[idx].newv;
+ 	return TRUE;
+ }
++/// Scene redirect (v8): intercepts DOS "open file" (INT 21h, AH=3Dh)
++/// =======
++// Every time the game opens a file, the name is logged together with the memory address
++// of the file name string (this is the buffer that holds the scene name).  If a target scene
++// is armed, the name of the next scene script (*.BIN, except SYSTEM.BIN / START.BIN) the game
++// opens is overwritten in place with the target, so the game loads that scene instead.
++static char		np2scene_target[16] = "";
++static BOOL		np2scene_armed = FALSE;
++static UINT		np2scene_done = 0;
++static UINT		np2scene_nlog = 0;
++static struct {
++	char	name[16];
++	UINT32	linear;
++	BOOL	redir;
++} np2scene_log[NP2SCENE_LOGMAX];
++
++static char np2scene_up(char c)
++{
++	if ((c >= 'a') && (c <= 'z')) {
++		c = (char)(c - 'a' + 'A');
++	}
++	return c;
++}
++
++static BOOL np2scene_same(const char *a, const char *b)
++{
++	while ((*a) && (*b)) {
++		if (np2scene_up(*a) != np2scene_up(*b)) {
++			return FALSE;
++		}
++		a++;
++		b++;
++	}
++	return (*a == 0) && (*b == 0);
++}
++
++static BOOL np2scene_isscript(const char *n)
++{
++	UINT len = 0;
++
++	while (n[len]) {
++		len++;
++	}
++	if (len < 5) {
++		return FALSE;
++	}
++	if ((np2scene_up(n[len - 4]) != '.') || (np2scene_up(n[len - 3]) != 'B') ||
++		(np2scene_up(n[len - 2]) != 'I') || (np2scene_up(n[len - 1]) != 'N')) {
++		return FALSE;
++	}
++	return !(np2scene_same(n, "SYSTEM.BIN") || np2scene_same(n, "START.BIN"));
++}
++
++void np2scene_arm(const char *name)
++{
++	UINT i;
++
++	for (i = 0; (i < 15) && (name[i]); i++) {
++		np2scene_target[i] = np2scene_up(name[i]);
++	}
++	np2scene_target[i] = '\0';
++	np2scene_armed = (i != 0);
++}
++
++void np2scene_cancel(void)
++{
++	np2scene_armed = FALSE;
++}
++
++BOOL np2scene_is_armed(void)
++{
++	return np2scene_armed;
++}
++
++UINT np2scene_redirect_count(void)
++{
++	return np2scene_done;
++}
++
++UINT np2scene_log_count(void)
++{
++	return (np2scene_nlog < NP2SCENE_LOGMAX) ? np2scene_nlog : NP2SCENE_LOGMAX;
++}
++
++// idx 0 = the most recent file opened
++BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir)
++{
++	UINT n = np2scene_log_count();
++	UINT pos;
++	UINT i;
++
++	if (idx >= n) {
++		return FALSE;
++	}
++	pos = (np2scene_nlog - 1 - idx) % NP2SCENE_LOGMAX;
++	for (i = 0; i < 16; i++) {
++		name[i] = np2scene_log[pos].name[i];
++	}
++	*linear = np2scene_log[pos].linear;
++	*redir = np2scene_log[pos].redir;
++	return TRUE;
++}
++
++static void np2scene_check(void)
++{
++	UINT32	cur;
++	UINT32	vec;
++	UINT32	lin;
++	UINT32	base;
++	UINT	i;
++	UINT	len;
++	UINT	slot;
++	BOOL	redir;
++	char	full[80];
++
++	cur = ((UINT32)(UINT16)CPU_CS << 4) + (CPU_EIP & 0xffff);
++	vec = ((UINT32)memp_read16(0x86) << 4) + (UINT32)memp_read16(0x84);
++	if ((cur != vec) || (CPU_AH != 0x3d)) {
++		return;
++	}
++	lin = ((UINT32)(UINT16)CPU_DS << 4) + (UINT32)(UINT16)CPU_DX;
++	len = 0;
++	while (len < 79) {
++		UINT8 c = memp_read8(lin + len);
++		if (!c) {
++			break;
++		}
++		full[len++] = (c >= 0x20) && (c < 0x7f) ? (char)c : '?';
++	}
++	full[len] = '\0';
++	base = 0;										// start of the name after the last '\' or ':'
++	for (i = 0; i < len; i++) {
++		if ((full[i] == '\\') || (full[i] == ':')) {
++			base = i + 1;
++		}
++	}
++
++	redir = FALSE;
++	if ((np2scene_armed) && (np2scene_isscript(full + base)) &&
++		(!np2scene_same(full + base, np2scene_target))) {
++		UINT tlen = 0;
++
++		while (np2scene_target[tlen]) {
++			tlen++;
++		}
++		if (tlen <= 12) {							// a DOS 8.3 name always fits the usual buffers
++			memp_writes(lin + base, np2scene_target, tlen + 1);		// includes the final 0
++			redir = TRUE;
++			np2scene_armed = FALSE;
++			np2scene_done++;
++		}
++	}
++
++	slot = np2scene_nlog % NP2SCENE_LOGMAX;
++	for (i = 0; i < 15; i++) {
++		np2scene_log[slot].name[i] = (full[base + i]) ? full[base + i] : '\0';
++		if (!full[base + i]) {
++			break;
++		}
++	}
++	np2scene_log[slot].name[(i < 15) ? i : 15] = '\0';
++	np2scene_log[slot].linear = lin + base;
++	np2scene_log[slot].redir = redir;
++	np2scene_nlog++;
++}
++/// =======
++
++/// Fast-forward (skip) mode
++/// =======
++#define	NP2SKIP_KEYDOWN_TIME	200000		// instructions Enter stays pressed
++#define	NP2SKIP_RETRY_TIME		1500000		// instructions before pressing again if the game ignored the key
++static BOOL		np2skip_active = FALSE;
++static BOOL		np2skip_finished = FALSE;
++static UINT		np2skip_wait = 0;			// 0 = counting, 1 = until the ESI jump, 2 = until the scene redirect
++static UINT		np2skip_jumpbase = 0;
++static UINT		np2skip_scenebase = 0;
++static UINT16	np2skip_es = 0;
++static UINT		np2skip_target = 0;
++static UINT		np2skip_pressed = 0;
++static UINT32	np2skip_lastesi = 0xffffffff;
++static BOOL		np2skip_keydown = FALSE;
++static UINT		np2skip_keytimer = 0;
++static UINT		np2skip_retry = 0;
++static UINT8	np2skip_savednowait = 0;
++
++void np2skip_arm(UINT16 es, UINT count, UINT wait_kind)
++{
++	np2skip_cancel();
++	np2skip_es = es;
++	np2skip_target = count;
++	np2skip_pressed = 0;
++	np2skip_lastesi = 0xffffffff;
++	np2skip_keydown = FALSE;
++	np2skip_keytimer = 0;
++	np2skip_retry = 0;
++	np2skip_finished = FALSE;
++	np2skip_wait = wait_kind;
++	np2skip_jumpbase = np2jump_done;
++	np2skip_scenebase = np2scene_done;
++	np2skip_active = ((count > 0) || (wait_kind == 2));
++#ifdef WIN32
++	if (np2skip_active) {
++		np2skip_savednowait = np2oscfg.NOWAIT;
++		np2oscfg.NOWAIT = 1;
++	}
++#endif
++}
++
++void np2skip_cancel(void)
++{
++	if (np2skip_keydown) {
++		keystat_senddata(0x9c);		// release Enter
++		np2skip_keydown = FALSE;
++	}
++#ifdef WIN32
++	if (np2skip_active) {
++		np2oscfg.NOWAIT = np2skip_savednowait;
++	}
++#endif
++	np2skip_active = FALSE;
++}
++
++void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished)
++{
++	*active = np2skip_active;
++	*pressed = np2skip_pressed;
++	*target = np2skip_target;
++	*finished = np2skip_finished;
++}
++
++static void np2skip_press(void)
++{
++	if (np2skip_keydown) {
++		keystat_senddata(0x9c);		// release first: a clean break + make pair
++	}
++	keystat_senddata(0x1c);			// Enter down
++	np2skip_keydown = TRUE;
++	np2skip_keytimer = NP2SKIP_KEYDOWN_TIME;
++}
++
++// called once per emulated instruction (from np2break_is_next)
++static void np2skip_step(void)
++{
++	UINT32 sp;
++
++	if (!np2skip_active) {
++		return;
++	}
++	if ((np2skip_wait == 1) && (np2jump_done == np2skip_jumpbase)) {
++		return;							// the ESI jump has not been applied yet
++	}
++	if ((np2skip_wait == 2) && (np2scene_done != np2skip_scenebase)) {
++		np2skip_lastesi = 0xffffffff;	// the scene was redirected: start counting in the new scene
++		np2skip_wait = 0;
++	}
++	if (np2skip_wait == 1) {
++		np2skip_wait = 0;
++	}
++	if (np2skip_keydown) {
++		if (np2skip_keytimer) {
++			np2skip_keytimer--;
++		}
++		if (!np2skip_keytimer) {
++			keystat_senddata(0x9c);		// Enter up
++			np2skip_keydown = FALSE;
++			np2skip_retry = NP2SKIP_RETRY_TIME;
++		}
++	}
++	else if (np2skip_retry) {
++		np2skip_retry--;
++	}
++	if (((UINT16)CPU_ES != np2skip_es) || (CPU_ESI >= 0x10000)) {
++		return;
++	}
++	sp = ((UINT32)np2skip_es << 4) + CPU_ESI;
++	if ((memp_read8(sp) != 'H') || (memp_read8(sp + 1) != 'A') ||
++		(memp_read8(sp + 2) != '\\')) {
++		return;
++	}
++	if (CPU_ESI != np2skip_lastesi) {			// a new wait for a key
++		np2skip_lastesi = CPU_ESI;
++		if (np2skip_wait == 2) {				// still in the old scene: keep pressing Enter, no counting
++			np2skip_press();
++			return;
++		}
++		if (np2skip_pressed >= np2skip_target) {
++			np2skip_finished = TRUE;
++			np2skip_cancel();
++			return;
++		}
++		np2skip_pressed++;
++		np2skip_press();
++	}
++	else if ((!np2skip_keydown) && (!np2skip_retry) &&
++			((np2skip_pressed) || (np2skip_wait == 2))) {
++		np2skip_press();						// same wait, the game ignored the key
++	}
++}
+ /// =======
+ 
+ void np2active_renewal(UINT8 breakflag) {										// ver0.30
+@@ -297,6 +595,9 @@ UINT32 np2break_is_next()	{
+ 	UINT32 addr = 0;
+ 	np2break_t type = NP2BP_NONE;
+ 
++	np2scene_check();
++	np2skip_step();
++
+ 	if (np2jump_watch) {
+ 		if ((UINT16)CPU_ES == np2jump_es && CPU_ESI != np2jump_watchesi) {
+ 			if (np2jump_ntrace < NP2JUMP_TRACEMAX) {
+diff --git a/break.h b/break.h
+index 9eb9168f..f463c643 100644
+--- a/break.h
++++ b/break.h
+@@ -76,6 +76,26 @@ UINT np2jump_count(void);
+ // entries, only while ES == script segment): instruction address, old and new ESI.
+ #define	NP2JUMP_TRACEMAX	12
+ UINT np2jump_trace_count(void);
++
++// Scene redirect (v8): intercepts the DOS "open file" call (INT 21h, AH=3Dh).  Every file the
++// game opens is logged with the memory address of its name.  When a scene is armed, the next scene
++// script (*.BIN except SYSTEM.BIN and START.BIN) the game opens is replaced by the armed one.
++#define	NP2SCENE_LOGMAX	16
++void np2scene_arm(const char *name);
++void np2scene_cancel(void);
++BOOL np2scene_is_armed(void);
++UINT np2scene_redirect_count(void);
++UINT np2scene_log_count(void);
++BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir);
++
++// Fast-forward mode (v7): each time the interpreter (ES = script segment) waits at a "\HA"
++// command, the emulator presses Enter by itself (with no-wait speed) until [count] dialogues
++// have been skipped; it then stops at the next wait so that dialogue is on screen.
++// wait_kind: 0 = start counting now, 1 = after the ESI jump (np2jump_arm) has been applied,
++// 2 = keep pressing Enter (without counting) until the scene redirect happens, then count.
++void np2skip_arm(UINT16 es, UINT count, UINT wait_kind);
++void np2skip_cancel(void);
++void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished);
+ BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *newv);
+ /// -----------------
+ 
+diff --git a/win9x/dialog/d_jump.cpp b/win9x/dialog/d_jump.cpp
+index 38c0c9d3..2505ab85 100644
+--- a/win9x/dialog/d_jump.cpp
++++ b/win9x/dialog/d_jump.cpp
+@@ -33,6 +33,8 @@ typedef struct {
+ 	UINT32	ptr;
+ 	UINT	is32;
+ 	TCHAR	hook[96];
++	UINT	skip;
++	BOOL	have_off;
+ } JUMPCFG;
+ 
+ static const TCHAR s_sect[] = TEXT("jump");
+@@ -119,6 +121,8 @@ static void jump_load(JUMPCFG *cfg) {
+ 	cfg->ptr = (UINT32)jump_parse(work);
+ 	cfg->is32 = (UINT)GetPrivateProfileInt(s_sect, TEXT("ptr32"), 0, path);
+ 	jump_inistr(path, TEXT("hooks"), TEXT(""), cfg->hook, 96);
++	cfg->skip = (UINT)GetPrivateProfileInt(s_sect, TEXT("skip"), 0, path);
++	cfg->have_off = TRUE;
+ }
+ 
+ static void jump_save(const JUMPCFG *cfg) {
+@@ -145,6 +149,8 @@ static void jump_save(const JUMPCFG *cfg) {
+ 	WritePrivateProfileString(s_sect, TEXT("ptr32"),
+ 							cfg->is32 ? TEXT("1") : TEXT("0"), path);
+ 	WritePrivateProfileString(s_sect, TEXT("hooks"), cfg->hook, path);
++	wsprintf(work, TEXT("%u"), cfg->skip);
++	WritePrivateProfileString(s_sect, TEXT("skip"), work, path);
+ }
+ 
+ static void jump_collect(HWND hWnd, JUMPCFG *cfg) {
+@@ -157,6 +163,13 @@ static void jump_collect(HWND hWnd, JUMPCFG *cfg) {
+ 	cfg->ptr = (UINT32)jump_gethex(hWnd, IDC_JUMP_PTR);
+ 	cfg->is32 = (IsDlgButtonChecked(hWnd, IDC_JUMP_32) == BST_CHECKED) ? 1 : 0;
+ 	GetDlgItemText(hWnd, IDC_JUMP_HOOK, cfg->hook, 96);
++	cfg->skip = GetDlgItemInt(hWnd, IDC_JUMP_SKIP, NULL, FALSE);
++	{
++		TCHAR offtxt[64];
++		offtxt[0] = 0;
++		GetDlgItemText(hWnd, IDC_JUMP_OFF, offtxt, 64);
++		cfg->have_off = (offtxt[0] != 0);	// empty offset = no ESI jump, only fast-forward
++	}
+ }
+ 
+ // "SSSS:OOOO SSSS:OOOO ..." (separated by spaces, commas or semicolons)
+@@ -242,6 +255,18 @@ static void jump_state(HWND hWnd) {
+ 			lstrcat(work, part);
+ 		}
+ 	}
++	{
++		BOOL	sk_act, sk_fin;
++		UINT	sk_press, sk_target;
++
++		np2skip_status(&sk_act, &sk_press, &sk_target, &sk_fin);
++		if ((sk_act) || (sk_fin) || (sk_press)) {
++			wsprintf(part, TEXT("Fast-forward: %s  skipped %u of %u dialogues\r\n"),
++							(sk_act) ? TEXT("RUNNING") : ((sk_fin) ? TEXT("DONE") : TEXT("stopped")),
++							sk_press, sk_target);
++			lstrcat(work, part);
++		}
++	}
+ 	if (es != seg) {
+ 		lstrcat(work, TEXT("\r\nES is not the script segment at this instant; that is normal. ")
+ 					TEXT("Jump applies by itself when the game waits at \\HA."));
+@@ -345,8 +370,15 @@ static bool jump_apply(HWND hWnd) {
+ 	}
+ 	target = (UINT32)((INT32)cfg.off + cfg.adj);
+ 	naddr = jump_parsehooks(cfg.hook, addrs, NP2JUMP_MAXADDR);
+-	np2jump_arm((UINT16)cfg.seg, target, addrs, naddr);
+-	if (cfg.ptr) {
++	np2skip_cancel();
++	if (cfg.have_off) {
++		np2jump_arm((UINT16)cfg.seg, target, addrs, naddr);
++	}
++	if (cfg.skip) {
++		// with an offset: first restart at that offset, then fast-forward; without it: fast-forward from here
++		np2skip_arm((UINT16)cfg.seg, cfg.skip, cfg.have_off ? 1 : 0);
++	}
++	if ((cfg.ptr) && (cfg.have_off)) {
+ 		if (cfg.is32) {
+ 			memp_write32(cfg.ptr, target);
+ 		}
+@@ -382,6 +414,7 @@ LRESULT CALLBACK JumpDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
+ 			jump_sethex(hWnd, IDC_JUMP_SEG, cfg.seg);
+ 			jump_sethex(hWnd, IDC_JUMP_PTR, cfg.ptr);
+ 			SetDlgItemText(hWnd, IDC_JUMP_HOOK, cfg.hook);
++			SetDlgItemInt(hWnd, IDC_JUMP_SKIP, cfg.skip, FALSE);
+ 			CheckDlgButton(hWnd, IDC_JUMP_32, cfg.is32 ? BST_CHECKED : BST_UNCHECKED);
+ 			jump_state(hWnd);
+ 			SendDlgItemMessage(hWnd, IDC_JUMP_OFF, EM_SETSEL, 0, -1);
+diff --git a/win9x/dialog/d_scene.cpp b/win9x/dialog/d_scene.cpp
+new file mode 100644
+index 00000000..5630a1b0
+--- /dev/null
++++ b/win9x/dialog/d_scene.cpp
+@@ -0,0 +1,192 @@
++// D_SCENE.CPP - "Go to scene" tool (Debug menu)
++// ------
++// Intercepts the DOS "open file" call of the game (see np2scene_* in break.c).
++//   1. Arms the target scene (e.g. H14_R07.BIN).
++//   2. The emulator presses Enter by itself, at no-wait speed, until the game opens its next
++//      scene script; that open is redirected to the target scene.
++//   3. In the new scene it keeps pressing Enter until N dialogues have been skipped and
++//      stops at the next one.
++// The log of the files the game opened (with the memory address of each name) is shown in
++// the information box; that address is the buffer where the game keeps the scene name.
++// Values are remembered in np2jump.ini (section [scene]).  Name empty and N = 0 + "Go" cancels.
++
++#include	"compiler.h"
++#include	"resource.h"
++#include	"np2.h"
++#include	"dialog.h"
++#include	"pccore.h"
++#include	"cpucore.h"
++#include	"break.h"
++
++static const TCHAR s_scene[] = TEXT("scene");
++
++static void scene_inipath(TCHAR *path, int len) {
++
++	TCHAR	*p;
++
++	GetModuleFileName(NULL, path, len);
++	p = _tcsrchr(path, _T('\\'));
++	if (p) {
++		p++;
++	}
++	else {
++		p = path;
++	}
++	lstrcpy(p, TEXT("np2jump.ini"));
++}
++
++static void scene_info(HWND hWnd) {
++
++	TCHAR	work[1400];
++	TCHAR	part[96];
++	char	name[16];
++	UINT32	lin;
++	BOOL	redir;
++	UINT	i;
++	BOOL	sk_act, sk_fin;
++	UINT	sk_press, sk_target;
++
++	wsprintf(work, TEXT("Scene hook armed: %s   Redirects done: %u\r\n"),
++				np2scene_is_armed() ? TEXT("yes (waiting for the game to open a scene)") : TEXT("no"),
++				np2scene_redirect_count());
++	np2skip_status(&sk_act, &sk_press, &sk_target, &sk_fin);
++	if ((sk_act) || (sk_fin) || (sk_press)) {
++		wsprintf(part, TEXT("Fast-forward: %s  skipped %u of %u dialogues\r\n"),
++				(sk_act) ? TEXT("RUNNING") : ((sk_fin) ? TEXT("DONE") : TEXT("stopped")),
++				sk_press, sk_target);
++		lstrcat(work, part);
++	}
++	if (!np2scene_log_count()) {
++		lstrcat(work, TEXT("\r\nNo file has been opened yet through INT 21h (AH=3Dh).\r\n"));
++	}
++	else {
++		lstrcat(work, TEXT("\r\nFiles opened by the game (newest first):\r\n"));
++	}
++	for (i = 0; np2scene_log_get(i, name, &lin, &redir); i++) {
++		wsprintf(part, TEXT("  %-14hs  name at linear %05X (%04X:%04X)%s\r\n"), name, (UINT)lin,
++				(UINT)(lin >> 4), (UINT)(lin & 15),
++				redir ? TEXT("  <- REDIRECTED") : TEXT(""));
++		lstrcat(work, part);
++	}
++	SetDlgItemText(hWnd, IDC_SCENE_INFO, work);
++}
++
++static bool scene_go(HWND hWnd) {
++
++	TCHAR	name[32];
++	TCHAR	path[MAX_PATH];
++	TCHAR	work[32];
++	char	aname[32];
++	UINT	skip;
++	UINT32	seg;
++	UINT	i;
++	UINT	len;
++
++	name[0] = 0;
++	GetDlgItemText(hWnd, IDC_SCENE_NAME, name, 32);
++	skip = GetDlgItemInt(hWnd, IDC_SCENE_SKIP, NULL, FALSE);
++	work[0] = 0;
++	GetDlgItemText(hWnd, IDC_SCENE_SEG, work, 32);
++	seg = (UINT32)_tcstoul(work, NULL, 16);
++
++	scene_inipath(path, MAX_PATH);
++	WritePrivateProfileString(s_scene, TEXT("name"), name, path);
++	wsprintf(work, TEXT("%u"), skip);
++	WritePrivateProfileString(s_scene, TEXT("skip"), work, path);
++	wsprintf(work, TEXT("%X"), seg);
++	WritePrivateProfileString(s_scene, TEXT("seg"), work, path);
++
++	np2skip_cancel();
++	np2scene_cancel();
++	if ((!name[0]) && (!skip)) {
++		return true;							// cancel everything
++	}
++	if (seg < 0x100) {
++		MessageBox(hWnd, TEXT("Enter the script segment (4458 for this game)."),
++							TEXT("Go to scene"), MB_OK | MB_ICONWARNING);
++		return false;
++	}
++	len = 0;
++	for (i = 0; (name[i]) && (i < 31); i++) {
++		aname[i] = (name[i] < 0x80) ? (char)name[i] : '?';
++		len++;
++	}
++	aname[len] = '\0';
++	if (name[0]) {
++		bool dot = false;
++		for (i = 0; i < len; i++) {
++			if (aname[i] == '.') {
++				dot = true;
++			}
++		}
++		if ((!dot) && (len <= 8)) {
++			lstrcpyA(aname + len, ".BIN");
++			len += 4;
++		}
++		if (len > 12) {
++			MessageBox(hWnd, TEXT("The file name must be a DOS 8.3 name (e.g. H14_R07.BIN)."),
++							TEXT("Go to scene"), MB_OK | MB_ICONWARNING);
++			return false;
++		}
++		np2scene_arm(aname);
++		np2skip_arm((UINT16)seg, skip, 2);
++	}
++	else {
++		np2skip_arm((UINT16)seg, skip, 0);		// no scene: fast-forward from here
++	}
++	if (np2stopemulate) {
++		np2active_set(1);
++	}
++	return true;
++}
++
++LRESULT CALLBACK SceneDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
++
++	TCHAR	path[MAX_PATH];
++	TCHAR	work[64];
++	UINT	seg;
++
++	switch (msg) {
++		case WM_INITDIALOG:
++			scene_inipath(path, MAX_PATH);
++			GetPrivateProfileString(s_scene, TEXT("name"), TEXT(""), work, 64, path);
++			SetDlgItemText(hWnd, IDC_SCENE_NAME, work);
++			SetDlgItemInt(hWnd, IDC_SCENE_SKIP,
++							(UINT)GetPrivateProfileInt(s_scene, TEXT("skip"), 0, path), FALSE);
++			GetPrivateProfileString(s_scene, TEXT("seg"), TEXT(""), work, 64, path);
++			if (!work[0]) {
++				GetPrivateProfileString(TEXT("jump"), TEXT("seg"), TEXT("4458"), work, 64, path);
++			}
++			seg = (UINT)_tcstoul(work, NULL, 16);
++			wsprintf(work, TEXT("%X"), seg ? seg : 0x4458);
++			SetDlgItemText(hWnd, IDC_SCENE_SEG, work);
++			scene_info(hWnd);
++			SetFocus(GetDlgItem(hWnd, IDC_SCENE_NAME));
++			return FALSE;
++
++		case WM_COMMAND:
++			switch (LOWORD(wParam)) {
++				case IDC_SCENE_REFRESH:
++					scene_info(hWnd);
++					return TRUE;
++
++				case IDOK:
++					if (scene_go(hWnd)) {
++						EndDialog(hWnd, IDOK);
++					}
++					return TRUE;
++
++				case IDCANCEL:
++					EndDialog(hWnd, IDCANCEL);
++					return TRUE;
++			}
++			break;
++	}
++	return FALSE;
++}
++
++void dialog_scene(HWND hWnd) {
++
++	DialogBox(g_hInstance, MAKEINTRESOURCE(IDD_SCENEDLG), hWnd,
++													(DLGPROC)SceneDialogProc);
++}
+diff --git a/win9x/dialog/dialog.h b/win9x/dialog/dialog.h
+index 5248b08f..c3405b42 100644
+--- a/win9x/dialog/dialog.h
++++ b/win9x/dialog/dialog.h
+@@ -7,6 +7,7 @@ LRESULT CALLBACK AddrDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+ LRESULT CALLBACK EditDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+ LRESULT CALLBACK FindDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+ LRESULT CALLBACK JumpDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
++LRESULT CALLBACK SceneDialogProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+ 
+ void dialog_scropt(HWND hWnd);
+ void dialog_sndopt(HWND hWnd);
+@@ -22,4 +23,5 @@ void dialog_changedir(HWND hWnd, UINT drive);
+ void dialog_font(HWND hWnd);
+ void dialog_writebmp(HWND hWnd);
+ void dialog_jump(HWND hWnd);
++void dialog_scene(HWND hWnd);
+ 
+diff --git a/win9x/np2.cpp b/win9x/np2.cpp
+index e7fbc036..97cc0983 100644
+--- a/win9x/np2.cpp
++++ b/win9x/np2.cpp
+@@ -841,6 +841,12 @@ static void OnCommand(HWND hWnd, WPARAM wParam)
+ 			winuileave();
+ 			break;
+ 
++		case IDM_SCENEDLG:
++			winuienter();
++			dialog_scene(hWnd);
++			winuileave();
++			break;
++
+ 		case IDM_DEBUGUTY:
+ 			viewer_open(g_hInstance);
+ 			break;
+diff --git a/win9x/np21.rc b/win9x/np21.rc
+index 08f6d530..4d166475 100644
+--- a/win9x/np21.rc
++++ b/win9x/np21.rc
+@@ -212,6 +212,7 @@ IDR_SYSDEBUG MENU
+ {
+     MENUITEM "Debug utility", IDM_DEBUGUTY
+     MENUITEM "Jump to dialogue...", IDM_JUMPDLG
++    MENUITEM "Go to scene...", IDM_SCENEDLG
+ }
+ 
+ IDR_SYSKEYDISP MENU
+@@ -368,10 +369,29 @@ FONT 8, "MS Shell Dlg"
+     PUSHBUTTON      "Use current CS:IP", IDC_JUMP_CUR, 84, 127, 70, 14
+     PUSHBUTTON      "Read state", IDC_JUMP_READ, 8, 148, 60, 14
+     EDITTEXT        IDC_JUMP_INFO, 8, 168, 236, 70, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL
++    LTEXT           "Skip N dialogues (decimal, 0 = off):", -1, 194, 42, 54, 24, SS_LEFT
++    EDITTEXT        IDC_JUMP_SKIP, 194, 68, 50, 12, ES_AUTOHSCROLL
+     DEFPUSHBUTTON   "Jump", IDOK, 194, 7, 50, 14
+     PUSHBUTTON      "Cancel", IDCANCEL, 194, 23, 50, 14
+ }
+ 
++IDD_SCENEDLG DIALOG 0, 0, 252, 200
++STYLE DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_POPUP | WS_SYSMENU
++CAPTION "Go to scene"
++FONT 8, "MS Shell Dlg"
++{
++    LTEXT           "Scene file (e.g. H14_R07.BIN):", -1, 8, 6, 178, 8, SS_LEFT
++    EDITTEXT        IDC_SCENE_NAME, 8, 16, 100, 12, ES_AUTOHSCROLL
++    LTEXT           "Then skip N dialogues (decimal):", -1, 8, 34, 178, 8, SS_LEFT
++    EDITTEXT        IDC_SCENE_SKIP, 8, 44, 50, 12, ES_AUTOHSCROLL
++    LTEXT           "Script segment (hex):", -1, 8, 62, 100, 8, SS_LEFT
++    EDITTEXT        IDC_SCENE_SEG, 8, 72, 50, 12, ES_AUTOHSCROLL
++    PUSHBUTTON      "Refresh log", IDC_SCENE_REFRESH, 8, 92, 60, 14
++    EDITTEXT        IDC_SCENE_INFO, 8, 112, 236, 82, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL
++    DEFPUSHBUTTON   "Go", IDOK, 194, 7, 50, 14
++    PUSHBUTTON      "Close", IDCANCEL, 194, 23, 50, 14
++}
++
+ IDD_CALENDAR DIALOGEX 0, 0, 164, 80
+ STYLE DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_POPUP | WS_SYSMENU
+ CAPTION "Calendar"
+diff --git a/win9x/np21.vcxproj b/win9x/np21.vcxproj
+index 2e710d50..b7328b44 100644
+--- a/win9x/np21.vcxproj
++++ b/win9x/np21.vcxproj
+@@ -369,6 +369,7 @@
+     <ClCompile Include="..\win9x\dialog\d_disk.cpp" />
+     <ClCompile Include="..\win9x\dialog\d_edit.cpp" />
+     <ClCompile Include="..\win9x\dialog\d_jump.cpp" />
++    <ClCompile Include="..\win9x\dialog\d_scene.cpp" />
+     <ClCompile Include="..\win9x\dialog\d_mpu98.cpp" />
+     <ClCompile Include="..\win9x\dialog\d_screen.cpp" />
+     <ClCompile Include="..\win9x\dialog\d_serial.cpp" />
+diff --git a/win9x/np21.vcxproj.filters b/win9x/np21.vcxproj.filters
+index bb548c37..ab3a9233 100644
+--- a/win9x/np21.vcxproj.filters
++++ b/win9x/np21.vcxproj.filters
+@@ -756,6 +756,9 @@
+     <ClCompile Include="..\win9x\dialog\d_jump.cpp">
+       <Filter>Win9x\dialog</Filter>
+     </ClCompile>
++    <ClCompile Include="..\win9x\dialog\d_scene.cpp">
++      <Filter>Win9x\dialog</Filter>
++    </ClCompile>
+     <ClCompile Include="..\win9x\dialog\d_edit.cpp">
+       <Filter>Win9x\dialog</Filter>
+     </ClCompile>
+diff --git a/win9x/resource.h b/win9x/resource.h
+index 14898f71..596cde6e 100644
+--- a/win9x/resource.h
++++ b/win9x/resource.h
+@@ -33,6 +33,7 @@
+ #define IDD_ADDRESS                     181
+ #define IDD_EDIT                        191
+ #define IDD_JUMPDLG                     192
++#define IDD_SCENEDLG                    193
+ #define IDR_SYS                         201
+ #define IDR_SYSKEYDISP                  202
+ #define IDR_SYSSOFTKBD                  203
+@@ -275,6 +276,12 @@
+ #define IDC_JUMP_SEG                    20112
+ #define IDC_JUMP_HOOK                   20113
+ #define IDC_JUMP_CUR                    20114
++#define IDC_JUMP_SKIP                   20115
++#define IDC_SCENE_NAME                  20201
++#define IDC_SCENE_SKIP                  20202
++#define IDC_SCENE_SEG                   20203
++#define IDC_SCENE_INFO                  20204
++#define IDC_SCENE_REFRESH               20205
+ #define IDC_EDIT_GROUP                  19101
+ #define IDC_EDIT_STR                    19102
+ #define IDC_EDIT_TYPE_HEX               19103
+@@ -406,6 +413,7 @@
+ #define IDM_DEBUGUTY                    40011
+ #define IDM_VIEWER                      40012
+ #define IDM_JUMPDLG                     40013
++#define IDM_SCENEDLG                    40014
+ #define IDM_SCRNMUL                     40050
+ #define IDM_SCRNMUL4                    40054
+ #define IDM_SCRNMUL6                    40056
