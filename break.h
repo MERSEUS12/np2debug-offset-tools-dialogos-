@@ -72,6 +72,11 @@ void np2jump_arm(UINT16 es, UINT32 esi, const UINT32 *addrs, UINT naddr);
 void np2jump_disarm(void);
 BOOL np2jump_is_armed(void);
 UINT np2jump_count(void);
+// Trace of what changes ESI after the jump was applied (up to NP2JUMP_TRACEMAX
+// entries, only while ES == script segment): instruction address, old and new ESI.
+#define	NP2JUMP_TRACEMAX	12
+UINT np2jump_trace_count(void);
+BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *newv);
 /// -----------------
 
 /// Helper

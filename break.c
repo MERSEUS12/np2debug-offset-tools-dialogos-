@@ -38,6 +38,17 @@ static UINT32	np2jump_esi = 0;
 static UINT32	np2jump_addrs[NP2JUMP_MAXADDR];
 static UINT		np2jump_naddr = 0;
 static UINT		np2jump_done = 0;
+static BOOL		np2jump_watch = FALSE;
+static UINT32	np2jump_watchesi = 0;
+static UINT16	np2jump_prevcs = 0;
+static UINT32	np2jump_preveip = 0;
+static UINT		np2jump_ntrace = 0;
+static struct {
+	UINT16	cs;
+	UINT32	eip;
+	UINT32	oldv;
+	UINT32	newv;
+} np2jump_trace[NP2JUMP_TRACEMAX];
 
 void np2jump_arm(UINT16 es, UINT32 esi, const UINT32 *addrs, UINT naddr)
 {
@@ -52,12 +63,15 @@ void np2jump_arm(UINT16 es, UINT32 esi, const UINT32 *addrs, UINT naddr)
 	np2jump_naddr = naddr;
 	np2jump_es = es;
 	np2jump_esi = esi;
+	np2jump_watch = FALSE;
+	np2jump_ntrace = 0;
 	np2jump_armed = TRUE;
 }
 
 void np2jump_disarm(void)
 {
 	np2jump_armed = FALSE;
+	np2jump_watch = FALSE;
 }
 
 BOOL np2jump_is_armed(void)
@@ -68,6 +82,23 @@ BOOL np2jump_is_armed(void)
 UINT np2jump_count(void)
 {
 	return np2jump_done;
+}
+
+UINT np2jump_trace_count(void)
+{
+	return np2jump_ntrace;
+}
+
+BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *newv)
+{
+	if (idx >= np2jump_ntrace) {
+		return FALSE;
+	}
+	*cs = np2jump_trace[idx].cs;
+	*eip = np2jump_trace[idx].eip;
+	*oldv = np2jump_trace[idx].oldv;
+	*newv = np2jump_trace[idx].newv;
+	return TRUE;
 }
 /// =======
 
@@ -266,6 +297,24 @@ UINT32 np2break_is_next()	{
 	UINT32 addr = 0;
 	np2break_t type = NP2BP_NONE;
 
+	if (np2jump_watch) {
+		if ((UINT16)CPU_ES == np2jump_es && CPU_ESI != np2jump_watchesi) {
+			if (np2jump_ntrace < NP2JUMP_TRACEMAX) {
+				np2jump_trace[np2jump_ntrace].cs = np2jump_prevcs;
+				np2jump_trace[np2jump_ntrace].eip = np2jump_preveip;
+				np2jump_trace[np2jump_ntrace].oldv = np2jump_watchesi;
+				np2jump_trace[np2jump_ntrace].newv = CPU_ESI;
+				np2jump_ntrace++;
+			}
+			np2jump_watchesi = CPU_ESI;
+		}
+		np2jump_prevcs = (UINT16)CPU_CS;
+		np2jump_preveip = CPU_EIP;
+		if (np2jump_ntrace >= NP2JUMP_TRACEMAX) {
+			np2jump_watch = FALSE;
+		}
+	}
+
 	if (np2jump_armed && (UINT16)CPU_ES == np2jump_es && CPU_ESI < 0x10000) {
 		UINT32 sp = ((UINT32)np2jump_es << 4) + CPU_ESI;
 		if (memp_read8(sp) == 'H' && memp_read8(sp + 1) == 'A' &&
@@ -282,6 +331,10 @@ UINT32 np2break_is_next()	{
 				CPU_ESI = np2jump_esi;
 				np2jump_armed = FALSE;
 				np2jump_done++;
+				np2jump_watch = TRUE;
+				np2jump_watchesi = CPU_ESI;
+				np2jump_prevcs = (UINT16)CPU_CS;
+				np2jump_preveip = CPU_EIP;
 			}
 		}
 	}

@@ -195,7 +195,7 @@ static UINT jump_parsehooks(const TCHAR *s, UINT32 *addrs, UINT max) {
 // shows ES, ESI, the next bytes of the script and the size of the buffer
 static void jump_state(HWND hWnd) {
 
-	TCHAR	work[480];
+	TCHAR	work[1100];
 	TCHAR	part[64];
 	UINT32	esi;
 	UINT32	es;
@@ -228,6 +228,18 @@ static void jump_state(HWND hWnd) {
 									(UINT)memp_read16(addr + 3) * 16);
 				lstrcat(work, part);
 			}
+		}
+	}
+	if (np2jump_trace_count()) {
+		UINT16	tcs;
+		UINT32	teip, told, tnew;
+		UINT	ti;
+
+		lstrcat(work, TEXT("After the jump, ESI changed:\r\n"));
+		for (ti = 0; np2jump_trace_get(ti, &tcs, &teip, &told, &tnew); ti++) {
+			wsprintf(part, TEXT("  %04X:%04X  ESI %X -> %X\r\n"),
+											(UINT)tcs, (UINT)teip, told, tnew);
+			lstrcat(work, part);
 		}
 	}
 	if (es != seg) {
