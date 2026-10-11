@@ -1286,6 +1286,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
  */
 static void ExecuteOneFrame(BOOL bDraw)
 {
+	if (np2skip_is_busy())
+	{
+		bDraw = FALSE;			// fast-forward: do not draw the frames in between
+	}
 	if (recvideo_isEnabled())
 	{
 		bDraw = TRUE;

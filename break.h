@@ -96,6 +96,14 @@ BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir);
 void np2skip_arm(UINT16 es, UINT count, UINT wait_kind);
 void np2skip_cancel(void);
 void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished);
+BOOL np2skip_is_busy(void);										// TRUE while the fast-forward is running (the screen is not drawn)
+void np2skip_arm_offset(UINT16 es, UINT32 stopoff, UINT wait_kind);	// stop at the first "\HA" wait whose position is > stopoff
+
+// Position tracker (v9): remembers the last "\HA" wait of the script interpreter.
+// "Dialogue ID" = number of dialogue blocks (marker 18 01 / 18 02) before that position, 0-based.
+void np2track_setseg(UINT16 es);
+BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT textmax);
+BOOL np2scene_last_script(char *name);						// last scene script (*.BIN) the game opened
 BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *newv);
 /// -----------------
 

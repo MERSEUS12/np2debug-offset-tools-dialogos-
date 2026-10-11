@@ -203,6 +203,20 @@ BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir)
 	return TRUE;
 }
 
+BOOL np2scene_last_script(char *name)
+{
+	UINT	i;
+	UINT32	lin;
+	BOOL	redir;
+
+	for (i = 0; np2scene_log_get(i, name, &lin, &redir); i++) {
+		if (np2scene_isscript(name)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 static void np2scene_check(void)
 {
 	UINT32	cur;
@@ -267,6 +281,78 @@ static void np2scene_check(void)
 }
 /// =======
 
+/// Position tracker (v9)
+/// =======
+static UINT16	np2track_es = 0x4458;
+static UINT32	np2track_esi = 0;
+static BOOL		np2track_valid = FALSE;
+
+void np2track_setseg(UINT16 es)
+{
+	if (es >= 0x100) {
+		np2track_es = es;
+	}
+}
+
+// called once per emulated instruction: remember the last wait at a "\HA" command
+static void np2track_step(void)
+{
+	UINT32 sp;
+
+	if (((UINT16)CPU_ES != np2track_es) || (CPU_ESI >= 0x10000)) {
+		return;
+	}
+	sp = ((UINT32)np2track_es << 4) + CPU_ESI;
+	if ((memp_read8(sp) != 'H') || (memp_read8(sp + 1) != 'A') ||
+		(memp_read8(sp + 2) != '\\')) {
+		return;
+	}
+	np2track_esi = CPU_ESI;
+	np2track_valid = TRUE;
+}
+
+BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT textmax)
+{
+	UINT32	base;
+	UINT32	i;
+	UINT32	last;
+	int		n;
+	UINT	k;
+
+	if (!np2track_valid) {
+		return FALSE;
+	}
+	base = (UINT32)np2track_es << 4;
+	n = 0;
+	last = 0;
+	for (i = 1; (i + 1) < np2track_esi; i++) {
+		if ((memp_read8(base + i) == 0x18) &&
+			((memp_read8(base + i + 1) == 1) || (memp_read8(base + i + 1) == 2))) {
+			UINT8 p = memp_read8(base + i - 1);
+			if ((p == 0x00) || (p == 0x01) || (p == 0x45)) {		// same rule as the extractor
+				n++;
+				last = i;
+			}
+		}
+	}
+	*esi = np2track_esi;
+	*id = n - 1;
+	*blockstart = last;
+	k = 0;
+	if (text) {
+		for (i = last + 2; (i < np2track_esi) && ((k + 1) < textmax); i++) {
+			UINT8 c = memp_read8(base + i);
+			if (c == '\\') {
+				break;					// the control suffix (\HA...) starts here
+			}
+			text[k++] = ((c >= 0x20) && (c < 0x7f)) ? (char)c : '.';
+		}
+		text[k] = '\0';
+	}
+	return (n > 0);
+}
+/// =======
+
 /// Fast-forward (skip) mode
 /// =======
 #define	NP2SKIP_KEYDOWN_TIME	200000		// instructions Enter stays pressed
@@ -284,6 +370,7 @@ static BOOL		np2skip_keydown = FALSE;
 static UINT		np2skip_keytimer = 0;
 static UINT		np2skip_retry = 0;
 static UINT8	np2skip_savednowait = 0;
+static UINT32	np2skip_stopoff = 0xffffffff;
 
 void np2skip_arm(UINT16 es, UINT count, UINT wait_kind)
 {
@@ -296,6 +383,7 @@ void np2skip_arm(UINT16 es, UINT count, UINT wait_kind)
 	np2skip_keytimer = 0;
 	np2skip_retry = 0;
 	np2skip_finished = FALSE;
+	np2skip_stopoff = 0xffffffff;
 	np2skip_wait = wait_kind;
 	np2skip_jumpbase = np2jump_done;
 	np2skip_scenebase = np2scene_done;
@@ -320,6 +408,17 @@ void np2skip_cancel(void)
 	}
 #endif
 	np2skip_active = FALSE;
+}
+
+BOOL np2skip_is_busy(void)
+{
+	return np2skip_active;
+}
+
+void np2skip_arm_offset(UINT16 es, UINT32 stopoff, UINT wait_kind)
+{
+	np2skip_arm(es, 1, wait_kind);
+	np2skip_stopoff = stopoff;
 }
 
 void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished)
@@ -382,6 +481,16 @@ static void np2skip_step(void)
 	if (CPU_ESI != np2skip_lastesi) {			// a new wait for a key
 		np2skip_lastesi = CPU_ESI;
 		if (np2skip_wait == 2) {				// still in the old scene: keep pressing Enter, no counting
+			np2skip_press();
+			return;
+		}
+		if (np2skip_stopoff != 0xffffffff) {				// stop by script position (order independent)
+			if (CPU_ESI > np2skip_stopoff) {
+				np2skip_finished = TRUE;
+				np2skip_cancel();
+				return;
+			}
+			np2skip_pressed++;
 			np2skip_press();
 			return;
 		}
@@ -596,6 +705,7 @@ UINT32 np2break_is_next()	{
 	np2break_t type = NP2BP_NONE;
 
 	np2scene_check();
+	np2track_step();
 	np2skip_step();
 
 	if (np2jump_watch) {

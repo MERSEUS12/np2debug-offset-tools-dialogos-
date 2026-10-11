@@ -282,6 +282,7 @@
 #define IDC_SCENE_SEG                   20203
 #define IDC_SCENE_INFO                  20204
 #define IDC_SCENE_REFRESH               20205
+#define IDC_SCENE_OFF                   20206
 #define IDC_EDIT_GROUP                  19101
 #define IDC_EDIT_STR                    19102
 #define IDC_EDIT_TYPE_HEX               19103
