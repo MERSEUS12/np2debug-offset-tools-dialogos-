@@ -388,6 +388,7 @@ FONT 8, "MS Shell Dlg"
     EDITTEXT        IDC_SCENE_OFF, 70, 44, 50, 12, ES_AUTOHSCROLL
     LTEXT           "Script segment (hex):", -1, 8, 62, 100, 8, SS_LEFT
     EDITTEXT        IDC_SCENE_SEG, 8, 72, 50, 12, ES_AUTOHSCROLL
+    CONTROL         "Also press Enter in maps / menus (tries to pass them)", IDC_SCENE_MASH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 70, 74, 174, 10
     PUSHBUTTON      "Refresh log", IDC_SCENE_REFRESH, 8, 92, 60, 14
     EDITTEXT        IDC_SCENE_INFO, 8, 112, 236, 96, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL
     DEFPUSHBUTTON   "Go", IDOK, 194, 7, 50, 14

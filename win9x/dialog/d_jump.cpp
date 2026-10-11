@@ -371,6 +371,7 @@ static bool jump_apply(HWND hWnd) {
 	target = (UINT32)((INT32)cfg.off + cfg.adj);
 	naddr = jump_parsehooks(cfg.hook, addrs, NP2JUMP_MAXADDR);
 	np2skip_cancel();
+	np2skip_set_mash(FALSE);
 	if (cfg.have_off) {
 		np2jump_arm((UINT16)cfg.seg, target, addrs, naddr);
 	}

@@ -87,6 +87,7 @@ BOOL np2scene_is_armed(void);
 UINT np2scene_redirect_count(void);
 UINT np2scene_log_count(void);
 BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir);
+BOOL np2scene_log_caller(UINT idx, UINT16 *cs, UINT16 *ip, UINT8 *ctx);	// who called INT 21h (return address) + the 16 code bytes before it
 
 // Fast-forward mode (v7): each time the interpreter (ES = script segment) waits at a "\HA"
 // command, the emulator presses Enter by itself (with no-wait speed) until [count] dialogues
@@ -96,6 +97,8 @@ BOOL np2scene_log_get(UINT idx, char *name, UINT32 *linear, BOOL *redir);
 void np2skip_arm(UINT16 es, UINT count, UINT wait_kind);
 void np2skip_cancel(void);
 void np2skip_status(BOOL *active, UINT *pressed, UINT *target, BOOL *finished);
+BOOL np2skip_is_waiting(void);								// TRUE while armed but the game is at a map / menu (normal speed, it resumes at the next dialogue)
+void np2skip_set_mash(BOOL on);							// TRUE: also press Enter now and then outside dialogues (tries to pass menus / maps)
 BOOL np2skip_is_busy(void);										// TRUE while the fast-forward is running (the screen is not drawn)
 void np2skip_arm_offset(UINT16 es, UINT32 stopoff, UINT wait_kind);	// stop at the first "\HA" wait whose position is > stopoff
 

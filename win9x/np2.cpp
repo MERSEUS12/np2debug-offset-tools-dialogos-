@@ -1288,7 +1288,9 @@ static void ExecuteOneFrame(BOOL bDraw)
 {
 	if (np2skip_is_busy())
 	{
-		bDraw = FALSE;			// fast-forward: do not draw the frames in between
+		static UINT s_ffcnt = 0;
+		// fast-forward: draw only one frame out of 60 (progress is visible, no "fast camera" effect)
+		bDraw = ((++s_ffcnt % 60) == 0);
 	}
 	if (recvideo_isEnabled())
 	{

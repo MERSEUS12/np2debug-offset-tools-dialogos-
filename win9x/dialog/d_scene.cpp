@@ -39,8 +39,8 @@ static void scene_inipath(TCHAR *path, int len) {
 
 static void scene_info(HWND hWnd) {
 
-	TCHAR	work[2000];
-	TCHAR	part[160];
+	TCHAR	work[4200];
+	TCHAR	part[260];
 	char	name[16];
 	char	text[56];
 	UINT32	lin;
@@ -79,6 +79,9 @@ static void scene_info(HWND hWnd) {
 				(sk_act) ? TEXT("RUNNING") : ((sk_fin) ? TEXT("DONE") : TEXT("stopped")), sk_press);
 		lstrcat(work, part);
 	}
+	if (np2skip_is_waiting()) {
+		lstrcat(work, TEXT("Fast-forward: WAITING - the game is not at a dialogue (map or menu). Play it normally; it resumes at the next dialogue.\r\n"));
+	}
 	if (!np2scene_log_count()) {
 		lstrcat(work, TEXT("\r\nNo file has been opened yet through INT 21h (AH=3Dh).\r\n"));
 	}
@@ -90,6 +93,19 @@ static void scene_info(HWND hWnd) {
 				(UINT)(lin >> 4), (UINT)(lin & 15),
 				redir ? TEXT("  <- REDIRECTED") : TEXT(""));
 		lstrcat(work, part);
+		{	// for scene scripts, show who opened them: this is the scene loader in the game code
+			UINT16	ccs, cip;
+			UINT8	ctx[16];
+			UINT	n = (UINT)lstrlenA(name);
+
+			if ((n > 4) && (name[n - 4] == '.') && ((name[n - 3] | 0x20) == 'b') &&
+				(np2scene_log_caller(i, &ccs, &cip, ctx))) {
+				wsprintf(part, TEXT("      called from %04X:%04X   code before it: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\r\n"),
+						(UINT)ccs, (UINT)cip, ctx[0], ctx[1], ctx[2], ctx[3], ctx[4], ctx[5], ctx[6], ctx[7],
+						ctx[8], ctx[9], ctx[10], ctx[11], ctx[12], ctx[13], ctx[14], ctx[15]);
+				lstrcat(work, part);
+			}
+		}
 	}
 	SetDlgItemText(hWnd, IDC_SCENE_INFO, work);
 }
@@ -122,11 +138,13 @@ static bool scene_go(HWND hWnd) {
 	wsprintf(work, TEXT("%u"), skip);
 	WritePrivateProfileString(s_scene, TEXT("skip"), work, path);
 	WritePrivateProfileString(s_scene, TEXT("offset"), offtxt, path);
+	WritePrivateProfileString(s_scene, TEXT("mash"), (IsDlgButtonChecked(hWnd, IDC_SCENE_MASH) == BST_CHECKED) ? TEXT("1") : TEXT("0"), path);
 	wsprintf(work, TEXT("%X"), seg);
 	WritePrivateProfileString(s_scene, TEXT("seg"), work, path);
 
 	np2skip_cancel();
 	np2scene_cancel();
+	np2skip_set_mash(IsDlgButtonChecked(hWnd, IDC_SCENE_MASH) == BST_CHECKED);
 
 	// "FILE:ID" shorthand: the number after the colon is N
 	for (i = 0; name[i]; i++) {
@@ -198,6 +216,7 @@ LRESULT CALLBACK SceneDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 							(UINT)GetPrivateProfileInt(s_scene, TEXT("skip"), 0, path), FALSE);
 			GetPrivateProfileString(s_scene, TEXT("offset"), TEXT(""), work, 64, path);
 			SetDlgItemText(hWnd, IDC_SCENE_OFF, work);
+			CheckDlgButton(hWnd, IDC_SCENE_MASH, GetPrivateProfileInt(s_scene, TEXT("mash"), 0, path) ? BST_CHECKED : BST_UNCHECKED);
 			GetPrivateProfileString(s_scene, TEXT("seg"), TEXT(""), work, 64, path);
 			if (!work[0]) {
 				GetPrivateProfileString(TEXT("jump"), TEXT("seg"), TEXT("4458"), work, 64, path);

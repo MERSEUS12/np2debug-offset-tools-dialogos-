@@ -114,6 +114,9 @@ static struct {
 	char	name[16];
 	UINT32	linear;
 	BOOL	redir;
+	UINT16	ccs;			// who called INT 21h: return address
+	UINT16	cip;
+	UINT8	ctx[16];		// the 16 bytes of code that end at the return address
 } np2scene_log[NP2SCENE_LOGMAX];
 
 static char np2scene_up(char c)
@@ -217,6 +220,24 @@ BOOL np2scene_last_script(char *name)
 	return FALSE;
 }
 
+BOOL np2scene_log_caller(UINT idx, UINT16 *cs, UINT16 *ip, UINT8 *ctx)
+{
+	UINT n = np2scene_log_count();
+	UINT pos;
+	UINT i;
+
+	if (idx >= n) {
+		return FALSE;
+	}
+	pos = (np2scene_nlog - 1 - idx) % NP2SCENE_LOGMAX;
+	*cs = np2scene_log[pos].ccs;
+	*ip = np2scene_log[pos].cip;
+	for (i = 0; i < 16; i++) {
+		ctx[i] = np2scene_log[pos].ctx[i];
+	}
+	return TRUE;
+}
+
 static void np2scene_check(void)
 {
 	UINT32	cur;
@@ -277,6 +298,17 @@ static void np2scene_check(void)
 	np2scene_log[slot].name[(i < 15) ? i : 15] = '\0';
 	np2scene_log[slot].linear = lin + base;
 	np2scene_log[slot].redir = redir;
+	{	// the stack of the INT 21h handler entry holds IP, CS, FLAGS of the caller
+		UINT32 stk = ((UINT32)(UINT16)CPU_SS << 4) + (UINT32)(UINT16)CPU_SP;
+		UINT32 ret;
+
+		np2scene_log[slot].cip = memp_read16(stk);
+		np2scene_log[slot].ccs = memp_read16(stk + 2);
+		ret = ((UINT32)np2scene_log[slot].ccs << 4) + np2scene_log[slot].cip;
+		for (i = 0; i < 16; i++) {
+			np2scene_log[slot].ctx[i] = (ret >= 16) ? memp_read8(ret - 16 + i) : 0;
+		}
+	}
 	np2scene_nlog++;
 }
 /// =======
@@ -356,6 +388,8 @@ BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT
 /// Fast-forward (skip) mode
 /// =======
 #define	NP2SKIP_KEYDOWN_TIME	200000		// instructions Enter stays pressed
+#define	NP2SKIP_SOFTIDLE		100000000	// instructions without a dialogue wait before going back to normal speed (map / menu)
+#define	NP2SKIP_MASHPERIOD		2000000		// instructions between Enter presses in "mash" mode
 #define	NP2SKIP_RETRY_TIME		1500000		// instructions before pressing again if the game ignored the key
 static BOOL		np2skip_active = FALSE;
 static BOOL		np2skip_finished = FALSE;
@@ -371,6 +405,37 @@ static UINT		np2skip_keytimer = 0;
 static UINT		np2skip_retry = 0;
 static UINT8	np2skip_savednowait = 0;
 static UINT32	np2skip_stopoff = 0xffffffff;
+static UINT32	np2skip_idle = 0;
+static BOOL		np2skip_slow = FALSE;		// waiting at a map / menu: normal speed, normal drawing
+static BOOL		np2skip_mash = FALSE;
+static UINT32	np2skip_mashcnt = 0;
+static BOOL		np2skip_fast = FALSE;		// NOWAIT is currently forced by us
+
+static void np2skip_fast_on(void)
+{
+#ifdef WIN32
+	if (!np2skip_fast) {
+		np2skip_savednowait = np2oscfg.NOWAIT;
+		np2oscfg.NOWAIT = 1;
+		np2skip_fast = TRUE;
+	}
+#endif
+}
+
+static void np2skip_fast_off(void)
+{
+#ifdef WIN32
+	if (np2skip_fast) {
+		np2oscfg.NOWAIT = np2skip_savednowait;
+		np2skip_fast = FALSE;
+	}
+#endif
+}
+
+void np2skip_set_mash(BOOL on)
+{
+	np2skip_mash = on;
+}
 
 void np2skip_arm(UINT16 es, UINT count, UINT wait_kind)
 {
@@ -384,16 +449,16 @@ void np2skip_arm(UINT16 es, UINT count, UINT wait_kind)
 	np2skip_retry = 0;
 	np2skip_finished = FALSE;
 	np2skip_stopoff = 0xffffffff;
+	np2skip_idle = 0;
+	np2skip_slow = FALSE;
+	np2skip_mashcnt = 0;
 	np2skip_wait = wait_kind;
 	np2skip_jumpbase = np2jump_done;
 	np2skip_scenebase = np2scene_done;
 	np2skip_active = ((count > 0) || (wait_kind == 2));
-#ifdef WIN32
 	if (np2skip_active) {
-		np2skip_savednowait = np2oscfg.NOWAIT;
-		np2oscfg.NOWAIT = 1;
+		np2skip_fast_on();
 	}
-#endif
 }
 
 void np2skip_cancel(void)
@@ -402,17 +467,19 @@ void np2skip_cancel(void)
 		keystat_senddata(0x9c);		// release Enter
 		np2skip_keydown = FALSE;
 	}
-#ifdef WIN32
-	if (np2skip_active) {
-		np2oscfg.NOWAIT = np2skip_savednowait;
-	}
-#endif
+	np2skip_fast_off();
+	np2skip_slow = FALSE;
 	np2skip_active = FALSE;
+}
+
+BOOL np2skip_is_waiting(void)
+{
+	return (np2skip_active) && (np2skip_slow);
 }
 
 BOOL np2skip_is_busy(void)
 {
-	return np2skip_active;
+	return (np2skip_active) && (!np2skip_slow);
 }
 
 void np2skip_arm_offset(UINT16 es, UINT32 stopoff, UINT wait_kind)
@@ -452,10 +519,25 @@ static void np2skip_step(void)
 	}
 	if ((np2skip_wait == 2) && (np2scene_done != np2skip_scenebase)) {
 		np2skip_lastesi = 0xffffffff;	// the scene was redirected: start counting in the new scene
+		np2skip_idle = 0;
+		if (np2skip_slow) {
+			np2skip_slow = FALSE;
+			np2skip_fast_on();
+		}
 		np2skip_wait = 0;
 	}
 	if (np2skip_wait == 1) {
 		np2skip_wait = 0;
+	}
+	if ((!np2skip_slow) && (++np2skip_idle > NP2SKIP_SOFTIDLE)) {
+		np2skip_slow = TRUE;			// not at a dialogue (map, menu...): normal speed and drawing so it can be played
+		np2skip_fast_off();
+	}
+	if ((np2skip_mash) && (!np2skip_keydown)) {		// optional: press Enter now and then to pass menus / maps
+		if (++np2skip_mashcnt >= NP2SKIP_MASHPERIOD) {
+			np2skip_mashcnt = 0;
+			np2skip_press();
+		}
 	}
 	if (np2skip_keydown) {
 		if (np2skip_keytimer) {
@@ -480,6 +562,11 @@ static void np2skip_step(void)
 	}
 	if (CPU_ESI != np2skip_lastesi) {			// a new wait for a key
 		np2skip_lastesi = CPU_ESI;
+		np2skip_idle = 0;
+		if (np2skip_slow) {					// back at a dialogue: fast-forward again
+			np2skip_slow = FALSE;
+			np2skip_fast_on();
+		}
 		if (np2skip_wait == 2) {				// still in the old scene: keep pressing Enter, no counting
 			np2skip_press();
 			return;
