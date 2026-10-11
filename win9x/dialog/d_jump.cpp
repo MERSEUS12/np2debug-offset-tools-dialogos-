@@ -33,6 +33,8 @@ typedef struct {
 	UINT32	ptr;
 	UINT	is32;
 	TCHAR	hook[96];
+	UINT	skip;
+	BOOL	have_off;
 } JUMPCFG;
 
 static const TCHAR s_sect[] = TEXT("jump");
@@ -119,6 +121,8 @@ static void jump_load(JUMPCFG *cfg) {
 	cfg->ptr = (UINT32)jump_parse(work);
 	cfg->is32 = (UINT)GetPrivateProfileInt(s_sect, TEXT("ptr32"), 0, path);
 	jump_inistr(path, TEXT("hooks"), TEXT(""), cfg->hook, 96);
+	cfg->skip = (UINT)GetPrivateProfileInt(s_sect, TEXT("skip"), 0, path);
+	cfg->have_off = TRUE;
 }
 
 static void jump_save(const JUMPCFG *cfg) {
@@ -145,6 +149,8 @@ static void jump_save(const JUMPCFG *cfg) {
 	WritePrivateProfileString(s_sect, TEXT("ptr32"),
 							cfg->is32 ? TEXT("1") : TEXT("0"), path);
 	WritePrivateProfileString(s_sect, TEXT("hooks"), cfg->hook, path);
+	wsprintf(work, TEXT("%u"), cfg->skip);
+	WritePrivateProfileString(s_sect, TEXT("skip"), work, path);
 }
 
 static void jump_collect(HWND hWnd, JUMPCFG *cfg) {
@@ -157,6 +163,13 @@ static void jump_collect(HWND hWnd, JUMPCFG *cfg) {
 	cfg->ptr = (UINT32)jump_gethex(hWnd, IDC_JUMP_PTR);
 	cfg->is32 = (IsDlgButtonChecked(hWnd, IDC_JUMP_32) == BST_CHECKED) ? 1 : 0;
 	GetDlgItemText(hWnd, IDC_JUMP_HOOK, cfg->hook, 96);
+	cfg->skip = GetDlgItemInt(hWnd, IDC_JUMP_SKIP, NULL, FALSE);
+	{
+		TCHAR offtxt[64];
+		offtxt[0] = 0;
+		GetDlgItemText(hWnd, IDC_JUMP_OFF, offtxt, 64);
+		cfg->have_off = (offtxt[0] != 0);	// empty offset = no ESI jump, only fast-forward
+	}
 }
 
 // "SSSS:OOOO SSSS:OOOO ..." (separated by spaces, commas or semicolons)
@@ -239,6 +252,18 @@ static void jump_state(HWND hWnd) {
 		for (ti = 0; np2jump_trace_get(ti, &tcs, &teip, &told, &tnew); ti++) {
 			wsprintf(part, TEXT("  %04X:%04X  ESI %X -> %X\r\n"),
 											(UINT)tcs, (UINT)teip, told, tnew);
+			lstrcat(work, part);
+		}
+	}
+	{
+		BOOL	sk_act, sk_fin;
+		UINT	sk_press, sk_target;
+
+		np2skip_status(&sk_act, &sk_press, &sk_target, &sk_fin);
+		if ((sk_act) || (sk_fin) || (sk_press)) {
+			wsprintf(part, TEXT("Fast-forward: %s  skipped %u of %u dialogues\r\n"),
+							(sk_act) ? TEXT("RUNNING") : ((sk_fin) ? TEXT("DONE") : TEXT("stopped")),
+							sk_press, sk_target);
 			lstrcat(work, part);
 		}
 	}
@@ -345,8 +370,15 @@ static bool jump_apply(HWND hWnd) {
 	}
 	target = (UINT32)((INT32)cfg.off + cfg.adj);
 	naddr = jump_parsehooks(cfg.hook, addrs, NP2JUMP_MAXADDR);
-	np2jump_arm((UINT16)cfg.seg, target, addrs, naddr);
-	if (cfg.ptr) {
+	np2skip_cancel();
+	if (cfg.have_off) {
+		np2jump_arm((UINT16)cfg.seg, target, addrs, naddr);
+	}
+	if (cfg.skip) {
+		// with an offset: first restart at that offset, then fast-forward; without it: fast-forward from here
+		np2skip_arm((UINT16)cfg.seg, cfg.skip, cfg.have_off ? 1 : 0);
+	}
+	if ((cfg.ptr) && (cfg.have_off)) {
 		if (cfg.is32) {
 			memp_write32(cfg.ptr, target);
 		}
@@ -382,6 +414,7 @@ LRESULT CALLBACK JumpDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 			jump_sethex(hWnd, IDC_JUMP_SEG, cfg.seg);
 			jump_sethex(hWnd, IDC_JUMP_PTR, cfg.ptr);
 			SetDlgItemText(hWnd, IDC_JUMP_HOOK, cfg.hook);
+			SetDlgItemInt(hWnd, IDC_JUMP_SKIP, cfg.skip, FALSE);
 			CheckDlgButton(hWnd, IDC_JUMP_32, cfg.is32 ? BST_CHECKED : BST_UNCHECKED);
 			jump_state(hWnd);
 			SendDlgItemMessage(hWnd, IDC_JUMP_OFF, EM_SETSEL, 0, -1);

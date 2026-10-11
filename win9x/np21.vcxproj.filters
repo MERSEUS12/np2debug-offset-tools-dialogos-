@@ -756,6 +756,9 @@
     <ClCompile Include="..\win9x\dialog\d_jump.cpp">
       <Filter>Win9x\dialog</Filter>
     </ClCompile>
+    <ClCompile Include="..\win9x\dialog\d_scene.cpp">
+      <Filter>Win9x\dialog</Filter>
+    </ClCompile>
     <ClCompile Include="..\win9x\dialog\d_edit.cpp">
       <Filter>Win9x\dialog</Filter>
     </ClCompile>

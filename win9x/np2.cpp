@@ -841,6 +841,12 @@ static void OnCommand(HWND hWnd, WPARAM wParam)
 			winuileave();
 			break;
 
+		case IDM_SCENEDLG:
+			winuienter();
+			dialog_scene(hWnd);
+			winuileave();
+			break;
+
 		case IDM_DEBUGUTY:
 			viewer_open(g_hInstance);
 			break;

@@ -33,6 +33,7 @@
 #define IDD_ADDRESS                     181
 #define IDD_EDIT                        191
 #define IDD_JUMPDLG                     192
+#define IDD_SCENEDLG                    193
 #define IDR_SYS                         201
 #define IDR_SYSKEYDISP                  202
 #define IDR_SYSSOFTKBD                  203
@@ -275,6 +276,12 @@
 #define IDC_JUMP_SEG                    20112
 #define IDC_JUMP_HOOK                   20113
 #define IDC_JUMP_CUR                    20114
+#define IDC_JUMP_SKIP                   20115
+#define IDC_SCENE_NAME                  20201
+#define IDC_SCENE_SKIP                  20202
+#define IDC_SCENE_SEG                   20203
+#define IDC_SCENE_INFO                  20204
+#define IDC_SCENE_REFRESH               20205
 #define IDC_EDIT_GROUP                  19101
 #define IDC_EDIT_STR                    19102
 #define IDC_EDIT_TYPE_HEX               19103
@@ -406,6 +413,7 @@
 #define IDM_DEBUGUTY                    40011
 #define IDM_VIEWER                      40012
 #define IDM_JUMPDLG                     40013
+#define IDM_SCENEDLG                    40014
 #define IDM_SCRNMUL                     40050
 #define IDM_SCRNMUL4                    40054
 #define IDM_SCRNMUL6                    40056
