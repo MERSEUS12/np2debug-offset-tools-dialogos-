@@ -1,0 +1,83 @@
+
+name: Build np2debug-mcp-beta
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Localizar proyectos
+        shell: pwsh
+        run: |
+          Write-Host "=== Soluciones ==="
+          Get-ChildItem -Recurse -Filter *.sln |
+            Select-Object -ExpandProperty FullName
+          Write-Host "=== Proyectos C++ ==="
+          Get-ChildItem -Recurse -Filter *.vcxproj |
+            Select-Object -ExpandProperty FullName
+          Write-Host "=== CMake ==="
+          Get-ChildItem -Recurse -Filter CMakeLists.txt |
+            Select-Object -ExpandProperty FullName
+
+      - name: Preparar MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Intentar compilar soluciones
+        shell: pwsh
+        run: |
+          $solutions = @(Get-ChildItem -Recurse -Filter *.sln)
+          if ($solutions.Count -eq 0) {
+            Write-Host "No hay archivos .sln. Revisar proyectos C++ y CMake."
+            exit 1
+          }
+
+          New-Item -ItemType Directory -Force logs | Out-Null
+          $success = $false
+
+          foreach ($solution in $solutions) {
+            foreach ($config in @("Release NT", "Release")) {
+              $log = Join-Path $PWD "logs/build.log"
+              Write-Host "Compilando $($solution.FullName) - $config|Win32"
+
+              & msbuild $solution.FullName /m `
+                "/p:Configuration=$config" `
+                "/p:Platform=Win32" `
+                /verbosity:minimal `
+                "/flp:logfile=$log;verbosity=normal"
+
+              if ($LASTEXITCODE -eq 0) {
+                $success = $true
+                break
+              }
+            }
+            if ($success) { break }
+          }
+
+          if (-not $success) {
+            throw "Falló la compilación. Descarga los registros del workflow."
+          }
+
+      - name: Guardar ejecutables y registros
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: np2debug-build-logs
+          path: |
+            logs/**
+            **/Release/**/*.exe
+            **/Release/**/*.dll
+            **/Win32/**/*.exe
+            **/Win32/**/*.dll
+          if-no-files-found: warn
