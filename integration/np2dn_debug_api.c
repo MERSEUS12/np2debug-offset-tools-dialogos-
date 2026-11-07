@@ -25,7 +25,7 @@ void np2dn_debug_get_status(NP2DN_DebugStatus *status)
      * read-only query. It advances scene tracking and fast-forward state.
      */
     current_breakpoint = np2break_lookup(&current_address, CPU_CS, CPU_IP);
-    status->next_breakpoint_address =
+    status->current_instruction_breakpoint_address =
         (current_breakpoint != NULL && *current_breakpoint != NP2BP_NONE)
             ? current_address : 0;
 }
@@ -84,6 +84,10 @@ void np2dn_jump_cancel(void)
 
 void np2dn_scene_arm(const char *script_name)
 {
+    if (script_name == NULL) {
+        np2scene_cancel();
+        return;
+    }
     np2scene_arm(script_name);
 }
 
@@ -95,6 +99,9 @@ void np2dn_scene_cancel(void)
 void np2dn_skip_arm(uint16_t script_segment, uint32_t dialogue_count,
                     uint32_t wait_kind)
 {
+    if (wait_kind > 2) {
+        wait_kind = 0;
+    }
     np2skip_arm((UINT16)script_segment, (UINT)dialogue_count, (UINT)wait_kind);
 }
 
