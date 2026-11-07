@@ -29,7 +29,7 @@ typedef struct NP2DN_DebugStatus {
     uint8_t skip_busy;
     uint32_t jump_count;
     uint32_t scene_redirect_count;
-    uint32_t next_breakpoint_address;
+    uint32_t current_instruction_breakpoint_address;
 } NP2DN_DebugStatus;
 
 typedef struct NP2DN_SkipStatus {
