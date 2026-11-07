@@ -1,13 +1,12 @@
 #include "compiler.h"
 #include "break.h"
+#include "cpucore.h"
 #include "np2dn_debug_api.h"
 
 void np2dn_debug_get_status(NP2DN_DebugStatus *status)
 {
-    BOOL skip_active = FALSE;
-    BOOL skip_finished = FALSE;
-    UINT skip_pressed = 0;
-    UINT skip_target = 0;
+    UINT32 current_address = 0;
+    np2break_t *current_breakpoint;
 
     if (status == NULL) {
         return;
@@ -21,9 +20,14 @@ void np2dn_debug_get_status(NP2DN_DebugStatus *status)
     status->skip_busy = np2skip_is_busy() ? 1 : 0;
     status->jump_count = np2jump_count();
     status->scene_redirect_count = np2scene_redirect_count();
-    status->next_breakpoint_address = np2break_is_next();
-
-    np2skip_status(&skip_active, &skip_pressed, &skip_target, &skip_finished);
+    /*
+     * Do not call np2break_is_next() here: it is an execution hook, not a
+     * read-only query. It advances scene tracking and fast-forward state.
+     */
+    current_breakpoint = np2break_lookup(&current_address, CPU_CS, CPU_IP);
+    status->next_breakpoint_address =
+        (current_breakpoint != NULL && *current_breakpoint != NP2BP_NONE)
+            ? current_address : 0;
 }
 
 void np2dn_debug_resume(void)
@@ -66,6 +70,9 @@ void np2dn_breakpoints_reset(void)
 void np2dn_jump_arm(uint16_t script_segment, uint32_t target_esi,
                     const uint32_t *allowed_cs_ip, uint32_t address_count)
 {
+    if (allowed_cs_ip == NULL) {
+        address_count = 0;
+    }
     np2jump_arm((UINT16)script_segment, (UINT32)target_esi,
                 (const UINT32 *)allowed_cs_ip, (UINT)address_count);
 }
@@ -120,6 +127,9 @@ int np2dn_track_current(uint32_t *esi, int32_t *dialogue_id,
     int id = 0;
     BOOL result;
 
+    if (esi == NULL || block_start == NULL || text == NULL || text_max == 0) {
+        return 0;
+    }
     result = np2track_current((UINT32 *)esi, &id, (UINT32 *)block_start,
                               text, (UINT)text_max);
     if (dialogue_id != NULL) {
