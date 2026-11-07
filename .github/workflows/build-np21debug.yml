@@ -3,7 +3,7 @@ name: Compilar np21debug x64
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ master, np2debug-next-integration ]
 
 jobs:
   build:
