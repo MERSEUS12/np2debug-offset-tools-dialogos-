@@ -291,6 +291,11 @@ void pccore_init(void) {
 
 void pccore_term(void) {
 
+#ifdef WIN32
+	/* Stop MCP producers before tearing down emulator subsystems they can access. */
+	np2dn_ipc_stop();
+#endif
+
 #if defined(SUPPORT_HOSTDRV)
 	hostdrv_deinitialize();
 #endif
@@ -315,7 +320,6 @@ void pccore_term(void) {
 
 	CPU_DEINITIALIZE();
 #ifdef WIN32
-	np2dn_ipc_stop();
 	np2dn_command_queue_shutdown();
 #endif
 	np2break_destroy();
