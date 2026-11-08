@@ -14,7 +14,7 @@ VERSION = 2
 
 # Must match the packed NP2DN_IpcRequest / NP2DN_IpcResponse in np2dn_ipc.h.
 REQUEST = struct.Struct("<7I8I260s")
-RESPONSE = struct.Struct("<6I256s")
+RESPONSE = struct.Struct("<4IiI256s")
 
 CMD_RESUME = 1
 CMD_PAUSE = 2
@@ -120,6 +120,8 @@ def _send_command(
         raise RuntimeError(f"Estado IPC desconocido: {status}")
     if payload_length > 256:
         raise RuntimeError("Respuesta IPC inválida: longitud de payload superior a 256 bytes")
+    if command_type == CMD_MEMORY_READ and result < 0:
+        raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
 
     response_data = {"command_id": command_id, "result": result}
     if payload_length:

@@ -37,7 +37,7 @@ Configura el cliente MCP para iniciar `server.py` con el intérprete de Python d
 Los mensajes son estructuras binarias little-endian empaquetadas sin alineación:
 
 - Solicitud: `<7I8I260s` (320 bytes).
-- Respuesta: `<6I256s` (280 bytes): magic, versión, estado, ID, resultado, longitud y payload.
+- Respuesta: `<4IiI256s` (280 bytes): magic, versión, estado, ID, resultado firmado, longitud y payload.
 - Payload máximo: 256 bytes; los comandos escalares devuelven longitud cero.
 - Magic: `0x4432504E` (bytes ASCII `NP2D`).
 - Versión: `2`.
