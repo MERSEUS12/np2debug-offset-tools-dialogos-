@@ -126,7 +126,7 @@ def _send_command(
 @mcp.tool()
 def emulator_status() -> str:
     """Consulta indicadores de estado del emulador sin modificar su ejecución."""
-    raw = int(_send_command(CMD_STATUS_QUERY))
+    raw = int(json.loads(_send_command(CMD_STATUS_QUERY))["result"])
     flags = raw & 0xFFFFFFFF
     return json.dumps({
         "stop_emulation": bool(flags & 0x01),
@@ -142,7 +142,7 @@ def emulator_status() -> str:
 @mcp.tool()
 def current_instruction() -> str:
     """Consulta la dirección actual de CPU en formato segmento:offset (CS:IP)."""
-    raw = int(_send_command(CMD_CURRENT_CSIP)) & 0xFFFFFFFF
+    raw = int(json.loads(_send_command(CMD_CURRENT_CSIP))["result"]) & 0xFFFFFFFF
     return json.dumps({
         "cs": (raw >> 16) & 0xFFFF,
         "ip": raw & 0xFFFF,
@@ -153,7 +153,7 @@ def current_instruction() -> str:
 @mcp.tool()
 def fast_forward_status() -> str:
     """Consulta si Fast Forward está activo o ha terminado."""
-    raw = int(_send_command(CMD_SKIP_STATUS_QUERY)) & 0xFFFFFFFF
+    raw = int(json.loads(_send_command(CMD_SKIP_STATUS_QUERY))["result"]) & 0xFFFFFFFF
     return json.dumps({
         "active": bool(raw & 0x01),
         "finished": bool(raw & 0x02),
