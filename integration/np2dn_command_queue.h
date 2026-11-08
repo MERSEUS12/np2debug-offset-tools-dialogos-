@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 #define NP2DN_QUEUE_CAPACITY 64
-#define NP2DN_MAX_JUMP_ADDRESSES 32
+#define NP2DN_MAX_JUMP_ADDRESSES 8
 #define NP2DN_SCRIPT_NAME_MAX 260
 
 typedef enum NP2DN_CommandType {
@@ -49,7 +49,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command);
 /* Returns 1 when completed, 0 while pending/not found. Completed results are consumed. */
 int np2dn_command_poll(uint32_t command_id, int32_t *result);
 
-/* Called only by pccore_exec on the emulator thread. */
+/* Called by the Windows UI/emulation thread before frame execution, including while paused. */
 void np2dn_command_queue_pump(void);
 
 #ifdef __cplusplus
