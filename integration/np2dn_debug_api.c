@@ -62,10 +62,15 @@ int np2dn_memory_read(uint32_t address, uint32_t size,
     if (address > (0xffffffffUL - (size - 1))) return 0;
     /* Bytewise reads preserve unaligned access and the core's memory map. */
     for (i = 0; i < size; ++i) {
-        uint32_t byte_value = (space == 0)
-            ? (uint32_t)memp_read8(address + i)
-            : (uint32_t)meml_read8(address + i);
-        result |= (byte_value & 0xffUL) << (i * 8);
+        REG8 byte_value;
+        if (space == 0) {
+            byte_value = memp_read8(address + i);
+        }
+        else {
+            /* This core exposes logical reads as a block API, not meml_read8. */
+            meml_reads(address + i, &byte_value, 1);
+        }
+        result |= ((uint32_t)byte_value & 0xffUL) << (i * 8);
     }
     *value = result;
     return 1;
