@@ -123,7 +123,11 @@ def _send_command(
     if command_type in (CMD_MEMORY_READ, CMD_MEMORY_READ_BLOCK) and result < 0:
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
     if command_type == CMD_MEMORY_READ and (result != 1 or payload_length != 4):
-        raise RuntimeError("Respuesta IPC inválida para lectura escalar de memoria")
+        raise RuntimeError(
+            "Respuesta IPC inválida para lectura escalar de memoria: "
+            f"command_id={command_id}, result={result}, "
+            f"payload_length={payload_length}, expected_result=1, expected_payload_length=4"
+        )
     if command_type == CMD_MEMORY_READ_BLOCK and result != 1:
         raise RuntimeError("El emulador no pudo completar la lectura de memoria")
 
