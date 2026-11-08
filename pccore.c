@@ -49,7 +49,10 @@
 #include	"keystat.h"
 #include	"debugsub.h"
 #include	"break.h"
+#ifdef WIN32
 #include "integration/np2dn_command_queue.h"
+#include "integration/np2dn_ipc.h"
+#endif
 #ifdef WIN32
 #include	"mountdir.h"
 #else
@@ -279,7 +282,10 @@ void pccore_init(void) {
 	hostdrv_initialize();
 #endif
 	np2break_create();
+#ifdef WIN32
 	np2dn_command_queue_init();
+	np2dn_ipc_start();
+#endif
 	md_create();
 }
 
@@ -308,7 +314,10 @@ void pccore_term(void) {
 	sxsi_alltrash();
 
 	CPU_DEINITIALIZE();
+#ifdef WIN32
+	np2dn_ipc_stop();
 	np2dn_command_queue_shutdown();
+#endif
 	np2break_destroy();
 	md_destroy();
 }
