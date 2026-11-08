@@ -64,6 +64,11 @@ jobs:
           $null = [scriptblock]::Create((Get-Content "mcp_server/installer/install.ps1" -Raw))
           $null = [scriptblock]::Create((Get-Content "mcp_server/installer/uninstall.ps1" -Raw))
 
+      - name: Probar instalación y desinstalación en perfil aislado
+        shell: pwsh
+        run: |
+          ./mcp_server/installer/tests/test-installer.ps1
+
       - name: Crear paquete Windows con instalador
         shell: pwsh
         run: |
