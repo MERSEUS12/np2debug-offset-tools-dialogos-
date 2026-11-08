@@ -4,7 +4,7 @@
 #include "np2dn_command_queue.h"
 
 #define NP2DN_IPC_CONNECT_RETRY_MS 10
-#define NP2DN_IPC_READ_TIMEOUT_MS 15000
+#define NP2DN_IPC_IO_TIMEOUT_MS 15000
 
 static HANDLE s_stop_event = NULL;
 static HANDLE s_server_thread = NULL;
@@ -26,6 +26,9 @@ static int np2dn_ipc_read_exact(HANDLE pipe, void *buffer, DWORD length)
         DWORD received = 0;
         if (ReadFile(pipe, out + total, length - total, &received, NULL)) {
             if (received == 0) {
+                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_IO_TIMEOUT_MS) {
+                    return 0;
+                }
                 Sleep(1);
             }
             else {
@@ -35,7 +38,7 @@ static int np2dn_ipc_read_exact(HANDLE pipe, void *buffer, DWORD length)
         else {
             DWORD error = GetLastError();
             if (error == ERROR_NO_DATA || error == ERROR_PIPE_LISTENING) {
-                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_READ_TIMEOUT_MS) {
+                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_IO_TIMEOUT_MS) {
                     return 0;
                 }
                 Sleep(1);
@@ -58,6 +61,9 @@ static int np2dn_ipc_write_exact(HANDLE pipe, const void *buffer, DWORD length)
         DWORD sent = 0;
         if (WriteFile(pipe, input + total, length - total, &sent, NULL)) {
             if (sent == 0) {
+                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_IO_TIMEOUT_MS) {
+                    return 0;
+                }
                 Sleep(1);
             }
             else {
