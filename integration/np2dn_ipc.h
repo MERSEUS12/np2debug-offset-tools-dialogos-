@@ -9,7 +9,8 @@ extern "C" {
 
 #define NP2DN_IPC_PIPE_NAME "\\\\.\\pipe\\NP2DebugNext"
 #define NP2DN_IPC_MAGIC 0x4432504eUL
-#define NP2DN_IPC_VERSION 1
+#define NP2DN_IPC_VERSION 2
+#define NP2DN_IPC_MAX_PAYLOAD 256
 
 enum {
     NP2DN_IPC_OK = 0,
@@ -37,6 +38,8 @@ typedef struct NP2DN_IpcResponse {
     uint32_t status;
     uint32_t command_id;
     int32_t result;
+    uint32_t payload_length;
+    uint8_t payload[NP2DN_IPC_MAX_PAYLOAD];
 } NP2DN_IpcResponse;
 #pragma pack(pop)
 

@@ -76,6 +76,21 @@ int np2dn_memory_read(uint32_t address, uint32_t size,
     return 1;
 }
 
+int np2dn_memory_read_block(uint32_t address, uint32_t length,
+                            uint32_t space, uint8_t *buffer)
+{
+    uint32_t i;
+    if (buffer == NULL || length == 0 || length > 256 || space > 1) return 0;
+    if (address > (0xffffffffUL - (length - 1))) return 0;
+    for (i = 0; i < length; ++i) {
+        REG8 byte_value;
+        if (space == 0) byte_value = memp_read8(address + i);
+        else meml_reads(address + i, &byte_value, 1);
+        buffer[i] = (uint8_t)byte_value;
+    }
+    return 1;
+}
+
 void np2dn_debug_resume(void)
 {
     np2singlestep = FALSE;

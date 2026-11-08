@@ -29,7 +29,8 @@ typedef enum NP2DN_CommandType {
     NP2DN_CMD_STATUS_QUERY,
     NP2DN_CMD_CURRENT_CSIP,
     NP2DN_CMD_SKIP_STATUS_QUERY,
-    NP2DN_CMD_MEMORY_READ
+    NP2DN_CMD_MEMORY_READ,
+    NP2DN_CMD_MEMORY_READ_BLOCK
 } NP2DN_CommandType;
 
 typedef struct NP2DN_Command {
@@ -52,6 +53,10 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command);
 
 /* Returns 1 when completed, 0 while pending/not found. Completed results are consumed. */
 int np2dn_command_poll(uint32_t command_id, int32_t *result);
+/* Poll and consume a completed block-read result; payload is copied under lock. */
+int np2dn_command_poll_memory(uint32_t command_id, int32_t *result,
+                              uint32_t *length, uint8_t *buffer,
+                              uint32_t buffer_capacity);
 
 /* Called by the Windows UI/emulation thread before frame execution, including while paused. */
 void np2dn_command_queue_pump(void);

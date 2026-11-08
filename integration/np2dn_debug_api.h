@@ -52,6 +52,9 @@ uint32_t np2dn_debug_current_csip(void);
 /* Read 1, 2 or 4 bytes: space 0 = physical, 1 = logical (paged). */
 int np2dn_memory_read(uint32_t address, uint32_t size,
                       uint32_t space, uint32_t *value);
+/* Read 1..256 bytes into caller-owned storage on the emulator thread. */
+int np2dn_memory_read_block(uint32_t address, uint32_t length,
+                            uint32_t space, uint8_t *buffer);
 
 /* Breakpoint controls. */
 int np2dn_breakpoint_toggle(uint16_t segment, uint16_t offset, uint8_t flags);

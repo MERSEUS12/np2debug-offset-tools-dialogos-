@@ -6,6 +6,8 @@ typedef struct NP2DN_QueueSlot {
     NP2DN_Command command;
     int state; /* 0 free, 1 pending, 2 executing, 3 complete */
     int32_t result;
+    uint32_t payload_length;
+    uint8_t payload[256];
     uint64_t sequence;
 } NP2DN_QueueSlot;
 
@@ -50,7 +52,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_MEMORY_READ ||
+        command->type > NP2DN_CMD_MEMORY_READ_BLOCK ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
@@ -73,6 +75,39 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     }
     LeaveCriticalSection(&s_queue_lock);
     return id;
+}
+
+int np2dn_command_poll_memory(uint32_t command_id, int32_t *result,
+                              uint32_t *length, uint8_t *buffer,
+                              uint32_t buffer_capacity)
+{
+    uint32_t i;
+    int found = 0;
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
+        command_id == 0 || result == NULL || length == NULL || buffer == NULL) return 0;
+    EnterCriticalSection(&s_queue_lock);
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) {
+        LeaveCriticalSection(&s_queue_lock);
+        return 0;
+    }
+    for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
+        if (s_slots[i].state != 0 && s_slots[i].command.id == command_id) {
+            if (s_slots[i].state == 3) {
+                if (s_slots[i].payload_length > buffer_capacity) {
+                    LeaveCriticalSection(&s_queue_lock);
+                    return 0;
+                }
+                *result = s_slots[i].result;
+                *length = s_slots[i].payload_length;
+                if (*length) CopyMemory(buffer, s_slots[i].payload, *length);
+                ZeroMemory(&s_slots[i], sizeof(s_slots[i]));
+                found = 1;
+            }
+            break;
+        }
+    }
+    LeaveCriticalSection(&s_queue_lock);
+    return found;
 }
 
 int np2dn_command_poll(uint32_t command_id, int32_t *result)
@@ -133,6 +168,8 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
         if (!np2dn_memory_read(cmd->a, cmd->b, cmd->c, &value)) return -1;
         return (int32_t)value;
     }
+    case NP2DN_CMD_MEMORY_READ_BLOCK:
+        return -2; /* Executed by the pump into the slot-owned payload buffer. */
     default: return -1;
     }
 }
@@ -149,6 +186,8 @@ void np2dn_command_queue_pump(void)
         uint64_t oldest = UINT64_MAX;
         NP2DN_Command command;
         int32_t result;
+        uint8_t payload[256];
+        uint32_t payload_length = 0;
 
         EnterCriticalSection(&s_queue_lock);
         if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) {
@@ -169,12 +208,21 @@ void np2dn_command_queue_pump(void)
         command = s_slots[selected].command;
         LeaveCriticalSection(&s_queue_lock);
 
-        result = np2dn_execute_command(&command);
+        if (command.type == NP2DN_CMD_MEMORY_READ_BLOCK) {
+            if (np2dn_memory_read_block(command.a, command.b, command.c, payload)) {
+                result = 1;
+                payload_length = command.b;
+            }
+            else result = -1;
+        }
+        else result = np2dn_execute_command(&command);
 
         EnterCriticalSection(&s_queue_lock);
         if (s_slots[selected].state == 2 &&
             s_slots[selected].command.id == command.id) {
             s_slots[selected].result = result;
+            s_slots[selected].payload_length = payload_length;
+            if (payload_length) CopyMemory(s_slots[selected].payload, payload, payload_length);
             s_slots[selected].state = 3;
         }
         LeaveCriticalSection(&s_queue_lock);

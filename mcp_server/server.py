@@ -10,11 +10,11 @@ from mcp.server.fastmcp import FastMCP
 
 PIPE_NAME = r"\\.\pipe\NP2DebugNext"
 MAGIC = 0x4432504E
-VERSION = 1
+VERSION = 2
 
 # Must match the packed NP2DN_IpcRequest / NP2DN_IpcResponse in np2dn_ipc.h.
 REQUEST = struct.Struct("<7I8I260s")
-RESPONSE = struct.Struct("<4Ii")
+RESPONSE = struct.Struct("<6I256s")
 
 CMD_RESUME = 1
 CMD_PAUSE = 2
@@ -33,6 +33,7 @@ CMD_STATUS_QUERY = 14
 CMD_CURRENT_CSIP = 15
 CMD_SKIP_STATUS_QUERY = 16
 CMD_MEMORY_READ = 17
+CMD_MEMORY_READ_BLOCK = 18
 
 mcp = FastMCP("np2debug-next")
 
@@ -98,7 +99,7 @@ def _send_command(
     try:
         with open(PIPE_NAME, "r+b", buffering=0) as pipe:
             pipe.write(request)
-            magic, version, status, command_id, result = RESPONSE.unpack(
+            magic, version, status, command_id, result, payload_length, payload = RESPONSE.unpack(
                 _read_exact(pipe, RESPONSE.size)
             )
     except OSError as exc:
@@ -117,11 +118,14 @@ def _send_command(
         raise RuntimeError("El emulador está cerrando el servidor IPC")
     if status != 0:
         raise RuntimeError(f"Estado IPC desconocido: {status}")
+    if payload_length > 256:
+        raise RuntimeError("Respuesta IPC inválida: longitud de payload superior a 256 bytes")
 
-    return json.dumps(
-        {"command_id": command_id, "result": result},
-        ensure_ascii=False,
-    )
+    response_data = {"command_id": command_id, "result": result}
+    if payload_length:
+        response_data["payload_hex"] = payload[:payload_length].hex().upper()
+        response_data["payload_length"] = payload_length
+    return json.dumps(response_data, ensure_ascii=False)
 
 
 @mcp.tool()
@@ -179,6 +183,27 @@ def memory_read(address: int, size: int = 1, space: str = "physical") -> str:
                        "size": size, "value": value,
                        "hex": f"0x{value:0{size * 2}X}",
                        "byte_order": "little-endian"}, ensure_ascii=False)
+
+
+@mcp.tool()
+def memory_read_block(address: int, length: int = 256, space: str = "physical") -> str:
+    """Lee entre 1 y 256 bytes contiguos de memoria física o lógica."""
+    address = _u32(address, "address")
+    if not isinstance(length, int) or length < 1 or length > 256:
+        raise ValueError("length debe estar entre 1 y 256 bytes")
+    spaces = {"physical": 0, "logical": 1}
+    if space not in spaces:
+        raise ValueError("space debe ser 'physical' o 'logical'")
+    if address > 0xFFFFFFFF - (length - 1):
+        raise ValueError("La lectura excede el espacio de direcciones de 32 bits")
+    response = json.loads(_send_command(CMD_MEMORY_READ_BLOCK, address, length, spaces[space]))
+    if response.get("result") != 1 or response.get("payload_length") != length:
+        raise RuntimeError("El emulador no pudo completar la lectura de memoria")
+    data_hex = response["payload_hex"]
+    return json.dumps({"address": f"0x{address:08X}", "space": space,
+                       "length": length, "hex": data_hex,
+                       "bytes": [int(data_hex[i:i + 2], 16) for i in range(0, len(data_hex), 2)]},
+                      ensure_ascii=False)
 
 
 @mcp.tool()

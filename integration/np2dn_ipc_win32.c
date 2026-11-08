@@ -83,6 +83,7 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
     NP2DN_Command command;
     uint32_t command_id;
     int32_t result = 0;
+    uint32_t payload_length = 0;
 
     ZeroMemory(&request, sizeof(request));
     ZeroMemory(&response, sizeof(response));
@@ -97,7 +98,7 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
     if (request.magic != NP2DN_IPC_MAGIC ||
         request.version != NP2DN_IPC_VERSION ||
         request.type < NP2DN_CMD_RESUME ||
-        request.type > NP2DN_CMD_MEMORY_READ ||
+        request.type > NP2DN_CMD_MEMORY_READ_BLOCK ||
         request.address_count > NP2DN_MAX_JUMP_ADDRESSES) {
         response.status = NP2DN_IPC_INVALID_REQUEST;
         np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));
@@ -125,7 +126,17 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
 
     response.command_id = command_id;
     while (!np2dn_ipc_stopping()) {
-        if (np2dn_command_poll(command_id, &result)) {
+        if (request.type == NP2DN_CMD_MEMORY_READ_BLOCK) {
+            if (np2dn_command_poll_memory(command_id, &result, &payload_length,
+                                          response.payload, NP2DN_IPC_MAX_PAYLOAD)) {
+                response.status = NP2DN_IPC_OK;
+                response.result = result;
+                response.payload_length = payload_length;
+                np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));
+                return;
+            }
+        }
+        else if (np2dn_command_poll(command_id, &result)) {
             response.status = NP2DN_IPC_OK;
             response.result = result;
             np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));

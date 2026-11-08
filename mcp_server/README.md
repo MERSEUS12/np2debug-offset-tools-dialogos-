@@ -22,7 +22,8 @@ Configura el cliente MCP para iniciar `server.py` con el intérprete de Python d
 
 ## Herramientas incluidas
 
-- `memory_read` (lectura de 1, 2 o 4 bytes; espacio físico o lógico)
+- `memory_read` (lectura escalar de 1, 2 o 4 bytes; espacio físico o lógico)
+- `memory_read_block` (lectura contigua de 1 a 256 bytes; espacio físico o lógico)
 
 - `emulator_status`, `current_instruction`
 - `emulator_resume`, `emulator_pause`, `emulator_step`, `emulator_step_over`
@@ -31,17 +32,18 @@ Configura el cliente MCP para iniciar `server.py` con el intérprete de Python d
 - `scene_redirect_arm`, `scene_redirect_cancel`
 - `fast_forward_arm`, `fast_forward_cancel`, `fast_forward_status`
 
-## Protocolo IPC v1
+## Protocolo IPC v2
 
 Los mensajes son estructuras binarias little-endian empaquetadas sin alineación:
 
 - Solicitud: `<7I8I260s` (320 bytes).
-- Respuesta: `<4Ii` (20 bytes).
+- Respuesta: `<6I256s` (280 bytes): magic, versión, estado, ID, resultado, longitud y payload.
+- Payload máximo: 256 bytes; los comandos escalares devuelven longitud cero.
 - Magic: `0x4432504E` (bytes ASCII `NP2D`).
-- Versión: `1`.
+- Versión: `2`.
 
 Cada llamada MCP abre una conexión, envía una solicitud y espera el resultado de la cola de comandos del hilo del emulador. La tubería rechaza clientes remotos; no se expone un puerto de red.
 
 ## Alcance actual
 
-Esta versión expone 17 herramientas. `memory_read` permite leer 1, 2 o 4 bytes en espacio físico o lógico; las lecturas se ejecutan en el hilo principal mediante la cola de comandos y utilizan las funciones de memoria del núcleo. La escritura de memoria, lecturas de bloques, snapshots, extracción/inyección y navegación avanzada siguen pendientes.
+Esta versión expone 18 herramientas. `memory_read` conserva la lectura escalar de 1, 2 o 4 bytes; `memory_read_block` lee entre 1 y 256 bytes en espacio físico o lógico. Ambas lecturas se ejecutan en el hilo principal mediante la cola de comandos y utilizan las funciones de memoria del núcleo. La escritura de memoria, snapshots, extracción/inyección y navegación avanzada siguen pendientes.
