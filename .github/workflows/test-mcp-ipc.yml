@@ -1,0 +1,31 @@
+name: MCP IPC protocol tests
+
+on:
+  push:
+    branches: [ np2debug-next-integration ]
+  pull_request:
+    branches: [ np2debug-next-integration ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-2022
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias MCP
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r mcp_server/requirements.txt
+      - name: Comprobar sintaxis Python
+        run: python -m py_compile mcp_server/server.py mcp_server/tests/test_ipc_protocol.py
+      - name: Probar tamaños y serialización IPC v2
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "mcp_server"
+          python -m unittest discover -s mcp_server/tests -v
