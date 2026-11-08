@@ -52,6 +52,7 @@ static int np2dn_ipc_write_exact(HANDLE pipe, const void *buffer, DWORD length)
 {
     const BYTE *input = (const BYTE *)buffer;
     DWORD total = 0;
+    DWORD started = GetTickCount();
 
     while (total < length && !np2dn_ipc_stopping()) {
         DWORD sent = 0;
@@ -66,6 +67,9 @@ static int np2dn_ipc_write_exact(HANDLE pipe, const void *buffer, DWORD length)
         else {
             DWORD error = GetLastError();
             if (error == ERROR_NO_DATA || error == ERROR_PIPE_LISTENING) {
+                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_READ_TIMEOUT_MS) {
+                    return 0;
+                }
                 Sleep(1);
             }
             else {
