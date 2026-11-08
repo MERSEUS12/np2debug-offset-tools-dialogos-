@@ -146,6 +146,7 @@
     <ClCompile Include="..\debugsub386.c" />
     <ClCompile Include="..\break.c" />
     <ClCompile Include="..\integration\np2dn_debug_api.c" />
+    <ClCompile Include="..\integration\np2dn_command_queue.c" />
     <ClCompile Include="..\io\cpuio.c" />
     <ClCompile Include="..\keystat.c" />
     <ClCompile Include="..\nevent.c" />
@@ -499,6 +500,7 @@
     <ClInclude Include="..\fdd\sxsihdd.h" />
     <ClInclude Include="..\break.h" />
     <ClInclude Include="..\integration\np2dn_debug_api.h" />
+    <ClInclude Include="..\integration\np2dn_command_queue.h" />
     <ClInclude Include="..\i386c\ia32\cpu.h" />
     <ClInclude Include="..\i386c\ia32\cpu_io.h" />
     <ClInclude Include="..\i386c\ia32\cpu_mem.h" />
