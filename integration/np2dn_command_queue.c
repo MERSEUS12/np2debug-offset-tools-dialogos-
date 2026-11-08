@@ -13,39 +13,47 @@ static CRITICAL_SECTION s_queue_lock;
 static NP2DN_QueueSlot s_slots[NP2DN_QUEUE_CAPACITY];
 static uint32_t s_next_id = 1;
 static uint64_t s_next_sequence = 1;
-static int s_initialized = 0;
+static volatile LONG s_initialized = 0;
+static int s_lock_created = 0;
 
 int np2dn_command_queue_init(void)
 {
-    if (s_initialized) return 1;
-    InitializeCriticalSection(&s_queue_lock);
+    /* The lock lives for the process lifetime: MCP producers may race shutdown. */
+    if (!s_lock_created) {
+        InitializeCriticalSection(&s_queue_lock);
+        s_lock_created = 1;
+    }
     EnterCriticalSection(&s_queue_lock);
     ZeroMemory(s_slots, sizeof(s_slots));
     s_next_id = 1;
     s_next_sequence = 1;
-    s_initialized = 1;
+    InterlockedExchange(&s_initialized, 1);
     LeaveCriticalSection(&s_queue_lock);
     return 1;
 }
 
 void np2dn_command_queue_shutdown(void)
 {
-    if (!s_initialized) return;
+    if (!s_lock_created) return;
     EnterCriticalSection(&s_queue_lock);
+    InterlockedExchange(&s_initialized, 0);
     ZeroMemory(s_slots, sizeof(s_slots));
-    s_initialized = 0;
     LeaveCriticalSection(&s_queue_lock);
-    DeleteCriticalSection(&s_queue_lock);
 }
 
 uint32_t np2dn_command_submit(const NP2DN_Command *command)
 {
     uint32_t i, id = 0;
-    if (!s_initialized || command == NULL || command->type < NP2DN_CMD_RESUME ||
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
+        command == NULL || command->type < NP2DN_CMD_RESUME ||
         command->type > NP2DN_CMD_SKIP_CANCEL ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) {
+        LeaveCriticalSection(&s_queue_lock);
+        return 0;
+    }
     for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
         if (s_slots[i].state == 0) {
             s_slots[i].command = *command;
@@ -67,9 +75,14 @@ int np2dn_command_poll(uint32_t command_id, int32_t *result)
 {
     uint32_t i;
     int found = 0;
-    if (!s_initialized || command_id == 0 || result == NULL) return 0;
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
+        command_id == 0 || result == NULL) return 0;
 
     EnterCriticalSection(&s_queue_lock);
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) {
+        LeaveCriticalSection(&s_queue_lock);
+        return 0;
+    }
     for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
         if (s_slots[i].state != 0 && s_slots[i].command.id == command_id) {
             if (s_slots[i].state == 3) {
@@ -114,7 +127,7 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
 
 void np2dn_command_queue_pump(void)
 {
-    if (!s_initialized) return;
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) return;
 
     for (;;) {
         uint32_t i, selected = NP2DN_QUEUE_CAPACITY;
@@ -123,6 +136,10 @@ void np2dn_command_queue_pump(void)
         int32_t result;
 
         EnterCriticalSection(&s_queue_lock);
+        if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) {
+            LeaveCriticalSection(&s_queue_lock);
+            break;
+        }
         for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
             if (s_slots[i].state == 1 && s_slots[i].sequence < oldest) {
                 oldest = s_slots[i].sequence;
