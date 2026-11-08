@@ -49,6 +49,7 @@
 #include	"keystat.h"
 #include	"debugsub.h"
 #include	"break.h"
+#include "np2dn_command_queue.h"
 #ifdef WIN32
 #include	"mountdir.h"
 #else
@@ -278,6 +279,7 @@ void pccore_init(void) {
 	hostdrv_initialize();
 #endif
 	np2break_create();
+	np2dn_command_queue_init();
 	md_create();
 }
 
@@ -306,6 +308,7 @@ void pccore_term(void) {
 	sxsi_alltrash();
 
 	CPU_DEINITIALIZE();
+	np2dn_command_queue_shutdown();
 	np2break_destroy();
 	md_destroy();
 }
@@ -634,6 +637,7 @@ void pccore_postevent(UINT32 event) {	// yet!
 void pccore_exec(BOOL draw) {
 
 	pcstat.drawframe = (UINT8)draw;
+	np2dn_command_queue_pump();
 //	keystat_sync();
 	soundmng_sync();
 	mouseif_sync();
