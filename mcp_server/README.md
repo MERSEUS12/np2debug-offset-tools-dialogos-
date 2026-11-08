@@ -24,7 +24,6 @@ Configura el cliente MCP para iniciar `server.py` con el intérprete de Python d
 
 - `memory_read` (lectura escalar de 1, 2 o 4 bytes; espacio físico o lógico)
 - `memory_read_block` (lectura contigua de 1 a 256 bytes; espacio físico o lógico)
-
 - `emulator_status`, `current_instruction`
 - `emulator_resume`, `emulator_pause`, `emulator_step`, `emulator_step_over`
 - `breakpoint_toggle`, `breakpoint_toggle_linear`, `breakpoints_reset`
@@ -38,7 +37,9 @@ Los mensajes son estructuras binarias little-endian empaquetadas sin alineación
 
 - Solicitud: `<7I8I260s` (320 bytes).
 - Respuesta: `<4IiI256s` (280 bytes): magic, versión, estado, ID, resultado firmado, longitud y payload.
-- Payload máximo: 256 bytes; los comandos escalares devuelven longitud cero.
+- Payload máximo: 256 bytes.
+- **Lectura escalar (`MEMORY_READ`):** el emulador devuelve `result=1` y un payload de exactamente 4 bytes (`payload_length=4`) para cualquiera de los tamaños solicitados (1, 2 o 4). El valor se codifica en little-endian; los bytes superiores quedan a cero cuando el tamaño solicitado es menor que 4. El servidor MCP interpreta únicamente los primeros 1, 2 o 4 bytes según el parámetro `size`.
+- **Lectura por bloques (`MEMORY_READ_BLOCK`):** devuelve `result=1` y un payload cuya longitud coincide con los bytes solicitados.
 - Magic: `0x4432504E` (bytes ASCII `NP2D`).
 - Versión: `2`.
 
