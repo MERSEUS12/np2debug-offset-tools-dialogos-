@@ -24,6 +24,10 @@ int np2dn_command_queue_init(void)
         s_lock_created = 1;
     }
     EnterCriticalSection(&s_queue_lock);
+    if (InterlockedCompareExchange(&s_initialized, 0, 0) != 0) {
+        LeaveCriticalSection(&s_queue_lock);
+        return 1;
+    }
     ZeroMemory(s_slots, sizeof(s_slots));
     s_next_id = 1;
     s_next_sequence = 1;
