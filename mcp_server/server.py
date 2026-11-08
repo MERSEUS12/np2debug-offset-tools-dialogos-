@@ -37,6 +37,8 @@ CMD_MEMORY_READ_BLOCK = 18
 CMD_DIALOGUE_CURRENT = 19
 CMD_SCENE_HISTORY = 20
 CMD_JUMP_TRACE = 21
+CMD_CURRENT_INSTRUCTION = 22
+CMD_CPU_REGISTERS = 23
 
 mcp = FastMCP("np2debug-next")
 
@@ -129,6 +131,12 @@ def _send_command(
         raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
     if command_type in (CMD_SCENE_HISTORY, CMD_JUMP_TRACE) and result != 1:
         raise RuntimeError("Respuesta IPC inválida para historial de escenas")
+    if command_type in (CMD_CURRENT_INSTRUCTION, CMD_CPU_REGISTERS) and result != 1:
+        raise RuntimeError("El emulador no pudo completar la consulta de CPU")
+    if command_type == CMD_CURRENT_INSTRUCTION and payload_length != 96:
+        raise RuntimeError("Respuesta IPC inválida: payload de instrucción debe ocupar 96 bytes")
+    if command_type == CMD_CPU_REGISTERS and payload_length != 53:
+        raise RuntimeError("Respuesta IPC inválida: payload de registros debe ocupar 53 bytes")
     if command_type == CMD_SCENE_HISTORY and (payload_length < 12 or (payload_length - 12) % 41 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload de historial incoherente")
     if command_type == CMD_JUMP_TRACE and (payload_length < 4 or (payload_length - 4) % 14 != 0):
@@ -266,12 +274,62 @@ def emulator_status() -> str:
 
 @mcp.tool()
 def current_instruction() -> str:
-    """Consulta la dirección actual de CPU en formato segmento:offset (CS:IP)."""
-    raw = int(json.loads(_send_command(CMD_CURRENT_CSIP))["result"]) & 0xFFFFFFFF
+    """Desensambla la instrucción actual con bytes, mnemónico, operandos y longitud."""
+    response = json.loads(_send_command(CMD_CURRENT_INSTRUCTION))
+    payload = bytes.fromhex(response.get("payload_hex", ""))
+    if len(payload) != 96 or len(payload) != response.get("payload_length"):
+        raise RuntimeError("Payload de instrucción inválido")
+    cs, ip, eip, linear, instruction_length = struct.unpack_from("<HHIIB", payload, 0)
+    if instruction_length < 1 or instruction_length > 15:
+        raise RuntimeError("Longitud de instrucción inválida")
+    raw_bytes = payload[13:13 + instruction_length]
+    mnemonic = payload[28:52].split(bytes((0,)), 1)[0].decode("ascii", errors="replace")
+    operands = payload[52:96].split(bytes((0,)), 1)[0].decode("ascii", errors="replace")
     return json.dumps({
-        "cs": (raw >> 16) & 0xFFFF,
-        "ip": raw & 0xFFFF,
-        "cs_ip": f"{(raw >> 16) & 0xFFFF:04X}:{raw & 0xFFFF:04X}",
+        "cs": cs,
+        "ip": ip,
+        "cs_ip": f"{cs:04X}:{ip:04X}",
+        "eip": eip,
+        "eip_hex": f"0x{eip:08X}",
+        "linear_address": linear,
+        "linear_address_hex": f"0x{linear:08X}",
+        "length": instruction_length,
+        "bytes": list(raw_bytes),
+        "bytes_hex": raw_bytes.hex(" ").upper(),
+        "mnemonic": mnemonic,
+        "operands": operands,
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def cpu_registers() -> str:
+    """Consulta los registros generales, de segmento, EIP y EFLAGS de solo lectura."""
+    response = json.loads(_send_command(CMD_CPU_REGISTERS))
+    payload = bytes.fromhex(response.get("payload_hex", ""))
+    if len(payload) != 53 or len(payload) != response.get("payload_length"):
+        raise RuntimeError("Payload de registros de CPU inválido")
+    values = struct.unpack("<8I6HIIB", payload)
+    general_names = ("eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi")
+    segment_names = ("es", "cs", "ss", "ds", "fs", "gs")
+    general = {name: value for name, value in zip(general_names, values[:8])}
+    segments = {name: value for name, value in zip(segment_names, values[8:14])}
+    eip, eflags, protected_mode = values[14:]
+    flag_bits = {
+        "carry": 0, "parity": 2, "auxiliary": 4, "zero": 6,
+        "sign": 7, "trap": 8, "interrupt": 9, "direction": 10,
+        "overflow": 11,
+    }
+    return json.dumps({
+        "general": general,
+        "general_hex": {name: f"0x{value:08X}" for name, value in general.items()},
+        "segments": segments,
+        "segments_hex": {name: f"0x{value:04X}" for name, value in segments.items()},
+        "eip": eip,
+        "eip_hex": f"0x{eip:08X}",
+        "eflags": eflags,
+        "eflags_hex": f"0x{eflags:08X}",
+        "flags": {name: bool(eflags & (1 << bit)) for name, bit in flag_bits.items()},
+        "protected_mode": bool(protected_mode),
     }, ensure_ascii=False)
 
 

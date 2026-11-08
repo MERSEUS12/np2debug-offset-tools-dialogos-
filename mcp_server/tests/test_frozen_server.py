@@ -16,6 +16,7 @@ EXPECTED_TOOLS = {
     "scene_redirect_cancel", "fast_forward_arm", "fast_forward_cancel",
     "emulator_status", "current_instruction", "fast_forward_status",
     "memory_read", "memory_read_block", "dialogue_current", "scene_history", "jump_trace",
+    "cpu_registers",
 }
 
 

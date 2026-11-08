@@ -168,6 +168,8 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_DIALOGUE_CURRENT:
     case NP2DN_CMD_SCENE_HISTORY:
     case NP2DN_CMD_JUMP_TRACE:
+    case NP2DN_CMD_CURRENT_INSTRUCTION:
+    case NP2DN_CMD_CPU_REGISTERS:
         return -2; /* Payload queries are executed by the pump on the emulator thread. */
     default: return -1;
     }
@@ -322,6 +324,16 @@ void np2dn_command_queue_pump(void)
                 }
                 if (result == 1) payload_length = 12u + (returned * 41u);
             }
+        }
+        else if (command.type == NP2DN_CMD_CURRENT_INSTRUCTION) {
+            if (np2dn_debug_current_instruction(payload,
+                    (uint32_t)sizeof(payload), &payload_length)) result = 1;
+            else result = -1;
+        }
+        else if (command.type == NP2DN_CMD_CPU_REGISTERS) {
+            if (np2dn_debug_cpu_registers(payload,
+                    (uint32_t)sizeof(payload), &payload_length)) result = 1;
+            else result = -1;
         }
         else if (command.type == NP2DN_CMD_JUMP_TRACE) {
             uint32_t total=np2dn_jump_trace_count(),i; ZeroMemory(payload,sizeof(payload)); if(total>12u)total=12u;

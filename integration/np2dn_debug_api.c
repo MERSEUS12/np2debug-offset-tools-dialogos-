@@ -3,6 +3,7 @@
 #include "cpucore.h"
 #include "np2dn_debug_api.h"
 #include "../i386c/cpumem.h"
+#include "unasm.h"
 
 void np2dn_debug_get_status(NP2DN_DebugStatus *status)
 {
@@ -51,6 +52,96 @@ uint32_t np2dn_debug_current_csip(void)
 {
     return (((uint32_t)CPU_CS & 0xffffUL) << 16) |
            ((uint32_t)CPU_IP & 0xffffUL);
+}
+
+static void np2dn_store_u16(uint8_t *dst, uint16_t value)
+{
+    dst[0] = (uint8_t)(value & 0xffu);
+    dst[1] = (uint8_t)(value >> 8);
+}
+
+static void np2dn_store_u32(uint8_t *dst, uint32_t value)
+{
+    dst[0] = (uint8_t)(value & 0xffu);
+    dst[1] = (uint8_t)((value >> 8) & 0xffu);
+    dst[2] = (uint8_t)((value >> 16) & 0xffu);
+    dst[3] = (uint8_t)(value >> 24);
+}
+
+/*
+ * Payload (96 bytes): CS:u16, IP:u16, EIP:u32, linear:u32, length:u8,
+ * instruction bytes[15], mnemonic[24], operand[44].
+ * Uses the same native decoder and code-address calculation as unasm_next().
+ */
+int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
+                                    uint32_t *length)
+{
+    uint8_t instruction[16];
+    _UNASM decoded;
+    uint32_t address;
+    UINT instruction_length;
+
+    if (buffer == NULL || length == NULL || capacity < 96u) return 0;
+
+    ZeroMemory(instruction, sizeof(instruction));
+    ZeroMemory(&decoded, sizeof(decoded));
+    address = (CPU_STAT_PM ? CS_BASE : ((uint32_t)CPU_CS << 4)) + CPU_IP;
+    memp_reads(address, instruction, (UINT)sizeof(instruction));
+    instruction_length = unasm(&decoded, instruction,
+                                (UINT)sizeof(instruction), FALSE, address);
+    if (instruction_length == 0 || instruction_length > 15u ||
+        decoded.mnemonic == NULL) {
+        return 0;
+    }
+
+    ZeroMemory(buffer, 96u);
+    np2dn_store_u16(buffer, (uint16_t)CPU_CS);
+    np2dn_store_u16(buffer + 2u, (uint16_t)CPU_IP);
+    np2dn_store_u32(buffer + 4u, (uint32_t)CPU_EIP);
+    np2dn_store_u32(buffer + 8u, address);
+    buffer[12] = (uint8_t)instruction_length;
+    CopyMemory(buffer + 13u, instruction, instruction_length);
+
+    {
+        uint32_t i = 0;
+        while (i < 23u && decoded.mnemonic[i] != '\0') {
+            buffer[28u + i] = (uint8_t)decoded.mnemonic[i];
+            ++i;
+        }
+    }
+    CopyMemory(buffer + 52u, decoded.operand, sizeof(decoded.operand));
+    *length = 96u;
+    return 1;
+}
+
+/*
+ * Payload (53 bytes): EAX,ECX,EDX,EBX,ESP,EBP,ESI,EDI (u32),
+ * ES,CS,SS,DS,FS,GS (u16), EIP:u32, EFLAGS:u32, protected_mode:u8.
+ */
+int np2dn_debug_cpu_registers(uint8_t *buffer, uint32_t capacity,
+                              uint32_t *length)
+{
+    const uint32_t general[8] = {
+        (uint32_t)CPU_EAX, (uint32_t)CPU_ECX,
+        (uint32_t)CPU_EDX, (uint32_t)CPU_EBX,
+        (uint32_t)CPU_ESP, (uint32_t)CPU_EBP,
+        (uint32_t)CPU_ESI, (uint32_t)CPU_EDI
+    };
+    const uint16_t segments[6] = {
+        (uint16_t)CPU_ES, (uint16_t)CPU_CS, (uint16_t)CPU_SS,
+        (uint16_t)CPU_DS, (uint16_t)CPU_FS, (uint16_t)CPU_GS
+    };
+    uint32_t i;
+
+    if (buffer == NULL || length == NULL || capacity < 53u) return 0;
+    ZeroMemory(buffer, 53u);
+    for (i = 0; i < 8u; ++i) np2dn_store_u32(buffer + i * 4u, general[i]);
+    for (i = 0; i < 6u; ++i) np2dn_store_u16(buffer + 32u + i * 2u, segments[i]);
+    np2dn_store_u32(buffer + 44u, (uint32_t)CPU_EIP);
+    np2dn_store_u32(buffer + 48u, (uint32_t)CPU_STATSAVE.cpu_regs.eflags.d);
+    buffer[52] = CPU_STAT_PM ? 1u : 0u;
+    *length = 53u;
+    return 1;
 }
 
 int np2dn_memory_read(uint32_t address, uint32_t size,

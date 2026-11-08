@@ -49,6 +49,11 @@ void np2dn_debug_step_over(void);
 /* Read-only query helpers. */
 uint32_t np2dn_debug_status_flags(void);
 uint32_t np2dn_debug_current_csip(void);
+/* Native instruction decode and CPU register snapshots; emulator thread only. */
+int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
+                                     uint32_t *length);
+int np2dn_debug_cpu_registers(uint8_t *buffer, uint32_t capacity,
+                               uint32_t *length);
 /* Read 1, 2 or 4 bytes: space 0 = physical, 1 = logical (paged). */
 int np2dn_memory_read(uint32_t address, uint32_t size,
                       uint32_t space, uint32_t *value);

@@ -72,6 +72,27 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(struct.unpack_from("<I",payload,0)[0],1)
         self.assertEqual(struct.unpack_from("<HIII",payload,4),(0x1234,0x89ABCDEF,0x10203040,0x50607080))
 
+    def test_current_instruction_payload_layout(self):
+        payload = struct.pack("<HHIIB15s24s44s",
+                              0x1234, 0x5678, 0x89ABCDEF, 0x10203040,
+                              3, b"\x90\x90\xC3".ljust(15, b"\0"),
+                              b"ret".ljust(24, b"\0"),
+                              b"".ljust(44, b"\0"))
+        self.assertEqual(len(payload), 96)
+        cs, ip, eip, linear, length = struct.unpack_from("<HHIIB", payload)
+        self.assertEqual((cs, ip, eip, linear, length),
+                         (0x1234, 0x5678, 0x89ABCDEF, 0x10203040, 3))
+        self.assertEqual(payload[13:16], b"\x90\x90\xC3")
+        self.assertEqual(payload[28:52].split(b"\0", 1)[0], b"ret")
+
+    def test_cpu_register_payload_layout(self):
+        values = (1, 2, 3, 4, 5, 6, 7, 8,
+                  0x10, 0x20, 0x30, 0x40, 0x50, 0x60,
+                  0x12345678, 0x202, 1)
+        payload = struct.pack("<8I6HIIB", *values)
+        self.assertEqual(len(payload), 53)
+        self.assertEqual(struct.unpack("<8I6HIIB", payload), values)
+
     def test_command_ids_and_protocol_version(self):
         self.assertEqual(server.VERSION, 2)
         self.assertEqual(server.CMD_MEMORY_READ, 17)
@@ -79,6 +100,8 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(server.CMD_DIALOGUE_CURRENT, 19)
         self.assertEqual(server.CMD_SCENE_HISTORY, 20)
         self.assertEqual(server.CMD_JUMP_TRACE, 21)
+        self.assertEqual(server.CMD_CURRENT_INSTRUCTION, 22)
+        self.assertEqual(server.CMD_CPU_REGISTERS, 23)
 
 
 if __name__ == "__main__":
