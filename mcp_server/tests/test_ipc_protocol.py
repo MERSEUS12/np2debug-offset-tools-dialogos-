@@ -55,12 +55,12 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(payload[-1], 0)
 
     def test_scene_history_record_layout(self):
-        name = b"SCENE01.BIN".ljust(16, b"\\0")
+        name = b"SCENE01.BIN".ljust(16, b"\0")
         record = struct.pack("<16sIBHH16s", name, 0x12345678, 1,
                              0x2345, 0x6789, bytes(range(16)))
         self.assertEqual(len(record), 41)
         decoded = struct.unpack("<16sIBHH16s", record)
-        self.assertEqual(decoded[0].split(b"\\0", 1)[0], b"SCENE01.BIN")
+        self.assertEqual(decoded[0].split(b"\0", 1)[0], b"SCENE01.BIN")
         self.assertEqual(decoded[1:5], (0x12345678, 1, 0x2345, 0x6789))
         self.assertEqual(decoded[5], bytes(range(16)))
 
