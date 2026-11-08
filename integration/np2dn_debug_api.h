@@ -81,6 +81,10 @@ uint32_t np2dn_scene_log_count(void);
 int np2dn_scene_log_get(uint32_t index, char name[16], uint32_t *linear,
                         uint8_t *redirected, uint16_t *caller_cs,
                         uint16_t *caller_ip, uint8_t context[16]);
+/* Jump trace; call only from the emulator/UI thread. */
+uint32_t np2dn_jump_trace_count(void);
+int np2dn_jump_trace_get(uint32_t index, uint16_t *cs, uint32_t *eip,
+                         uint32_t *old_esi, uint32_t *new_esi);
 
 #ifdef __cplusplus
 }

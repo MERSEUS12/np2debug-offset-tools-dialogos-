@@ -52,7 +52,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_SCENE_HISTORY ||
+        command->type > NP2DN_CMD_JUMP_TRACE ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
@@ -167,6 +167,7 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_MEMORY_READ_BLOCK:
     case NP2DN_CMD_DIALOGUE_CURRENT:
     case NP2DN_CMD_SCENE_HISTORY:
+    case NP2DN_CMD_JUMP_TRACE:
         return -2; /* Payload queries are executed by the pump on the emulator thread. */
     default: return -1;
     }
@@ -321,6 +322,15 @@ void np2dn_command_queue_pump(void)
                 }
                 if (result == 1) payload_length = 12u + (returned * 41u);
             }
+        }
+        else if (command.type == NP2DN_CMD_JUMP_TRACE) {
+            uint32_t total=np2dn_jump_trace_count(),i; ZeroMemory(payload,sizeof(payload)); if(total>12u)total=12u;
+            payload[0]=(uint8_t)total;payload[1]=(uint8_t)(total>>8);payload[2]=(uint8_t)(total>>16);payload[3]=(uint8_t)(total>>24);result=1;
+            for(i=0;i<total;++i){uint16_t cs=0;uint32_t eip=0,old_esi=0,new_esi=0,pos=4u+i*14u,j;
+                if(!np2dn_jump_trace_get(i,&cs,&eip,&old_esi,&new_esi)){result=-1;payload_length=0;break;}
+                payload[pos]=(uint8_t)cs;payload[pos+1u]=(uint8_t)(cs>>8);
+                for(j=0;j<4;++j){payload[pos+2u+j]=(uint8_t)(eip>>(j*8));payload[pos+6u+j]=(uint8_t)(old_esi>>(j*8));payload[pos+10u+j]=(uint8_t)(new_esi>>(j*8));}}
+            if(result==1)payload_length=4u+total*14u;
         }
         else result = np2dn_execute_command(&command);
 

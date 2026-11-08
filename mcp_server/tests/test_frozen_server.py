@@ -15,7 +15,7 @@ EXPECTED_TOOLS = {
     "dialogue_jump_arm", "dialogue_jump_cancel", "scene_redirect_arm",
     "scene_redirect_cancel", "fast_forward_arm", "fast_forward_cancel",
     "emulator_status", "current_instruction", "fast_forward_status",
-    "memory_read", "memory_read_block", "dialogue_current", "scene_history",
+    "memory_read", "memory_read_block", "dialogue_current", "scene_history", "jump_trace",
 }
 
 

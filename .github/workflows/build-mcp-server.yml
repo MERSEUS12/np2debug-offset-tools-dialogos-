@@ -53,7 +53,7 @@ jobs:
             throw "PyInstaller no generó dist/np2debug-mcp-server.exe"
           }
 
-      - name: Verificar handshake MCP y las 20 herramientas del EXE
+      - name: Verificar handshake MCP y las 21 herramientas del EXE
         shell: pwsh
         run: |
           python mcp_server/tests/test_frozen_server.py dist/np2debug-mcp-server.exe

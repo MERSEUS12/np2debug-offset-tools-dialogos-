@@ -157,6 +157,21 @@ void np2dn_scene_cancel(void)
     np2scene_cancel();
 }
 
+uint32_t np2dn_jump_trace_count(void)
+{
+    return (uint32_t)np2jump_trace_count();
+}
+
+int np2dn_jump_trace_get(uint32_t index, uint16_t *cs, uint32_t *eip,
+                         uint32_t *old_esi, uint32_t *new_esi)
+{
+    UINT16 native_cs = 0; UINT32 native_eip = 0, native_old = 0, native_new = 0;
+    if (cs == NULL || eip == NULL || old_esi == NULL || new_esi == NULL) return 0;
+    if (!np2jump_trace_get((UINT)index, &native_cs, &native_eip, &native_old, &native_new)) return 0;
+    *cs=(uint16_t)native_cs; *eip=(uint32_t)native_eip; *old_esi=(uint32_t)native_old; *new_esi=(uint32_t)native_new;
+    return 1;
+}
+
 void np2dn_skip_arm(uint16_t script_segment, uint32_t dialogue_count,
                     uint32_t wait_kind)
 {

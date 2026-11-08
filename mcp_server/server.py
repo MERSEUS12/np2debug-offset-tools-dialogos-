@@ -36,6 +36,7 @@ CMD_MEMORY_READ = 17
 CMD_MEMORY_READ_BLOCK = 18
 CMD_DIALOGUE_CURRENT = 19
 CMD_SCENE_HISTORY = 20
+CMD_JUMP_TRACE = 21
 
 mcp = FastMCP("np2debug-next")
 
@@ -126,10 +127,12 @@ def _send_command(
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
     if command_type == CMD_DIALOGUE_CURRENT and result not in (0, 1):
         raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
-    if command_type == CMD_SCENE_HISTORY and result != 1:
+    if command_type in (CMD_SCENE_HISTORY, CMD_JUMP_TRACE) and result != 1:
         raise RuntimeError("Respuesta IPC inválida para historial de escenas")
     if command_type == CMD_SCENE_HISTORY and (payload_length < 12 or (payload_length - 12) % 41 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload de historial incoherente")
+    if command_type == CMD_JUMP_TRACE and (payload_length < 4 or (payload_length - 4) % 14 != 0):
+        raise RuntimeError("Respuesta IPC inválida: payload de jump_trace incoherente")
     if command_type == CMD_DIALOGUE_CURRENT and ((result == 0 and payload_length != 0) or (result == 1 and not 13 <= payload_length <= 256)):
         raise RuntimeError("Respuesta IPC inválida: payload de diálogo incoherente")
     if command_type == CMD_MEMORY_READ and (result != 1 or payload_length != 4):
@@ -229,6 +232,20 @@ def scene_history() -> str:
         "entries": entries,
         "context_note": "caller_context_hex contiene los 16 bytes de código anteriores a la dirección de retorno de INT 21h.",
     }, ensure_ascii=False)
+
+
+@mcp.tool()
+def jump_trace() -> str:
+    """Devuelve hasta 12 cambios de ESI registrados tras aplicar un salto a diálogo."""
+    response=json.loads(_send_command(CMD_JUMP_TRACE));payload=bytes.fromhex(response.get("payload_hex",""))
+    if len(payload)!=response.get("payload_length") or len(payload)<4:raise RuntimeError("Payload de jump_trace inválido: encabezado incompleto")
+    count=struct.unpack_from("<I",payload,0)[0]
+    if count>12 or len(payload)!=4+count*14:raise RuntimeError("Payload de jump_trace inválido: cantidad o tamaño incorrecto")
+    entries=[]
+    for index in range(count):
+        cs,eip,old_esi,new_esi=struct.unpack_from("<HIII",payload,4+index*14)
+        entries.append({"index":index,"cs":cs,"eip":eip,"cs_eip":f"{cs:04X}:{eip & 0xFFFF:04X}","eip_hex":f"0x{eip:08X}","old_esi":old_esi,"old_esi_hex":f"0x{old_esi:08X}","new_esi":new_esi,"new_esi_hex":f"0x{new_esi:08X}"})
+    return json.dumps({"count":count,"order":"oldest_first","entries":entries,"note":"Traza nativa de cambios de ESI observados después de aplicar el salto a diálogo; no registra todos los saltos de CPU."},ensure_ascii=False)
 
 
 @mcp.tool()

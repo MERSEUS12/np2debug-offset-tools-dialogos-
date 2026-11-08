@@ -64,12 +64,21 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(decoded[1:5], (0x12345678, 1, 0x2345, 0x6789))
         self.assertEqual(decoded[5], bytes(range(16)))
 
+    def test_jump_trace_record_layout(self):
+        record=struct.pack("<HIII",0x1234,0x89ABCDEF,0x10203040,0x50607080)
+        self.assertEqual(len(record),14)
+        self.assertEqual(struct.unpack("<HIII",record),(0x1234,0x89ABCDEF,0x10203040,0x50607080))
+        payload=struct.pack("<I",1)+record
+        self.assertEqual(struct.unpack_from("<I",payload,0)[0],1)
+        self.assertEqual(struct.unpack_from("<HIII",payload,4),(0x1234,0x89ABCDEF,0x10203040,0x50607080))
+
     def test_command_ids_and_protocol_version(self):
         self.assertEqual(server.VERSION, 2)
         self.assertEqual(server.CMD_MEMORY_READ, 17)
         self.assertEqual(server.CMD_MEMORY_READ_BLOCK, 18)
         self.assertEqual(server.CMD_DIALOGUE_CURRENT, 19)
         self.assertEqual(server.CMD_SCENE_HISTORY, 20)
+        self.assertEqual(server.CMD_JUMP_TRACE, 21)
 
 
 if __name__ == "__main__":
