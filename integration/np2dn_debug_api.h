@@ -49,6 +49,9 @@ void np2dn_debug_step_over(void);
 /* Read-only query helpers. */
 uint32_t np2dn_debug_status_flags(void);
 uint32_t np2dn_debug_current_csip(void);
+/* Read 1, 2 or 4 bytes: space 0 = physical, 1 = logical (paged). */
+int np2dn_memory_read(uint32_t address, uint32_t size,
+                      uint32_t space, uint32_t *value);
 
 /* Breakpoint controls. */
 int np2dn_breakpoint_toggle(uint16_t segment, uint16_t offset, uint8_t flags);

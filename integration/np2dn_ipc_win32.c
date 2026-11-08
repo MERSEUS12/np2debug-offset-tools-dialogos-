@@ -97,7 +97,7 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
     if (request.magic != NP2DN_IPC_MAGIC ||
         request.version != NP2DN_IPC_VERSION ||
         request.type < NP2DN_CMD_RESUME ||
-        request.type > NP2DN_CMD_SKIP_STATUS_QUERY ||
+        request.type > NP2DN_CMD_MEMORY_READ ||
         request.address_count > NP2DN_MAX_JUMP_ADDRESSES) {
         response.status = NP2DN_IPC_INVALID_REQUEST;
         np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));

@@ -32,6 +32,7 @@ CMD_SKIP_CANCEL = 13
 CMD_STATUS_QUERY = 14
 CMD_CURRENT_CSIP = 15
 CMD_SKIP_STATUS_QUERY = 16
+CMD_MEMORY_READ = 17
 
 mcp = FastMCP("np2debug-next")
 
@@ -159,6 +160,25 @@ def fast_forward_status() -> str:
         "finished": bool(raw & 0x02),
         "raw_flags": raw,
     }, ensure_ascii=False)
+
+
+@mcp.tool()
+def memory_read(address: int, size: int = 1, space: str = "physical") -> str:
+    """Lee 1, 2 o 4 bytes; space: physical o logical (con paginación)."""
+    address = _u32(address, "address")
+    if size not in (1, 2, 4):
+        raise ValueError("size debe ser 1, 2 o 4 bytes")
+    spaces = {"physical": 0, "logical": 1}
+    if space not in spaces:
+        raise ValueError("space debe ser 'physical' o 'logical'")
+    if address > 0xFFFFFFFF - (size - 1):
+        raise ValueError("La lectura excede el espacio de direcciones de 32 bits")
+    raw = int(json.loads(_send_command(CMD_MEMORY_READ, address, size, spaces[space]))["result"]) & 0xFFFFFFFF
+    value = raw & ((1 << (size * 8)) - 1)
+    return json.dumps({"address": f"0x{address:08X}", "space": space,
+                       "size": size, "value": value,
+                       "hex": f"0x{value:0{size * 2}X}",
+                       "byte_order": "little-endian"}, ensure_ascii=False)
 
 
 @mcp.tool()

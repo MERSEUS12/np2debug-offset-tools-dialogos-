@@ -2,6 +2,7 @@
 #include "break.h"
 #include "cpucore.h"
 #include "np2dn_debug_api.h"
+#include "../i386c/cpumem.h"
 
 void np2dn_debug_get_status(NP2DN_DebugStatus *status)
 {
@@ -50,6 +51,24 @@ uint32_t np2dn_debug_current_csip(void)
 {
     return (((uint32_t)CPU_CS & 0xffffUL) << 16) |
            ((uint32_t)CPU_IP & 0xffffUL);
+}
+
+int np2dn_memory_read(uint32_t address, uint32_t size,
+                      uint32_t space, uint32_t *value)
+{
+    uint32_t i;
+    uint32_t result = 0;
+    if (value == NULL || (size != 1 && size != 2 && size != 4) || space > 1) return 0;
+    if (address > (0xffffffffUL - (size - 1))) return 0;
+    /* Bytewise reads preserve unaligned access and the core's memory map. */
+    for (i = 0; i < size; ++i) {
+        uint32_t byte_value = (space == 0)
+            ? (uint32_t)memp_read8(address + i)
+            : (uint32_t)meml_read8(address + i);
+        result |= (byte_value & 0xffUL) << (i * 8);
+    }
+    *value = result;
+    return 1;
 }
 
 void np2dn_debug_resume(void)

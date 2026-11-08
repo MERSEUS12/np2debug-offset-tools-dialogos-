@@ -22,6 +22,8 @@ Configura el cliente MCP para iniciar `server.py` con el intérprete de Python d
 
 ## Herramientas incluidas
 
+- `memory_read` (lectura de 1, 2 o 4 bytes; espacio físico o lógico)
+
 - `emulator_status`, `current_instruction`
 - `emulator_resume`, `emulator_pause`, `emulator_step`, `emulator_step_over`
 - `breakpoint_toggle`, `breakpoint_toggle_linear`, `breakpoints_reset`
@@ -42,4 +44,4 @@ Cada llamada MCP abre una conexión, envía una solicitud y espera el resultado 
 
 ## Alcance actual
 
-Esta versión expone 16 herramientas: control de ejecución, consulta de indicadores del emulador, lectura de CS:IP, breakpoints, saltos de diálogo, redirección de escenas y estado/control de Fast Forward. Las consultas son de solo lectura y se procesan en el hilo principal mediante la cola de comandos. Lectura/escritura de memoria, snapshots, extracción/inyección y navegación avanzada siguen pendientes; no se simulan como si ya estuvieran disponibles.
+Esta versión expone 17 herramientas. `memory_read` permite leer 1, 2 o 4 bytes en espacio físico o lógico; las lecturas se ejecutan en el hilo principal mediante la cola de comandos y utilizan las funciones de memoria del núcleo. La escritura de memoria, lecturas de bloques, snapshots, extracción/inyección y navegación avanzada siguen pendientes.

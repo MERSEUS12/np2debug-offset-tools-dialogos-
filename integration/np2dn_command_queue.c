@@ -128,6 +128,11 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_STATUS_QUERY: return (int32_t)np2dn_debug_status_flags();
     case NP2DN_CMD_CURRENT_CSIP: return (int32_t)np2dn_debug_current_csip();
     case NP2DN_CMD_SKIP_STATUS_QUERY: return (int32_t)np2dn_skip_status_flags();
+    case NP2DN_CMD_MEMORY_READ: {
+        uint32_t value = 0;
+        if (!np2dn_memory_read(cmd->a, cmd->b, cmd->c, &value)) return -1;
+        return (int32_t)value;
+    }
     default: return -1;
     }
 }
