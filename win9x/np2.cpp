@@ -7,6 +7,7 @@
  */
 
 #include "compiler.h"
+#include "integration/np2dn_command_queue.h"
 #include <time.h>
 #include <winsock.h>
 #ifndef __GNUC__
@@ -1575,6 +1576,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst,
 	}
 
 	while(1) {
+		np2dn_command_queue_pump();
 		if (!np2stopemulate) {
 			if (PeekMessage(&msg, 0, 0, 0, PM_NOREMOVE)) {
 				if (!GetMessage(&msg, NULL, 0, 0)) {
