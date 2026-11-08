@@ -1,0 +1,66 @@
+name: Build standalone NP2Debug MCP server
+
+on:
+  push:
+    branches: [ np2debug-next-integration ]
+    paths:
+      - "mcp_server/**"
+      - ".github/workflows/build-mcp-server.yml"
+  pull_request:
+    branches: [ np2debug-next-integration ]
+    paths:
+      - "mcp_server/**"
+      - ".github/workflows/build-mcp-server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-mcp:
+    runs-on: windows-2022
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: mcp_server/requirements.txt
+
+      - name: Instalar dependencias y empaquetador
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r mcp_server/requirements.txt
+          python -m pip install "pyinstaller>=6.10,<7"
+
+      - name: Comprobar sintaxis y pruebas del protocolo
+        shell: pwsh
+        run: |
+          python -m py_compile mcp_server/server.py mcp_server/tests/test_ipc_protocol.py mcp_server/tests/test_frozen_server.py
+          $env:PYTHONPATH = "mcp_server"
+          python -m unittest discover -s mcp_server/tests -v
+
+      - name: Empaquetar servidor MCP autónomo
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --name np2debug-mcp-server --collect-all mcp --collect-all pydantic --collect-all anyio --collect-all httpx --collect-all httpcore --collect-all jsonschema --collect-all starlette --collect-all uvicorn --collect-all pydantic_settings --collect-all sse_starlette --collect-all typing_extensions mcp_server/server.py
+          if (-not (Test-Path "dist/np2debug-mcp-server.exe")) {
+            throw "PyInstaller no generó dist/np2debug-mcp-server.exe"
+          }
+
+      - name: Verificar handshake MCP y las 18 herramientas del EXE
+        shell: pwsh
+        run: |
+          python mcp_server/tests/test_frozen_server.py dist/np2debug-mcp-server.exe
+
+      - name: Publicar ejecutable autónomo
+        uses: actions/upload-artifact@v4
+        with:
+          name: np2debug-mcp-server-windows-x64
+          path: dist/np2debug-mcp-server.exe
+          if-no-files-found: error
+          retention-days: 30
