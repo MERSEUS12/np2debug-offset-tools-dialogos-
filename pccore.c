@@ -49,7 +49,7 @@
 #include	"keystat.h"
 #include	"debugsub.h"
 #include	"break.h"
-#include "np2dn_command_queue.h"
+#include "integration/np2dn_command_queue.h"
 #ifdef WIN32
 #include	"mountdir.h"
 #else
