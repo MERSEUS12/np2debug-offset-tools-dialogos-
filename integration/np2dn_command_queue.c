@@ -46,6 +46,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
         if (s_slots[i].state == 0) {
             s_slots[i].command = *command;
+            s_slots[i].command.script_name[NP2DN_SCRIPT_NAME_MAX - 1] = '\0';
             id = s_next_id++;
             if (id == 0) id = s_next_id++;
             s_slots[i].command.id = id;
