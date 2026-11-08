@@ -131,9 +131,12 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
 
 void np2dn_command_queue_pump(void)
 {
+    uint32_t processed;
+
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0) return;
 
-    for (;;) {
+    /* Bound work per UI tick so a busy MCP client cannot starve Windows messages. */
+    for (processed = 0; processed < NP2DN_QUEUE_CAPACITY; ++processed) {
         uint32_t i, selected = NP2DN_QUEUE_CAPACITY;
         uint64_t oldest = UINT64_MAX;
         NP2DN_Command command;
