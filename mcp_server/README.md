@@ -22,11 +22,12 @@ Configura el cliente MCP para iniciar `server.py` con el intérprete de Python d
 
 ## Herramientas incluidas
 
+- `emulator_status`, `current_instruction`
 - `emulator_resume`, `emulator_pause`, `emulator_step`, `emulator_step_over`
 - `breakpoint_toggle`, `breakpoint_toggle_linear`, `breakpoints_reset`
 - `dialogue_jump_arm`, `dialogue_jump_cancel`
 - `scene_redirect_arm`, `scene_redirect_cancel`
-- `fast_forward_arm`, `fast_forward_cancel`
+- `fast_forward_arm`, `fast_forward_cancel`, `fast_forward_status`
 
 ## Protocolo IPC v1
 
@@ -41,4 +42,4 @@ Cada llamada MCP abre una conexión, envía una solicitud y espera el resultado 
 
 ## Alcance actual
 
-Esta primera versión expone comandos de control, breakpoints, saltos de diálogo, redirección de escenas y Fast Forward. Las consultas de estado, lectura/escritura de memoria, snapshots, extracción/inyección y navegación avanzada se añadirán como operaciones independientes con validación en el emulador; no se simulan como si ya estuvieran disponibles.
+Esta versión expone 16 herramientas: control de ejecución, consulta de indicadores del emulador, lectura de CS:IP, breakpoints, saltos de diálogo, redirección de escenas y estado/control de Fast Forward. Las consultas son de solo lectura y se procesan en el hilo principal mediante la cola de comandos. Lectura/escritura de memoria, snapshots, extracción/inyección y navegación avanzada siguen pendientes; no se simulan como si ya estuvieran disponibles.

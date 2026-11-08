@@ -8,8 +8,8 @@
  * dialogue, scene and fast-forward implementation. It does not replace
  * break.c and does not expose CPU internals to external clients.
  *
- * Threading: call these functions from the emulator/UI thread for now.
- * A queued cross-thread command layer will be added before MCP uses this API.
+ * Threading: call these functions only from the emulator/UI thread.
+ * External clients must submit commands through np2dn_command_queue.
  */
 
 #include <stdint.h>
