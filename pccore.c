@@ -637,7 +637,6 @@ void pccore_postevent(UINT32 event) {	// yet!
 void pccore_exec(BOOL draw) {
 
 	pcstat.drawframe = (UINT8)draw;
-	np2dn_command_queue_pump();
 //	keystat_sync();
 	soundmng_sync();
 	mouseif_sync();
