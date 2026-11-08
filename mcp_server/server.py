@@ -40,6 +40,13 @@ def _u32(value: int, field: str) -> int:
     return number
 
 
+def _u16(value: int, field: str) -> int:
+    number = int(value)
+    if number < 0 or number > 0xFFFF:
+        raise ValueError(f"{field} debe estar entre 0 y 65535")
+    return number
+
+
 def _read_exact(pipe, size: int) -> bytes:
     chunks = bytearray()
     while len(chunks) < size:
@@ -142,8 +149,8 @@ def breakpoint_toggle(segment: int, offset: int, flags: int = 4) -> str:
     """Activa o desactiva un breakpoint en una dirección segmento:offset."""
     return _send_command(
         CMD_BREAKPOINT_TOGGLE,
-        _u32(segment, "segment"),
-        _u32(offset, "offset"),
+        _u16(segment, "segment"),
+        _u16(offset, "offset"),
         _u32(flags, "flags"),
     )
 
@@ -168,14 +175,14 @@ def breakpoints_reset() -> str:
 def dialogue_jump_arm(
     script_segment: int,
     target_esi: int,
-    allowed_cs_ip: Sequence[int] = (),
+    allowed_cs_ip: list[int] | None = None,
 ) -> str:
     """Prepara un salto controlado a un diálogo, con hasta 8 direcciones CS:IP permitidas."""
     return _send_command(
         CMD_JUMP_ARM,
-        _u32(script_segment, "script_segment"),
+        _u16(script_segment, "script_segment"),
         _u32(target_esi, "target_esi"),
-        addresses=allowed_cs_ip,
+        addresses=allowed_cs_ip or (),
     )
 
 
@@ -210,7 +217,7 @@ def fast_forward_arm(
         raise ValueError("wait_kind debe ser 0, 1 o 2")
     return _send_command(
         CMD_SKIP_ARM,
-        _u32(script_segment, "script_segment"),
+        _u16(script_segment, "script_segment"),
         _u32(dialogue_count, "dialogue_count"),
         wait_kind,
     )
