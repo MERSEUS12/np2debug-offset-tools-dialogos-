@@ -76,6 +76,11 @@ void np2dn_skip_get_status(NP2DN_SkipStatus *status);
 uint32_t np2dn_skip_status_flags(void);
 int np2dn_track_current(uint32_t *esi, int32_t *dialogue_id,
                         uint32_t *block_start, char *text, uint32_t text_max);
+/* Scene-open history; call only from the emulator/UI thread. */
+uint32_t np2dn_scene_log_count(void);
+int np2dn_scene_log_get(uint32_t index, char name[16], uint32_t *linear,
+                        uint8_t *redirected, uint16_t *caller_cs,
+                        uint16_t *caller_ip, uint8_t context[16]);
 
 #ifdef __cplusplus
 }

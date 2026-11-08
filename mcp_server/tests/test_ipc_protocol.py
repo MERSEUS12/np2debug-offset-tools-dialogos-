@@ -54,11 +54,22 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(payload[12:-1].decode("ascii"), "Hello")
         self.assertEqual(payload[-1], 0)
 
+    def test_scene_history_record_layout(self):
+        name = b"SCENE01.BIN".ljust(16, b"\\0")
+        record = struct.pack("<16sIBHH16s", name, 0x12345678, 1,
+                             0x2345, 0x6789, bytes(range(16)))
+        self.assertEqual(len(record), 41)
+        decoded = struct.unpack("<16sIBHH16s", record)
+        self.assertEqual(decoded[0].split(b"\\0", 1)[0], b"SCENE01.BIN")
+        self.assertEqual(decoded[1:5], (0x12345678, 1, 0x2345, 0x6789))
+        self.assertEqual(decoded[5], bytes(range(16)))
+
     def test_command_ids_and_protocol_version(self):
         self.assertEqual(server.VERSION, 2)
         self.assertEqual(server.CMD_MEMORY_READ, 17)
         self.assertEqual(server.CMD_MEMORY_READ_BLOCK, 18)
         self.assertEqual(server.CMD_DIALOGUE_CURRENT, 19)
+        self.assertEqual(server.CMD_SCENE_HISTORY, 20)
 
 
 if __name__ == "__main__":

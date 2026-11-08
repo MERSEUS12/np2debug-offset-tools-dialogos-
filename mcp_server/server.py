@@ -35,6 +35,7 @@ CMD_SKIP_STATUS_QUERY = 16
 CMD_MEMORY_READ = 17
 CMD_MEMORY_READ_BLOCK = 18
 CMD_DIALOGUE_CURRENT = 19
+CMD_SCENE_HISTORY = 20
 
 mcp = FastMCP("np2debug-next")
 
@@ -125,6 +126,10 @@ def _send_command(
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
     if command_type == CMD_DIALOGUE_CURRENT and result not in (0, 1):
         raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
+    if command_type == CMD_SCENE_HISTORY and result != 1:
+        raise RuntimeError("Respuesta IPC inválida para historial de escenas")
+    if command_type == CMD_SCENE_HISTORY and (payload_length < 12 or (payload_length - 12) % 41 != 0):
+        raise RuntimeError("Respuesta IPC inválida: payload de historial incoherente")
     if command_type == CMD_DIALOGUE_CURRENT and ((result == 0 and payload_length != 0) or (result == 1 and not 13 <= payload_length <= 256)):
         raise RuntimeError("Respuesta IPC inválida: payload de diálogo incoherente")
     if command_type == CMD_MEMORY_READ and (result != 1 or payload_length != 4):
@@ -173,6 +178,56 @@ def dialogue_current() -> str:
         "text_encoding": "ASCII approximation",
         "text_note": "Los bytes no imprimibles o fuera de ASCII se representan como puntos; no es una decodificación Shift-JIS.",
         "command_id": response.get("command_id"),
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def scene_history() -> str:
+    """Devuelve las últimas aperturas de archivos del juego, con caller y contexto de código."""
+    page_size = 5
+    entries = []
+    total_count = None
+
+    for offset in range(0, 16, page_size):
+        response = json.loads(_send_command(CMD_SCENE_HISTORY, offset, page_size))
+        payload = bytes.fromhex(response.get("payload_hex", ""))
+        if len(payload) != response.get("payload_length") or len(payload) < 12:
+            raise RuntimeError("Payload de historial inválido: encabezado incompleto")
+        total, returned_offset, returned = struct.unpack_from("<III", payload, 0)
+        if returned_offset != offset or total > 16 or returned > page_size:
+            raise RuntimeError("Payload de historial inválido: paginación incoherente")
+        if len(payload) != 12 + returned * 41:
+            raise RuntimeError("Payload de historial inválido: tamaño de registros incorrecto")
+        if total_count is None:
+            total_count = total
+        elif total != total_count:
+            raise RuntimeError("El historial cambió mientras se consultaban sus páginas")
+
+        for i in range(returned):
+            pos = 12 + i * 41
+            name_raw, linear, redirected, caller_cs, caller_ip, context = struct.unpack_from(
+                "<16sIBHH16s", payload, pos
+            )
+            name = name_raw.split(b"\0", 1)[0].decode("ascii", errors="replace")
+            entries.append({
+                "index": offset + i,
+                "filename": name,
+                "linear_address": linear,
+                "linear_address_hex": f"0x{linear:08X}",
+                "redirected": bool(redirected),
+                "caller_cs": caller_cs,
+                "caller_ip": caller_ip,
+                "caller_cs_ip": f"{caller_cs:04X}:{caller_ip:04X}",
+                "caller_context_hex": context.hex(" ").upper(),
+            })
+        if offset + returned >= total:
+            break
+
+    return json.dumps({
+        "count": total_count or 0,
+        "order": "newest_first",
+        "entries": entries,
+        "context_note": "caller_context_hex contiene los 16 bytes de código anteriores a la dirección de retorno de INT 21h.",
     }, ensure_ascii=False)
 
 

@@ -214,3 +214,26 @@ int np2dn_track_current(uint32_t *esi, int32_t *dialogue_id,
     }
     return result ? 1 : 0;
 }
+
+uint32_t np2dn_scene_log_count(void)
+{
+    return (uint32_t)np2scene_log_count();
+}
+
+int np2dn_scene_log_get(uint32_t index, char name[16], uint32_t *linear,
+                        uint8_t *redirected, uint16_t *caller_cs,
+                        uint16_t *caller_ip, uint8_t context[16])
+{
+    BOOL redir = FALSE;
+    UINT16 cs = 0;
+    UINT16 ip = 0;
+
+    if (name == NULL || linear == NULL || redirected == NULL ||
+        caller_cs == NULL || caller_ip == NULL || context == NULL) return 0;
+    if (!np2scene_log_get((UINT)index, name, (UINT32 *)linear, &redir) ||
+        !np2scene_log_caller((UINT)index, &cs, &ip, context)) return 0;
+    *redirected = redir ? 1 : 0;
+    *caller_cs = (uint16_t)cs;
+    *caller_ip = (uint16_t)ip;
+    return 1;
+}

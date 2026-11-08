@@ -52,7 +52,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_DIALOGUE_CURRENT ||
+        command->type > NP2DN_CMD_SCENE_HISTORY ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
@@ -166,6 +166,7 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_MEMORY_READ:
     case NP2DN_CMD_MEMORY_READ_BLOCK:
     case NP2DN_CMD_DIALOGUE_CURRENT:
+    case NP2DN_CMD_SCENE_HISTORY:
         return -2; /* Payload queries are executed by the pump on the emulator thread. */
     default: return -1;
     }
@@ -257,6 +258,68 @@ void np2dn_command_queue_pump(void)
             }
             else {
                 result = 0;
+            }
+        }
+        else if (command.type == NP2DN_CMD_SCENE_HISTORY) {
+            uint32_t total = np2dn_scene_log_count();
+            uint32_t offset = command.a;
+            uint32_t requested = command.b;
+            uint32_t returned = 0;
+            uint32_t i;
+
+            ZeroMemory(payload, sizeof(payload));
+            if (offset > 16u || requested < 1u || requested > 5u) {
+                result = -1;
+            }
+            else {
+                if (offset < total) {
+                    returned = total - offset;
+                    if (returned > requested) returned = requested;
+                }
+                payload[0] = (uint8_t)(total & 0xff);
+                payload[1] = (uint8_t)((total >> 8) & 0xff);
+                payload[2] = (uint8_t)((total >> 16) & 0xff);
+                payload[3] = (uint8_t)((total >> 24) & 0xff);
+                payload[4] = (uint8_t)(offset & 0xff);
+                payload[5] = (uint8_t)((offset >> 8) & 0xff);
+                payload[6] = (uint8_t)((offset >> 16) & 0xff);
+                payload[7] = (uint8_t)((offset >> 24) & 0xff);
+                payload[8] = (uint8_t)(returned & 0xff);
+                payload[9] = (uint8_t)((returned >> 8) & 0xff);
+                payload[10] = (uint8_t)((returned >> 16) & 0xff);
+                payload[11] = (uint8_t)((returned >> 24) & 0xff);
+
+                result = 1;
+                for (i = 0; i < returned; ++i) {
+                    char name[16];
+                    uint32_t linear = 0;
+                    uint8_t redirected = 0;
+                    uint16_t caller_cs = 0;
+                    uint16_t caller_ip = 0;
+                    uint8_t context[16];
+                    uint32_t pos = 12u + (i * 41u);
+                    uint32_t j;
+
+                    ZeroMemory(name, sizeof(name));
+                    ZeroMemory(context, sizeof(context));
+                    if (!np2dn_scene_log_get(offset + i, name, &linear,
+                                             &redirected, &caller_cs,
+                                             &caller_ip, context)) {
+                        result = -1;
+                        payload_length = 0;
+                        break;
+                    }
+                    CopyMemory(payload + pos, name, 16);
+                    for (j = 0; j < 4; ++j)
+                        payload[pos + 16u + j] = (uint8_t)((linear >> (j * 8)) & 0xff);
+                    payload[pos + 20u] = redirected;
+                    payload[pos + 21u] = (uint8_t)(caller_cs & 0xff);
+                    payload[pos + 22u] = (uint8_t)((caller_cs >> 8) & 0xff);
+                    payload[pos + 23u] = (uint8_t)(caller_ip & 0xff);
+                    payload[pos + 24u] = (uint8_t)((caller_ip >> 8) & 0xff);
+                    CopyMemory(payload + pos + 25u, context, 16);
+                }
+                if (result == 1) payload_length = 12u + (returned * 41u);
             }
         }
         else result = np2dn_execute_command(&command);
