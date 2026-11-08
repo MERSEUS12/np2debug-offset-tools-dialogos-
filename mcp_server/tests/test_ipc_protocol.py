@@ -47,10 +47,18 @@ class IpcProtocolTests(unittest.TestCase):
             decoded = int.from_bytes(unpacked[6][:4], "little", signed=False)
             self.assertEqual(decoded, value)
 
+    def test_dialogue_payload_layout(self):
+        payload = struct.pack("<IiI", 0x12345678, 7, 0x90) + b"Hello\x00"
+        esi, dialogue_id, block_start = struct.unpack_from("<IiI", payload, 0)
+        self.assertEqual((esi, dialogue_id, block_start), (0x12345678, 7, 0x90))
+        self.assertEqual(payload[12:-1].decode("ascii"), "Hello")
+        self.assertEqual(payload[-1], 0)
+
     def test_command_ids_and_protocol_version(self):
         self.assertEqual(server.VERSION, 2)
         self.assertEqual(server.CMD_MEMORY_READ, 17)
         self.assertEqual(server.CMD_MEMORY_READ_BLOCK, 18)
+        self.assertEqual(server.CMD_DIALOGUE_CURRENT, 19)
 
 
 if __name__ == "__main__":

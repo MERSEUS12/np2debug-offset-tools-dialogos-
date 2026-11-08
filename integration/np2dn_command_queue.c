@@ -52,7 +52,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_MEMORY_READ_BLOCK ||
+        command->type > NP2DN_CMD_DIALOGUE_CURRENT ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
@@ -165,7 +165,8 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_SKIP_STATUS_QUERY: return (int32_t)np2dn_skip_status_flags();
     case NP2DN_CMD_MEMORY_READ:
     case NP2DN_CMD_MEMORY_READ_BLOCK:
-        return -2; /* Memory reads are executed by the pump into slot payload. */
+    case NP2DN_CMD_DIALOGUE_CURRENT:
+        return -2; /* Payload queries are executed by the pump on the emulator thread. */
     default: return -1;
     }
 }
@@ -222,6 +223,41 @@ void np2dn_command_queue_pump(void)
                 payload_length = command.b;
             }
             else result = -1;
+        }
+        else if (command.type == NP2DN_CMD_DIALOGUE_CURRENT) {
+            uint32_t esi = 0;
+            uint32_t block_start = 0;
+            int32_t dialogue_id = -1;
+            char dialogue_text[244];
+            uint32_t text_length = 0;
+
+            ZeroMemory(dialogue_text, sizeof(dialogue_text));
+            ZeroMemory(payload, sizeof(payload));
+            if (np2dn_track_current(&esi, &dialogue_id, &block_start,
+                                    dialogue_text, (uint32_t)sizeof(dialogue_text))) {
+                payload[0] = (uint8_t)(esi & 0xff);
+                payload[1] = (uint8_t)((esi >> 8) & 0xff);
+                payload[2] = (uint8_t)((esi >> 16) & 0xff);
+                payload[3] = (uint8_t)((esi >> 24) & 0xff);
+                payload[4] = (uint8_t)((uint32_t)dialogue_id & 0xff);
+                payload[5] = (uint8_t)(((uint32_t)dialogue_id >> 8) & 0xff);
+                payload[6] = (uint8_t)(((uint32_t)dialogue_id >> 16) & 0xff);
+                payload[7] = (uint8_t)(((uint32_t)dialogue_id >> 24) & 0xff);
+                payload[8] = (uint8_t)(block_start & 0xff);
+                payload[9] = (uint8_t)((block_start >> 8) & 0xff);
+                payload[10] = (uint8_t)((block_start >> 16) & 0xff);
+                payload[11] = (uint8_t)((block_start >> 24) & 0xff);
+                while (text_length < 243u && dialogue_text[text_length] != '\0') {
+                    payload[12 + text_length] = (uint8_t)dialogue_text[text_length];
+                    text_length++;
+                }
+                payload[12 + text_length] = 0;
+                payload_length = 13 + text_length;
+                result = 1;
+            }
+            else {
+                result = 0;
+            }
         }
         else result = np2dn_execute_command(&command);
 

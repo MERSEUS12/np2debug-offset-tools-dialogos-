@@ -34,6 +34,7 @@ CMD_CURRENT_CSIP = 15
 CMD_SKIP_STATUS_QUERY = 16
 CMD_MEMORY_READ = 17
 CMD_MEMORY_READ_BLOCK = 18
+CMD_DIALOGUE_CURRENT = 19
 
 mcp = FastMCP("np2debug-next")
 
@@ -122,6 +123,10 @@ def _send_command(
         raise RuntimeError("Respuesta IPC inválida: longitud de payload superior a 256 bytes")
     if command_type in (CMD_MEMORY_READ, CMD_MEMORY_READ_BLOCK) and result < 0:
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
+    if command_type == CMD_DIALOGUE_CURRENT and result not in (0, 1):
+        raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
+    if command_type == CMD_DIALOGUE_CURRENT and ((result == 0 and payload_length != 0) or (result == 1 and not 13 <= payload_length <= 256)):
+        raise RuntimeError("Respuesta IPC inválida: payload de diálogo incoherente")
     if command_type == CMD_MEMORY_READ and (result != 1 or payload_length != 4):
         raise RuntimeError(
             "Respuesta IPC inválida para lectura escalar de memoria: "
@@ -136,6 +141,39 @@ def _send_command(
         response_data["payload_hex"] = payload[:payload_length].hex().upper()
         response_data["payload_length"] = payload_length
     return json.dumps(response_data, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_current() -> str:
+    """Consulta el último diálogo detectado por el seguimiento nativo del emulador."""
+    response = json.loads(_send_command(CMD_DIALOGUE_CURRENT))
+    if response.get("result") == 0:
+        return json.dumps({
+            "available": False,
+            "reason": "Todavía no se ha detectado un marcador de espera de diálogo \\HA.",
+        }, ensure_ascii=False)
+
+    payload = bytes.fromhex(response.get("payload_hex", ""))
+    if len(payload) != response.get("payload_length") or len(payload) < 13 or payload[-1] != 0:
+        raise RuntimeError("Payload de diálogo inválido: longitud o terminador incorrecto")
+    esi, dialogue_id, block_start = struct.unpack_from("<IiI", payload, 0)
+    text_bytes = payload[12:-1]
+    try:
+        dialogue_text = text_bytes.decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("El emulador devolvió texto de diálogo no ASCII") from exc
+    return json.dumps({
+        "available": True,
+        "dialogue_id": dialogue_id,
+        "esi": esi,
+        "esi_hex": f"0x{esi:08X}",
+        "block_start": block_start,
+        "block_start_hex": f"0x{block_start:08X}",
+        "text": dialogue_text,
+        "text_encoding": "ASCII approximation",
+        "text_note": "Los bytes no imprimibles o fuera de ASCII se representan como puntos; no es una decodificación Shift-JIS.",
+        "command_id": response.get("command_id"),
+    }, ensure_ascii=False)
 
 
 @mcp.tool()
