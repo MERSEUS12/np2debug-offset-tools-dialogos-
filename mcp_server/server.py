@@ -444,8 +444,10 @@ def breakpoints_list(page_size: int = 48) -> str:
             names = [name for bit, name in flag_names if flags & bit]
             unknown_flags = flags & ~0x0F
             canonical = None
-            if address <= 0x10FFEF:
+            if address <= 0xFFFFF:
                 canonical = {"segment": address >> 4, "offset": address & 0x0F}
+            elif address <= 0x10FFEF:
+                canonical = {"segment": 0xFFFF, "offset": address - 0xFFFF0}
             entries.append({
                 "index": offset + index,
                 "linear_address": address,
