@@ -108,7 +108,7 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
     if (request.magic != NP2DN_IPC_MAGIC ||
         request.version != NP2DN_IPC_VERSION ||
         request.type < NP2DN_CMD_RESUME ||
-        request.type > NP2DN_CMD_CPU_REGISTERS ||
+        request.type > NP2DN_CMD_BREAKPOINTS_LIST ||
         request.address_count > NP2DN_MAX_JUMP_ADDRESSES) {
         response.status = NP2DN_IPC_INVALID_REQUEST;
         np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));
@@ -142,7 +142,8 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
             request.type == NP2DN_CMD_SCENE_HISTORY ||
             request.type == NP2DN_CMD_JUMP_TRACE ||
             request.type == NP2DN_CMD_CURRENT_INSTRUCTION ||
-            request.type == NP2DN_CMD_CPU_REGISTERS) {
+            request.type == NP2DN_CMD_CPU_REGISTERS ||
+            request.type == NP2DN_CMD_BREAKPOINTS_LIST) {
             if (np2dn_command_poll_memory(command_id, &result, &payload_length,
                                           response.payload, NP2DN_IPC_MAX_PAYLOAD)) {
                 response.status = NP2DN_IPC_OK;
