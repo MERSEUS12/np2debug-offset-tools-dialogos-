@@ -120,8 +120,12 @@ def _send_command(
         raise RuntimeError(f"Estado IPC desconocido: {status}")
     if payload_length > 256:
         raise RuntimeError("Respuesta IPC inválida: longitud de payload superior a 256 bytes")
-    if command_type == CMD_MEMORY_READ and result < 0:
+    if command_type in (CMD_MEMORY_READ, CMD_MEMORY_READ_BLOCK) and result < 0:
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
+    if command_type == CMD_MEMORY_READ and (result != 1 or payload_length != 4):
+        raise RuntimeError("Respuesta IPC inválida para lectura escalar de memoria")
+    if command_type == CMD_MEMORY_READ_BLOCK and result != 1:
+        raise RuntimeError("El emulador no pudo completar la lectura de memoria")
 
     response_data = {"command_id": command_id, "result": result}
     if payload_length:
@@ -179,7 +183,8 @@ def memory_read(address: int, size: int = 1, space: str = "physical") -> str:
         raise ValueError("space debe ser 'physical' o 'logical'")
     if address > 0xFFFFFFFF - (size - 1):
         raise ValueError("La lectura excede el espacio de direcciones de 32 bits")
-    raw = int(json.loads(_send_command(CMD_MEMORY_READ, address, size, spaces[space]))["result"]) & 0xFFFFFFFF
+    response = json.loads(_send_command(CMD_MEMORY_READ, address, size, spaces[space]))
+    raw = int.from_bytes(bytes.fromhex(response["payload_hex"]), "little", signed=False)
     value = raw & ((1 << (size * 8)) - 1)
     return json.dumps({"address": f"0x{address:08X}", "space": space,
                        "size": size, "value": value,

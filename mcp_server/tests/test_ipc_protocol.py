@@ -35,6 +35,18 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(unpacked[5], 256)
         self.assertEqual(unpacked[6], data)
 
+    def test_scalar_memory_payload_preserves_unsigned_32_bit_values(self):
+        for value in (0x7FFFFFFF, 0x80000000, 0xFFFFFFFF):
+            data = value.to_bytes(4, "little", signed=False)
+            packed = server.RESPONSE.pack(
+                server.MAGIC, server.VERSION, 0, 11, 1, 4, data + bytes(252)
+            )
+            unpacked = server.RESPONSE.unpack(packed)
+            self.assertEqual(unpacked[4], 1)
+            self.assertEqual(unpacked[5], 4)
+            decoded = int.from_bytes(unpacked[6][:4], "little", signed=False)
+            self.assertEqual(decoded, value)
+
     def test_command_ids_and_protocol_version(self):
         self.assertEqual(server.VERSION, 2)
         self.assertEqual(server.CMD_MEMORY_READ, 17)

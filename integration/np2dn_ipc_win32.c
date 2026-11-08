@@ -136,7 +136,8 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
 
     response.command_id = command_id;
     while (!np2dn_ipc_stopping()) {
-        if (request.type == NP2DN_CMD_MEMORY_READ_BLOCK) {
+        if (request.type == NP2DN_CMD_MEMORY_READ ||
+            request.type == NP2DN_CMD_MEMORY_READ_BLOCK) {
             if (np2dn_command_poll_memory(command_id, &result, &payload_length,
                                           response.payload, NP2DN_IPC_MAX_PAYLOAD)) {
                 response.status = NP2DN_IPC_OK;

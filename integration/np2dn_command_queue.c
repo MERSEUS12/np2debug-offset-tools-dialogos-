@@ -163,13 +163,9 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_STATUS_QUERY: return (int32_t)np2dn_debug_status_flags();
     case NP2DN_CMD_CURRENT_CSIP: return (int32_t)np2dn_debug_current_csip();
     case NP2DN_CMD_SKIP_STATUS_QUERY: return (int32_t)np2dn_skip_status_flags();
-    case NP2DN_CMD_MEMORY_READ: {
-        uint32_t value = 0;
-        if (!np2dn_memory_read(cmd->a, cmd->b, cmd->c, &value)) return -1;
-        return (int32_t)value;
-    }
+    case NP2DN_CMD_MEMORY_READ:
     case NP2DN_CMD_MEMORY_READ_BLOCK:
-        return -2; /* Executed by the pump into the slot-owned payload buffer. */
+        return -2; /* Memory reads are executed by the pump into slot payload. */
     default: return -1;
     }
 }
@@ -208,7 +204,19 @@ void np2dn_command_queue_pump(void)
         command = s_slots[selected].command;
         LeaveCriticalSection(&s_queue_lock);
 
-        if (command.type == NP2DN_CMD_MEMORY_READ_BLOCK) {
+        if (command.type == NP2DN_CMD_MEMORY_READ) {
+            uint32_t value = 0;
+            if (np2dn_memory_read(command.a, command.b, command.c, &value)) {
+                payload[0] = (uint8_t)(value & 0xff);
+                payload[1] = (uint8_t)((value >> 8) & 0xff);
+                payload[2] = (uint8_t)((value >> 16) & 0xff);
+                payload[3] = (uint8_t)((value >> 24) & 0xff);
+                result = 1;
+                payload_length = 4;
+            }
+            else result = -1;
+        }
+        else if (command.type == NP2DN_CMD_MEMORY_READ_BLOCK) {
             if (np2dn_memory_read_block(command.a, command.b, command.c, payload)) {
                 result = 1;
                 payload_length = command.b;
