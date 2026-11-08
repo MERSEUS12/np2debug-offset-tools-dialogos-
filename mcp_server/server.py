@@ -29,6 +29,9 @@ CMD_SCENE_ARM = 10
 CMD_SCENE_CANCEL = 11
 CMD_SKIP_ARM = 12
 CMD_SKIP_CANCEL = 13
+CMD_STATUS_QUERY = 14
+CMD_CURRENT_CSIP = 15
+CMD_SKIP_STATUS_QUERY = 16
 
 mcp = FastMCP("np2debug-next")
 
@@ -118,6 +121,44 @@ def _send_command(
         {"command_id": command_id, "result": result},
         ensure_ascii=False,
     )
+
+
+@mcp.tool()
+def emulator_status() -> str:
+    """Consulta indicadores de estado del emulador sin modificar su ejecución."""
+    raw = int(_send_command(CMD_STATUS_QUERY))
+    flags = raw & 0xFFFFFFFF
+    return json.dumps({
+        "stop_emulation": bool(flags & 0x01),
+        "single_step": bool(flags & 0x02),
+        "dialogue_jump_armed": bool(flags & 0x04),
+        "scene_redirect_armed": bool(flags & 0x08),
+        "fast_forward_waiting": bool(flags & 0x10),
+        "fast_forward_busy": bool(flags & 0x20),
+        "raw_flags": flags,
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def current_instruction() -> str:
+    """Consulta la dirección actual de CPU en formato segmento:offset (CS:IP)."""
+    raw = int(_send_command(CMD_CURRENT_CSIP)) & 0xFFFFFFFF
+    return json.dumps({
+        "cs": (raw >> 16) & 0xFFFF,
+        "ip": raw & 0xFFFF,
+        "cs_ip": f"{(raw >> 16) & 0xFFFF:04X}:{raw & 0xFFFF:04X}",
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def fast_forward_status() -> str:
+    """Consulta si Fast Forward está activo o ha terminado."""
+    raw = int(_send_command(CMD_SKIP_STATUS_QUERY)) & 0xFFFFFFFF
+    return json.dumps({
+        "active": bool(raw & 0x01),
+        "finished": bool(raw & 0x02),
+        "raw_flags": raw,
+    }, ensure_ascii=False)
 
 
 @mcp.tool()

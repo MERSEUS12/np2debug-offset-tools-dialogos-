@@ -46,6 +46,10 @@ void np2dn_debug_pause(void);
 void np2dn_debug_step(void);
 void np2dn_debug_step_over(void);
 
+/* Read-only query helpers. */
+uint32_t np2dn_debug_status_flags(void);
+uint32_t np2dn_debug_current_csip(void);
+
 /* Breakpoint controls. */
 int np2dn_breakpoint_toggle(uint16_t segment, uint16_t offset, uint8_t flags);
 int np2dn_breakpoint_toggle_linear(uint32_t address, uint8_t flags);
@@ -63,6 +67,7 @@ void np2dn_skip_arm(uint16_t script_segment, uint32_t dialogue_count,
                     uint32_t wait_kind);
 void np2dn_skip_cancel(void);
 void np2dn_skip_get_status(NP2DN_SkipStatus *status);
+uint32_t np2dn_skip_status_flags(void);
 int np2dn_track_current(uint32_t *esi, int32_t *dialogue_id,
                         uint32_t *block_start, char *text, uint32_t text_max);
 

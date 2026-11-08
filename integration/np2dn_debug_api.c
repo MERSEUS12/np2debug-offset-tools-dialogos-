@@ -30,6 +30,28 @@ void np2dn_debug_get_status(NP2DN_DebugStatus *status)
             ? current_address : 0;
 }
 
+uint32_t np2dn_debug_status_flags(void)
+{
+    NP2DN_DebugStatus status;
+    uint32_t flags = 0;
+
+    ZeroMemory(&status, sizeof(status));
+    np2dn_debug_get_status(&status);
+    if (status.stop_emulation) flags |= 0x01;
+    if (status.single_step) flags |= 0x02;
+    if (status.jump_armed) flags |= 0x04;
+    if (status.scene_redirect_armed) flags |= 0x08;
+    if (status.skip_waiting) flags |= 0x10;
+    if (status.skip_busy) flags |= 0x20;
+    return flags;
+}
+
+uint32_t np2dn_debug_current_csip(void)
+{
+    return (((uint32_t)CPU_CS & 0xffffUL) << 16) |
+           ((uint32_t)CPU_IP & 0xffffUL);
+}
+
 void np2dn_debug_resume(void)
 {
     np2singlestep = FALSE;
@@ -126,6 +148,15 @@ void np2dn_skip_get_status(NP2DN_SkipStatus *status)
     status->finished = finished ? 1 : 0;
     status->pressed = (uint32_t)pressed;
     status->target = (uint32_t)target;
+}
+
+uint32_t np2dn_skip_status_flags(void)
+{
+    NP2DN_SkipStatus status;
+    ZeroMemory(&status, sizeof(status));
+    np2dn_skip_get_status(&status);
+    return (status.active ? 0x01UL : 0) |
+           (status.finished ? 0x02UL : 0);
 }
 
 int np2dn_track_current(uint32_t *esi, int32_t *dialogue_id,

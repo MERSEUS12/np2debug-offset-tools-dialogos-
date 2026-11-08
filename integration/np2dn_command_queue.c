@@ -50,7 +50,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_SKIP_CANCEL ||
+        command->type > NP2DN_CMD_SKIP_STATUS_QUERY ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
@@ -125,6 +125,9 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
         np2dn_skip_arm((uint16_t)cmd->a, cmd->b, cmd->c);
         return 1;
     case NP2DN_CMD_SKIP_CANCEL: np2dn_skip_cancel(); return 1;
+    case NP2DN_CMD_STATUS_QUERY: return (int32_t)np2dn_debug_status_flags();
+    case NP2DN_CMD_CURRENT_CSIP: return (int32_t)np2dn_debug_current_csip();
+    case NP2DN_CMD_SKIP_STATUS_QUERY: return (int32_t)np2dn_skip_status_flags();
     default: return -1;
     }
 }
