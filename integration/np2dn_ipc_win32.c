@@ -73,7 +73,7 @@ static int np2dn_ipc_write_exact(HANDLE pipe, const void *buffer, DWORD length)
         else {
             DWORD error = GetLastError();
             if (error == ERROR_NO_DATA || error == ERROR_PIPE_LISTENING) {
-                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_READ_TIMEOUT_MS) {
+                if ((DWORD)(GetTickCount() - started) >= NP2DN_IPC_IO_TIMEOUT_MS) {
                     return 0;
                 }
                 Sleep(1);
