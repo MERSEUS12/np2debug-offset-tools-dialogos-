@@ -6,11 +6,13 @@ typedef struct NP2DN_QueueSlot {
     NP2DN_Command command;
     int state; /* 0 free, 1 pending, 2 executing, 3 complete */
     int32_t result;
+    uint64_t sequence;
 } NP2DN_QueueSlot;
 
 static CRITICAL_SECTION s_queue_lock;
 static NP2DN_QueueSlot s_slots[NP2DN_QUEUE_CAPACITY];
 static uint32_t s_next_id = 1;
+static uint64_t s_next_sequence = 1;
 static int s_initialized = 0;
 
 int np2dn_command_queue_init(void)
@@ -20,6 +22,7 @@ int np2dn_command_queue_init(void)
     EnterCriticalSection(&s_queue_lock);
     ZeroMemory(s_slots, sizeof(s_slots));
     s_next_id = 1;
+    s_next_sequence = 1;
     s_initialized = 1;
     LeaveCriticalSection(&s_queue_lock);
     return 1;
@@ -52,6 +55,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
             s_slots[i].command.id = id;
             s_slots[i].state = 1;
             s_slots[i].result = 0;
+            s_slots[i].sequence = s_next_sequence++;
             break;
         }
     }
@@ -110,27 +114,36 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
 
 void np2dn_command_queue_pump(void)
 {
-    uint32_t i;
     if (!s_initialized) return;
 
-    for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
+    for (;;) {
+        uint32_t i, selected = NP2DN_QUEUE_CAPACITY;
+        uint64_t oldest = UINT64_MAX;
         NP2DN_Command command;
         int32_t result;
+
         EnterCriticalSection(&s_queue_lock);
-        if (s_slots[i].state != 1) {
-            LeaveCriticalSection(&s_queue_lock);
-            continue;
+        for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
+            if (s_slots[i].state == 1 && s_slots[i].sequence < oldest) {
+                oldest = s_slots[i].sequence;
+                selected = i;
+            }
         }
-        s_slots[i].state = 2;
-        command = s_slots[i].command;
+        if (selected == NP2DN_QUEUE_CAPACITY) {
+            LeaveCriticalSection(&s_queue_lock);
+            break;
+        }
+        s_slots[selected].state = 2;
+        command = s_slots[selected].command;
         LeaveCriticalSection(&s_queue_lock);
 
         result = np2dn_execute_command(&command);
 
         EnterCriticalSection(&s_queue_lock);
-        if (s_slots[i].state == 2 && s_slots[i].command.id == command.id) {
-            s_slots[i].result = result;
-            s_slots[i].state = 3;
+        if (s_slots[selected].state == 2 &&
+            s_slots[selected].command.id == command.id) {
+            s_slots[selected].result = result;
+            s_slots[selected].state = 3;
         }
         LeaveCriticalSection(&s_queue_lock);
     }
