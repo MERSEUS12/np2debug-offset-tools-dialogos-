@@ -39,6 +39,7 @@ CMD_SCENE_HISTORY = 20
 CMD_JUMP_TRACE = 21
 CMD_CURRENT_INSTRUCTION = 22
 CMD_CPU_REGISTERS = 23
+CMD_BREAKPOINTS_LIST = 24
 
 mcp = FastMCP("np2debug-next")
 
@@ -137,6 +138,8 @@ def _send_command(
         raise RuntimeError("Respuesta IPC inválida: payload de instrucción debe ocupar 96 bytes")
     if command_type == CMD_CPU_REGISTERS and payload_length != 53:
         raise RuntimeError("Respuesta IPC inválida: payload de registros debe ocupar 53 bytes")
+    if command_type == CMD_BREAKPOINTS_LIST and (result != 1 or payload_length < 12 or (payload_length - 12) % 5 != 0):
+        raise RuntimeError("Respuesta IPC inválida: payload de breakpoints incoherente")
     if command_type == CMD_SCENE_HISTORY and (payload_length < 12 or (payload_length - 12) % 41 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload de historial incoherente")
     if command_type == CMD_JUMP_TRACE and (payload_length < 4 or (payload_length - 4) % 14 != 0):
@@ -407,6 +410,65 @@ def emulator_step() -> str:
 def emulator_step_over() -> str:
     """Ejecuta Step Over sobre la instrucción actual."""
     return _send_command(CMD_STEP_OVER)
+
+
+@mcp.tool()
+def breakpoints_list(page_size: int = 48) -> str:
+    """Lista todos los breakpoints activos sin modificarlos ni reanudar el emulador."""
+    if not isinstance(page_size, int) or isinstance(page_size, bool) or not 1 <= page_size <= 48:
+        raise ValueError("page_size debe estar entre 1 y 48")
+
+    entries = []
+    total_count = None
+    offset = 0
+    flag_names = ((0x01, "READ"), (0x02, "WRITE"),
+                  (0x04, "EXECUTE"), (0x08, "ONESHOT"))
+
+    while True:
+        response = json.loads(_send_command(CMD_BREAKPOINTS_LIST, offset, page_size))
+        payload = bytes.fromhex(response.get("payload_hex", ""))
+        if len(payload) != response.get("payload_length") or len(payload) < 12:
+            raise RuntimeError("Payload de breakpoints inválido: encabezado incompleto")
+        total, returned_offset, returned = struct.unpack_from("<III", payload, 0)
+        if (returned_offset != offset or returned > page_size or
+                offset > total or returned > total - offset or
+                len(payload) != 12 + returned * 5):
+            raise RuntimeError("Payload de breakpoints inválido: paginación incoherente")
+        if total_count is None:
+            total_count = total
+        elif total != total_count:
+            raise RuntimeError("La lista de breakpoints cambió durante la consulta")
+
+        for index in range(returned):
+            address, flags = struct.unpack_from("<IB", payload, 12 + index * 5)
+            names = [name for bit, name in flag_names if flags & bit]
+            unknown_flags = flags & ~0x0F
+            canonical = None
+            if address <= 0x10FFEF:
+                canonical = {"segment": address >> 4, "offset": address & 0x0F}
+            entries.append({
+                "index": offset + index,
+                "linear_address": address,
+                "linear_address_hex": f"0x{address:08X}",
+                "canonical_segment_offset": canonical,
+                "flags": flags,
+                "flags_hex": f"0x{flags:02X}",
+                "types": names,
+                "unknown_flags": unknown_flags,
+            })
+
+        if offset + returned >= total:
+            break
+        if returned == 0:
+            raise RuntimeError("La consulta de breakpoints no avanzó pese a quedar entradas")
+        offset += returned
+
+    return json.dumps({
+        "count": total_count or 0,
+        "entries": entries,
+        "read_only": True,
+        "note": "Se omiten entradas vacías. La estructura nativa conserva la dirección lineal, no el segmento:offset original; canonical_segment_offset es una representación equivalente cuando cabe en modo real.",
+    }, ensure_ascii=False)
 
 
 @mcp.tool()

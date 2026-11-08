@@ -52,7 +52,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_CPU_REGISTERS ||
+        command->type > NP2DN_CMD_BREAKPOINTS_LIST ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
@@ -170,6 +170,7 @@ static int32_t np2dn_execute_command(const NP2DN_Command *cmd)
     case NP2DN_CMD_JUMP_TRACE:
     case NP2DN_CMD_CURRENT_INSTRUCTION:
     case NP2DN_CMD_CPU_REGISTERS:
+    case NP2DN_CMD_BREAKPOINTS_LIST:
         return -2; /* Payload queries are executed by the pump on the emulator thread. */
     default: return -1;
     }
@@ -334,6 +335,51 @@ void np2dn_command_queue_pump(void)
             if (np2dn_debug_cpu_registers(payload,
                     (uint32_t)sizeof(payload), &payload_length)) result = 1;
             else result = -1;
+        }
+        else if (command.type == NP2DN_CMD_BREAKPOINTS_LIST) {
+            uint32_t total = np2dn_breakpoint_count();
+            uint32_t offset = command.a;
+            uint32_t requested = command.b;
+            uint32_t returned = 0;
+            uint32_t i;
+
+            ZeroMemory(payload, sizeof(payload));
+            if (requested < 1u || requested > NP2DN_BREAKPOINT_PAGE_MAX ||
+                offset > total) {
+                result = -1;
+            }
+            else {
+                returned = total - offset;
+                if (returned > requested) returned = requested;
+                payload[0] = (uint8_t)(total & 0xffu);
+                payload[1] = (uint8_t)((total >> 8) & 0xffu);
+                payload[2] = (uint8_t)((total >> 16) & 0xffu);
+                payload[3] = (uint8_t)(total >> 24);
+                payload[4] = (uint8_t)(offset & 0xffu);
+                payload[5] = (uint8_t)((offset >> 8) & 0xffu);
+                payload[6] = (uint8_t)((offset >> 16) & 0xffu);
+                payload[7] = (uint8_t)(offset >> 24);
+                payload[8] = (uint8_t)(returned & 0xffu);
+                payload[9] = (uint8_t)((returned >> 8) & 0xffu);
+                payload[10] = (uint8_t)((returned >> 16) & 0xffu);
+                payload[11] = (uint8_t)(returned >> 24);
+                result = 1;
+                for (i = 0; i < returned; ++i) {
+                    uint32_t address = 0;
+                    uint8_t flags = 0;
+                    uint32_t pos = 12u + i * 5u;
+                    uint32_t j;
+                    if (!np2dn_breakpoint_get(offset + i, &address, &flags)) {
+                        result = -1;
+                        payload_length = 0;
+                        break;
+                    }
+                    for (j = 0; j < 4u; ++j)
+                        payload[pos + j] = (uint8_t)(address >> (j * 8u));
+                    payload[pos + 4u] = flags;
+                }
+                if (result == 1) payload_length = 12u + returned * 5u;
+            }
         }
         else if (command.type == NP2DN_CMD_JUMP_TRACE) {
             uint32_t total=np2dn_jump_trace_count(),i; ZeroMemory(payload,sizeof(payload)); if(total>12u)total=12u;

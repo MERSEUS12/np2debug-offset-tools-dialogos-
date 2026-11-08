@@ -102,6 +102,22 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(server.CMD_JUMP_TRACE, 21)
         self.assertEqual(server.CMD_CURRENT_INSTRUCTION, 22)
         self.assertEqual(server.CMD_CPU_REGISTERS, 23)
+        self.assertEqual(server.CMD_BREAKPOINTS_LIST, 24)
+
+    def test_breakpoint_list_payload_layout(self):
+        entries = [(0x12345, 0x04), (0x23456, 0x0B)]
+        records = b"".join(struct.pack("<IB", address, flags)
+                           for address, flags in entries)
+        payload = struct.pack("<III", 2, 0, len(entries)) + records
+        self.assertEqual(len(records), 10)
+        self.assertEqual(len(payload), 22)
+        self.assertEqual(struct.unpack_from("<III", payload, 0), (2, 0, 2))
+        self.assertEqual(struct.unpack_from("<IB", payload, 12), entries[0])
+        self.assertEqual(struct.unpack_from("<IB", payload, 17), entries[1])
+
+    def test_breakpoint_page_max_fits_ipc_payload(self):
+        self.assertEqual(12 + 48 * 5, 252)
+        self.assertLessEqual(12 + 48 * 5, 256)
 
 
 if __name__ == "__main__":

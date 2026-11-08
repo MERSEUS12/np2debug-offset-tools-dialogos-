@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "../common/lstarray.h"
 #include "break.h"
 #include "cpucore.h"
 #include "np2dn_debug_api.h"
@@ -217,6 +218,46 @@ int np2dn_breakpoint_toggle_linear(uint32_t address, uint8_t flags)
 void np2dn_breakpoints_reset(void)
 {
     np2break_reset();
+}
+
+/* Enumerate active entries only; zeroed tombstones are deliberately skipped. */
+uint32_t np2dn_breakpoint_count(void)
+{
+    UINT stored = listarray_getitems(np2breakaddrs);
+    UINT i;
+    uint32_t active = 0;
+
+    for (i = 0; i < stored; ++i) {
+        UINT32 *slot = (UINT32 *)listarray_getitem(np2breakaddrs, i);
+        np2break_t *flags;
+        if (slot == NULL || *slot == 0) continue;
+        flags = np2break_lookup_real(*slot);
+        if (flags != NULL && *flags != NP2BP_NONE) ++active;
+    }
+    return active;
+}
+
+int np2dn_breakpoint_get(uint32_t index, uint32_t *address, uint8_t *flags_out)
+{
+    UINT stored = listarray_getitems(np2breakaddrs);
+    UINT i;
+    uint32_t active_index = 0;
+
+    if (address == NULL || flags_out == NULL) return 0;
+    for (i = 0; i < stored; ++i) {
+        UINT32 *slot = (UINT32 *)listarray_getitem(np2breakaddrs, i);
+        np2break_t *flags;
+        if (slot == NULL || *slot == 0) continue;
+        flags = np2break_lookup_real(*slot);
+        if (flags == NULL || *flags == NP2BP_NONE) continue;
+        if (active_index == index) {
+            *address = *slot;
+            *flags_out = (uint8_t)*flags;
+            return 1;
+        }
+        ++active_index;
+    }
+    return 0;
 }
 
 void np2dn_jump_arm(uint16_t script_segment, uint32_t target_esi,

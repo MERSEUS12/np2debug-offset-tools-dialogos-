@@ -61,6 +61,10 @@ int np2dn_memory_read(uint32_t address, uint32_t size,
 int np2dn_memory_read_block(uint32_t address, uint32_t length,
                             uint32_t space, uint8_t *buffer);
 
+/* Read-only breakpoint enumeration; call on the emulator/UI thread. */
+uint32_t np2dn_breakpoint_count(void);
+int np2dn_breakpoint_get(uint32_t index, uint32_t *address, uint8_t *flags);
+
 /* Breakpoint controls. */
 int np2dn_breakpoint_toggle(uint16_t segment, uint16_t offset, uint8_t flags);
 int np2dn_breakpoint_toggle_linear(uint32_t address, uint8_t flags);
