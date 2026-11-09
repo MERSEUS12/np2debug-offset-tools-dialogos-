@@ -117,7 +117,16 @@ def _send_command(
     if magic != MAGIC or version != VERSION:
         raise RuntimeError("Respuesta IPC incompatible: revisa la versión del emulador y del servidor MCP")
     if status == 1:
-        raise ValueError("El emulador rechazó la orden: solicitud no válida")
+        rejection_reasons = {
+            0: "el emulador no proporciona diagnóstico (posible ejecutable anterior)",
+            1: "magic IPC incorrecto",
+            2: "versión IPC incompatible",
+            3: "identificador de comando inferior al rango admitido",
+            4: "identificador de comando superior al rango admitido",
+            5: "address_count supera el máximo de 8",
+        }
+        reason = rejection_reasons.get(result, f"código de diagnóstico desconocido {result}")
+        raise ValueError(f"El emulador rechazó la orden IPC: {reason}")
     if status == 2:
         raise RuntimeError("La cola de comandos está llena; vuelve a intentarlo")
     if status == 3:

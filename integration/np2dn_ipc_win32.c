@@ -105,12 +105,36 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
         return;
     }
 
-    if (request.magic != NP2DN_IPC_MAGIC ||
-        request.version != NP2DN_IPC_VERSION ||
-        request.type < NP2DN_CMD_RESUME ||
-        request.type > NP2DN_CMD_BREAKPOINTS_LIST ||
-        request.address_count > NP2DN_MAX_JUMP_ADDRESSES) {
+    /*
+     * Keep rejection reasons in response.result so the MCP client can
+     * distinguish a stale binary/protocol from a malformed request.
+     * 1=magic, 2=version, 3=command below range, 4=command above range,
+     * 5=address_count above the protocol limit.
+     */
+    if (request.magic != NP2DN_IPC_MAGIC) {
         response.status = NP2DN_IPC_INVALID_REQUEST;
+        response.result = 1;
+    }
+    else if (request.version != NP2DN_IPC_VERSION) {
+        response.status = NP2DN_IPC_INVALID_REQUEST;
+        response.result = 2;
+    }
+    else if (request.type < NP2DN_CMD_RESUME) {
+        response.status = NP2DN_IPC_INVALID_REQUEST;
+        response.result = 3;
+    }
+    else if (request.type > NP2DN_CMD_BREAKPOINTS_LIST) {
+        response.status = NP2DN_IPC_INVALID_REQUEST;
+        response.result = 4;
+    }
+    else if (request.address_count > NP2DN_MAX_JUMP_ADDRESSES) {
+        response.status = NP2DN_IPC_INVALID_REQUEST;
+        response.result = 5;
+    }
+    else {
+        response.status = NP2DN_IPC_OK;
+    }
+    if (response.status != NP2DN_IPC_OK) {
         np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));
         return;
     }
