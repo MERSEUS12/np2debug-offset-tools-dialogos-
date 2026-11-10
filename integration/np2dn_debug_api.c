@@ -86,7 +86,15 @@ int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
 
     ZeroMemory(instruction, sizeof(instruction));
     ZeroMemory(&decoded, sizeof(decoded));
-    address = (CPU_STAT_PM ? CS_BASE : ((uint32_t)CPU_CS << 4)) + CPU_IP;
+    {
+        uint32_t instruction_offset = CPU_IP;
+        /* A 32-bit protected-mode code segment uses the full EIP offset. */
+        if (CPU_STAT_PM && !CPU_STAT_VM86 && SEG_IS_32BIT(&CPU_CS_DESC)) {
+            instruction_offset = CPU_EIP;
+        }
+        address = (CPU_STAT_PM ? CS_BASE : ((uint32_t)CPU_CS << 4)) +
+                  instruction_offset;
+    }
     /* address is linear; use logical reads so active paging is translated. */
     meml_reads(address, instruction, (UINT)sizeof(instruction));
     instruction_length = unasm(&decoded, instruction,
