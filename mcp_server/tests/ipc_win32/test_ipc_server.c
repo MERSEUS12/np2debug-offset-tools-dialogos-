@@ -110,7 +110,8 @@ static int test_command_timeout(void)
 {
     HANDLE client;
     NP2DN_IpcResponse response;
-    DWORD received = 0, total_received = 0, started;
+    DWORD received = 0, total_received = 0;
+    DWORD mode = PIPE_READMODE_BYTE;
     DWORD last_error = ERROR_SUCCESS;
     int got_response = 0, ok = 0;
     reset_signals();
@@ -120,24 +121,27 @@ static int test_command_timeout(void)
     if (!send_pending_request(client)) goto close_client;
     if (!wait_for_event(s_submitted, 2000)) goto close_client;
 
-    started = GetTickCount();
+    /*
+     * Match the production MCP client: switch from nonblocking request
+     * writes to blocking response reads before waiting for the server.
+     * Polling a nonblocking read can lose the race with DisconnectNamedPipe
+     * immediately after the server has written its buffered response.
+     */
+    if (!SetNamedPipeHandleState(client, &mode, NULL, NULL)) {
+        last_error = GetLastError();
+        goto close_client;
+    }
     ZeroMemory(&response, sizeof(response));
-    while ((DWORD)(GetTickCount() - started) < 4000 &&
-           total_received < sizeof(response)) {
+    while (total_received < sizeof(response)) {
         received = 0;
-        if (ReadFile(client, ((BYTE *)&response) + total_received,
-                     (DWORD)sizeof(response) - total_received,
-                     &received, NULL)) {
-            if (received > 0) {
-                total_received += received;
-            }
-        }
-        else {
+        if (!ReadFile(client, ((BYTE *)&response) + total_received,
+                      (DWORD)sizeof(response) - total_received,
+                      &received, NULL)) {
             last_error = GetLastError();
-            if (last_error != ERROR_NO_DATA &&
-                last_error != ERROR_PIPE_LISTENING) break;
+            break;
         }
-        Sleep(5);
+        if (received == 0) break;
+        total_received += received;
     }
     got_response = total_received == sizeof(response);
     ok = got_response &&
