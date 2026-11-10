@@ -216,3 +216,5 @@ int np2dn_debug_current_instruction(uint8_t *a, uint32_t b, uint32_t *c) { (void
 int np2dn_debug_cpu_registers(uint8_t *a, uint32_t b, uint32_t *c) { (void)a;(void)b;(void)c;return 0; }
 uint32_t np2dn_breakpoint_count(void) { return 0; }
 int np2dn_breakpoint_get(uint32_t a, uint32_t *b, uint8_t *c) { (void)a;(void)b;(void)c;return 0; }
+
+/* Keep this harness standalone: emulator APIs are intentionally stubbed. */
