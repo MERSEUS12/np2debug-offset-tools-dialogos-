@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "np2.h"
 #include "np2dn_command_queue.h"
 #include "np2dn_debug_api.h"
 
@@ -72,6 +73,23 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
             s_slots[i].sequence = s_next_sequence++;
             break;
         }
+    }
+    /*
+     * Wake the UI thread after enqueueing. When emulation is paused it can be
+     * blocked in GetMessage(), so queue pumping alone cannot service MCP work.
+     * Keep the queue lock until PostMessage succeeds to prevent the pump from
+     * racing a failed wake and executing a command reported as rejected.
+     */
+    if (id != 0 &&
+        (g_hWndMain == NULL || !IsWindow(g_hWndMain) ||
+         !PostMessage(g_hWndMain, WM_NP2DN_QUEUE_WAKE, 0, 0))) {
+        for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
+            if (s_slots[i].state == 1 && s_slots[i].command.id == id) {
+                ZeroMemory(&s_slots[i], sizeof(s_slots[i]));
+                break;
+            }
+        }
+        id = 0;
     }
     LeaveCriticalSection(&s_queue_lock);
     return id;

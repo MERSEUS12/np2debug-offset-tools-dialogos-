@@ -76,7 +76,8 @@ enum {
 };
 
 enum {
-	WM_NP2CMD			= (WM_USER + 200)
+	WM_NP2CMD			= (WM_USER + 200),
+	WM_NP2DN_QUEUE_WAKE	= (WM_APP + 0x2D1)
 };
 
 enum {

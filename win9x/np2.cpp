@@ -1248,6 +1248,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			PostQuitMessage(0);
 			break;
 
+		case WM_NP2DN_QUEUE_WAKE:
+			/* Wake-only message; the main loop pumps the queue on the next turn. */
+			return 0;
+
 		case WM_NP2CMD:
 			switch(LOWORD(lParam)) {
 				case NP2CMD_EXIT:
