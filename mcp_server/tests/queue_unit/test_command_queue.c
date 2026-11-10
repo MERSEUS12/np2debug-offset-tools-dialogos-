@@ -45,10 +45,13 @@ static void create_test_window(void)
 static void drain_wake_messages(void)
 {
     MSG msg;
+    int found = 0;
     while (PeekMessageA(&msg, g_hWndMain, WM_NP2DN_QUEUE_WAKE,
                         WM_NP2DN_QUEUE_WAKE, PM_REMOVE)) {
+        found = 1;
         /* The production WndProc treats this as a wake-only message. */
     }
+    CHECK(found, "queue submission did not post the UI wake message");
 }
 
 static uint32_t submit_status_query(void)
