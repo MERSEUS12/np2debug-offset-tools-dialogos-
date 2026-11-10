@@ -92,10 +92,22 @@ static int np2dn_ipc_write_exact(HANDLE pipe, const void *buffer, DWORD length)
 static int np2dn_ipc_client_connected(HANDLE pipe)
 {
     DWORD available = 0;
+    DWORD error;
+
     if (PeekNamedPipe(pipe, NULL, 0, NULL, &available, NULL)) {
         return 1;
     }
-    /* Any failed peek means the client can no longer receive this command's result. */
+
+    error = GetLastError();
+    /*
+     * With PIPE_NOWAIT, an empty pipe can report ERROR_NO_DATA (or
+     * ERROR_PIPE_LISTENING) even though the client is still connected.
+     * Treat those as transient; only a broken/disconnected pipe should
+     * abandon the queued command.
+     */
+    if (error == ERROR_NO_DATA || error == ERROR_PIPE_LISTENING) {
+        return 1;
+    }
     return 0;
 }
 
