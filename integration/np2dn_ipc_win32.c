@@ -5,7 +5,9 @@
 
 #define NP2DN_IPC_CONNECT_RETRY_MS 10
 #define NP2DN_IPC_IO_TIMEOUT_MS 15000
+#ifndef NP2DN_IPC_COMMAND_TIMEOUT_MS
 #define NP2DN_IPC_COMMAND_TIMEOUT_MS 15000
+#endif
 
 static HANDLE s_stop_event = NULL;
 static HANDLE s_server_thread = NULL;
