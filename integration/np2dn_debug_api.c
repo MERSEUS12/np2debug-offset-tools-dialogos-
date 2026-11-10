@@ -87,7 +87,8 @@ int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
     ZeroMemory(instruction, sizeof(instruction));
     ZeroMemory(&decoded, sizeof(decoded));
     address = (CPU_STAT_PM ? CS_BASE : ((uint32_t)CPU_CS << 4)) + CPU_IP;
-    memp_reads(address, instruction, (UINT)sizeof(instruction));
+    /* address is linear; use logical reads so active paging is translated. */
+    meml_reads(address, instruction, (UINT)sizeof(instruction));
     instruction_length = unasm(&decoded, instruction,
                                 (UINT)sizeof(instruction), FALSE, address);
     if (instruction_length == 0 || instruction_length > 15u ||
@@ -139,7 +140,8 @@ int np2dn_debug_cpu_registers(uint8_t *buffer, uint32_t capacity,
     for (i = 0; i < 8u; ++i) np2dn_store_u32(buffer + i * 4u, general[i]);
     for (i = 0; i < 6u; ++i) np2dn_store_u16(buffer + 32u + i * 2u, segments[i]);
     np2dn_store_u32(buffer + 44u, (uint32_t)CPU_EIP);
-    np2dn_store_u32(buffer + 48u, (uint32_t)CPU_STATSAVE.cpu_regs.eflags.d);
+    /* REAL_EFLAGREG reinserts the core's separately tracked overflow flag. */
+    np2dn_store_u32(buffer + 48u, (uint32_t)REAL_EFLAGREG);
     buffer[52] = CPU_STAT_PM ? 1u : 0u;
     *length = 53u;
     return 1;
