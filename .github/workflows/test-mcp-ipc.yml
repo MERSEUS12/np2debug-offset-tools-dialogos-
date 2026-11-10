@@ -29,3 +29,16 @@ jobs:
         run: |
           $env:PYTHONPATH = "mcp_server"
           python -m unittest discover -s mcp_server/tests -v
+
+      - name: Preparar compilador MSVC para pruebas nativas
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Probar máquina de estados de la cola C real
+        shell: pwsh
+        run: |
+          cl /nologo /W4 /I mcp_server/tests/queue_unit/stubs /I integration mcp_server/tests/queue_unit/test_command_queue.c integration/np2dn_command_queue.c /Fe:mcp_server/tests/queue_unit/queue_unit_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & mcp_server/tests/queue_unit/queue_unit_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
