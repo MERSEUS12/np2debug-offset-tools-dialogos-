@@ -106,6 +106,47 @@ done:
     return ok;
 }
 
+static int test_client_reconnect(void)
+{
+    HANDLE first = INVALID_HANDLE_VALUE;
+    HANDLE second = INVALID_HANDLE_VALUE;
+    int ok = 0;
+
+    reset_signals();
+    if (!np2dn_ipc_start()) return 0;
+
+    first = connect_client();
+    if (first == INVALID_HANDLE_VALUE) goto done;
+    if (!send_pending_request(first)) goto done;
+    if (!wait_for_event(s_submitted, 2000)) goto done;
+
+    CloseHandle(first);
+    first = INVALID_HANDLE_VALUE;
+    if (!wait_for_event(s_cancelled, 2000) ||
+        InterlockedCompareExchange(&s_cancel_count, 0, 0) != 1) {
+        goto done;
+    }
+
+    /* The server must create a fresh pipe instance before this client reconnects. */
+    ResetEvent(s_submitted);
+    ResetEvent(s_cancelled);
+    second = connect_client();
+    if (second == INVALID_HANDLE_VALUE) goto done;
+    if (!send_pending_request(second)) goto done;
+    if (!wait_for_event(s_submitted, 2000)) goto done;
+
+    CloseHandle(second);
+    second = INVALID_HANDLE_VALUE;
+    ok = wait_for_event(s_cancelled, 2000) &&
+         InterlockedCompareExchange(&s_cancel_count, 0, 0) == 2;
+
+done:
+    if (first != INVALID_HANDLE_VALUE) CloseHandle(first);
+    if (second != INVALID_HANDLE_VALUE) CloseHandle(second);
+    np2dn_ipc_stop();
+    return ok;
+}
+
 static int test_command_timeout(void)
 {
     HANDLE client;
@@ -205,6 +246,9 @@ int main(void)
 
     if (test_client_disconnect()) printf("PASS: disconnected client cancels pending command\n");
     else { printf("FAIL: disconnected client cancellation\n"); failed = 1; }
+
+    if (test_client_reconnect()) printf("PASS: server accepts a new client after disconnect\\n");
+    else { printf("FAIL: client reconnect after disconnect\\n"); failed = 1; }
 
     if (test_command_timeout()) printf("PASS: command timeout returns IPC_TIMEOUT and cancels pending command\n");
     else { printf("FAIL: command timeout response/cancellation\n"); failed = 1; }
