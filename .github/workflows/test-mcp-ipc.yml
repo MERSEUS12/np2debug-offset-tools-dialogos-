@@ -42,3 +42,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & mcp_server/tests/queue_unit/queue_unit_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Probar Named Pipe Win32 real
+        shell: pwsh
+        run: |
+          cl /nologo /W4 /DNP2DN_IPC_COMMAND_TIMEOUT_MS=300 /I mcp_server/tests/ipc_win32/stubs /I integration mcp_server/tests/ipc_win32/test_ipc_server.c integration/np2dn_ipc_win32.c /Fe:mcp_server/tests/ipc_win32/ipc_win32_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & mcp_server/tests/ipc_win32/ipc_win32_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
