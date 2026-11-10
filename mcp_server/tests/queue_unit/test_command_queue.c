@@ -221,3 +221,5 @@ uint32_t np2dn_breakpoint_count(void) { return 0; }
 int np2dn_breakpoint_get(uint32_t a, uint32_t *b, uint8_t *c) { (void)a;(void)b;(void)c;return 0; }
 
 /* Keep this harness standalone: emulator APIs are intentionally stubbed. */
+
+/* Wake-message delivery is asserted before each queue pump. */
