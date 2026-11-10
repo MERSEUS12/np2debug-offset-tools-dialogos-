@@ -46,17 +46,19 @@ mcp = FastMCP("np2debug-next")
 
 
 def _u32(value: int, field: str) -> int:
-    number = int(value)
-    if number < 0 or number > 0xFFFFFFFF:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{field} debe ser un entero")
+    if value < 0 or value > 0xFFFFFFFF:
         raise ValueError(f"{field} debe estar entre 0 y 4294967295")
-    return number
+    return value
 
 
 def _u16(value: int, field: str) -> int:
-    number = int(value)
-    if number < 0 or number > 0xFFFF:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{field} debe ser un entero")
+    if value < 0 or value > 0xFFFF:
         raise ValueError(f"{field} debe estar entre 0 y 65535")
-    return number
+    return value
 
 
 def _read_exact(pipe, size: int) -> bytes:
@@ -366,8 +368,8 @@ def fast_forward_status() -> str:
 def memory_read(address: int, size: int = 1, space: str = "physical") -> str:
     """Lee 1, 2 o 4 bytes; space: physical o logical (con paginación)."""
     address = _u32(address, "address")
-    if size not in (1, 2, 4):
-        raise ValueError("size debe ser 1, 2 o 4 bytes")
+    if not isinstance(size, int) or isinstance(size, bool) or size not in (1, 2, 4):
+        raise ValueError("size debe ser un entero: 1, 2 o 4 bytes")
     spaces = {"physical": 0, "logical": 1}
     if space not in spaces:
         raise ValueError("space debe ser 'physical' o 'logical'")
@@ -386,8 +388,8 @@ def memory_read(address: int, size: int = 1, space: str = "physical") -> str:
 def memory_read_block(address: int, length: int = 256, space: str = "physical") -> str:
     """Lee entre 1 y 256 bytes contiguos de memoria física o lógica."""
     address = _u32(address, "address")
-    if not isinstance(length, int) or length < 1 or length > 256:
-        raise ValueError("length debe estar entre 1 y 256 bytes")
+    if not isinstance(length, int) or isinstance(length, bool) or length < 1 or length > 256:
+        raise ValueError("length debe ser un entero entre 1 y 256 bytes")
     spaces = {"physical": 0, "logical": 1}
     if space not in spaces:
         raise ValueError("space debe ser 'physical' o 'logical'")
@@ -557,8 +559,8 @@ def fast_forward_arm(
     wait_kind: int = 0,
 ) -> str:
     """Activa Fast Forward; wait_kind: 0 inmediato, 1 tras salto ESI, 2 tras redirección de escena."""
-    if wait_kind not in (0, 1, 2):
-        raise ValueError("wait_kind debe ser 0, 1 o 2")
+    if not isinstance(wait_kind, int) or isinstance(wait_kind, bool) or wait_kind not in (0, 1, 2):
+        raise ValueError("wait_kind debe ser un entero: 0, 1 o 2")
     return _send_command(
         CMD_SKIP_ARM,
         _u16(script_segment, "script_segment"),
