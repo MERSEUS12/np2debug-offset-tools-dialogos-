@@ -110,7 +110,8 @@ static int test_command_timeout(void)
 {
     HANDLE client;
     NP2DN_IpcResponse response;
-    DWORD received = 0, started = GetTickCount();
+    DWORD received = 0, total_received = 0, started;
+    DWORD last_error = ERROR_SUCCESS;
     int got_response = 0, ok = 0;
     reset_signals();
     if (!np2dn_ipc_start()) return 0;
@@ -119,22 +120,46 @@ static int test_command_timeout(void)
     if (!send_pending_request(client)) goto close_client;
     if (!wait_for_event(s_submitted, 2000)) goto close_client;
 
+    started = GetTickCount();
     ZeroMemory(&response, sizeof(response));
-    while ((DWORD)(GetTickCount() - started) < 4000) {
-        if (ReadFile(client, &response, (DWORD)sizeof(response), &received, NULL)) {
-            if (received == sizeof(response)) { got_response = 1; break; }
+    while ((DWORD)(GetTickCount() - started) < 4000 &&
+           total_received < sizeof(response)) {
+        received = 0;
+        if (ReadFile(client, ((BYTE *)&response) + total_received,
+                     (DWORD)sizeof(response) - total_received,
+                     &received, NULL)) {
+            if (received > 0) {
+                total_received += received;
+            }
         }
-        else if (GetLastError() != ERROR_NO_DATA &&
-                 GetLastError() != ERROR_PIPE_LISTENING) break;
+        else {
+            last_error = GetLastError();
+            if (last_error != ERROR_NO_DATA &&
+                last_error != ERROR_PIPE_LISTENING) break;
+        }
         Sleep(5);
     }
+    got_response = total_received == sizeof(response);
     ok = got_response &&
          response.magic == NP2DN_IPC_MAGIC &&
          response.version == NP2DN_IPC_VERSION &&
          response.status == NP2DN_IPC_TIMEOUT &&
          response.command_id == 77 &&
+         response.result == 0 &&
+         response.payload_length == 0 &&
          wait_for_event(s_cancelled, 1000) &&
          InterlockedCompareExchange(&s_cancel_count, 0, 0) == 1;
+    if (!ok) {
+        printf("TIMEOUT DEBUG: bytes=%lu/%lu last_error=%lu status=%lu command_id=%lu result=%ld payload=%lu cancel_count=%ld\\n",
+               (unsigned long)total_received,
+               (unsigned long)sizeof(response),
+               (unsigned long)last_error,
+               (unsigned long)response.status,
+               (unsigned long)response.command_id,
+               (long)response.result,
+               (unsigned long)response.payload_length,
+               (long)InterlockedCompareExchange(&s_cancel_count, 0, 0));
+    }
 close_client:
     CloseHandle(client);
 done:
