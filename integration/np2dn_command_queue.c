@@ -5,7 +5,7 @@
 
 typedef struct NP2DN_QueueSlot {
     NP2DN_Command command;
-    int state; /* 0 free, 1 pending, 2 executing, 3 complete */
+    int state; /* 0 free, 1 pending, 2 executing, 3 complete, 4 abandoned */
     int32_t result;
     uint32_t payload_length;
     uint8_t payload[256];
@@ -93,6 +93,27 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     }
     LeaveCriticalSection(&s_queue_lock);
     return id;
+}
+
+
+void np2dn_command_cancel(uint32_t command_id)
+{
+    uint32_t i;
+    if (command_id == 0 || !s_lock_created) return;
+    EnterCriticalSection(&s_queue_lock);
+    for (i = 0; i < NP2DN_QUEUE_CAPACITY; ++i) {
+        if (s_slots[i].state != 0 && s_slots[i].command.id == command_id) {
+            if (s_slots[i].state == 2) {
+                /* The emulator thread owns this command; discard its result on completion. */
+                s_slots[i].state = 4;
+            }
+            else {
+                ZeroMemory(&s_slots[i], sizeof(s_slots[i]));
+            }
+            break;
+        }
+    }
+    LeaveCriticalSection(&s_queue_lock);
 }
 
 int np2dn_command_poll_memory(uint32_t command_id, int32_t *result,
@@ -411,12 +432,17 @@ void np2dn_command_queue_pump(void)
         else result = np2dn_execute_command(&command);
 
         EnterCriticalSection(&s_queue_lock);
-        if (s_slots[selected].state == 2 &&
-            s_slots[selected].command.id == command.id) {
-            s_slots[selected].result = result;
-            s_slots[selected].payload_length = payload_length;
-            if (payload_length) CopyMemory(s_slots[selected].payload, payload, payload_length);
-            s_slots[selected].state = 3;
+        if (s_slots[selected].command.id == command.id) {
+            if (s_slots[selected].state == 2) {
+                s_slots[selected].result = result;
+                s_slots[selected].payload_length = payload_length;
+                if (payload_length) CopyMemory(s_slots[selected].payload, payload, payload_length);
+                s_slots[selected].state = 3;
+            }
+            else if (s_slots[selected].state == 4) {
+                /* Client timed out/disconnected while this command was executing. */
+                ZeroMemory(&s_slots[selected], sizeof(s_slots[selected]));
+            }
         }
         LeaveCriticalSection(&s_queue_lock);
     }

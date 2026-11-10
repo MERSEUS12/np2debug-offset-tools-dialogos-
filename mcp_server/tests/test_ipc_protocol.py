@@ -95,6 +95,7 @@ class IpcProtocolTests(unittest.TestCase):
 
     def test_command_ids_and_protocol_version(self):
         self.assertEqual(server.VERSION, 2)
+        self.assertEqual(server.NP2DN_IPC_TIMEOUT_STATUS, 4)
         self.assertEqual(server.CMD_MEMORY_READ, 17)
         self.assertEqual(server.CMD_MEMORY_READ_BLOCK, 18)
         self.assertEqual(server.CMD_DIALOGUE_CURRENT, 19)

@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP
 PIPE_NAME = r"\\.\pipe\NP2DebugNext"
 MAGIC = 0x4432504E
 VERSION = 2
+NP2DN_IPC_TIMEOUT_STATUS = 4
 
 # Must match the packed NP2DN_IpcRequest / NP2DN_IpcResponse in np2dn_ipc.h.
 REQUEST = struct.Struct("<7I8I260s")
@@ -131,6 +132,11 @@ def _send_command(
         raise RuntimeError("La cola de comandos está llena; vuelve a intentarlo")
     if status == 3:
         raise RuntimeError("El emulador está cerrando el servidor IPC")
+    if status == 4:
+        raise TimeoutError(
+            f"La orden IPC {command_id} superó el límite de espera de 15 segundos; "
+            "se canceló si aún estaba pendiente y se descartará su resultado si ya se ejecutaba."
+        )
     if status != 0:
         raise RuntimeError(f"Estado IPC desconocido: {status}")
     if payload_length > 256:

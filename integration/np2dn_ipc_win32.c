@@ -5,6 +5,7 @@
 
 #define NP2DN_IPC_CONNECT_RETRY_MS 10
 #define NP2DN_IPC_IO_TIMEOUT_MS 15000
+#define NP2DN_IPC_COMMAND_TIMEOUT_MS 15000
 
 static HANDLE s_stop_event = NULL;
 static HANDLE s_server_thread = NULL;
@@ -86,6 +87,16 @@ static int np2dn_ipc_write_exact(HANDLE pipe, const void *buffer, DWORD length)
     return total == length;
 }
 
+static int np2dn_ipc_client_connected(HANDLE pipe)
+{
+    DWORD available = 0;
+    if (PeekNamedPipe(pipe, NULL, 0, NULL, &available, NULL)) {
+        return 1;
+    }
+    /* Any failed peek means the client can no longer receive this command's result. */
+    return 0;
+}
+
 static void np2dn_ipc_handle_request(HANDLE pipe)
 {
     NP2DN_IpcRequest request;
@@ -94,6 +105,7 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
     uint32_t command_id;
     int32_t result = 0;
     uint32_t payload_length = 0;
+    DWORD command_started = 0;
 
     ZeroMemory(&request, sizeof(request));
     ZeroMemory(&response, sizeof(response));
@@ -159,7 +171,20 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
     }
 
     response.command_id = command_id;
+    command_started = GetTickCount();
     while (!np2dn_ipc_stopping()) {
+        if (!np2dn_ipc_client_connected(pipe)) {
+            np2dn_command_cancel(command_id);
+            return;
+        }
+        if ((DWORD)(GetTickCount() - command_started) >= NP2DN_IPC_COMMAND_TIMEOUT_MS) {
+            np2dn_command_cancel(command_id);
+            response.status = NP2DN_IPC_TIMEOUT;
+            response.result = 0;
+            response.payload_length = 0;
+            np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));
+            return;
+        }
         if (request.type == NP2DN_CMD_MEMORY_READ ||
             request.type == NP2DN_CMD_MEMORY_READ_BLOCK ||
             request.type == NP2DN_CMD_DIALOGUE_CURRENT ||
@@ -186,8 +211,8 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
         Sleep(5);
     }
 
-    response.status = NP2DN_IPC_SHUTTING_DOWN;
-    np2dn_ipc_write_exact(pipe, &response, (DWORD)sizeof(response));
+    np2dn_command_cancel(command_id);
+    /* Shutdown closes the pipe; do not attempt a response after the stop event. */
 }
 
 static DWORD WINAPI np2dn_ipc_server_thread(LPVOID parameter)

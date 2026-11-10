@@ -57,6 +57,8 @@ void np2dn_command_queue_shutdown(void);
 
 /* Thread-safe producer API. Returns zero when the queue is full/invalid. */
 uint32_t np2dn_command_submit(const NP2DN_Command *command);
+/* Abandon pending work or discard its result after an IPC client timeout/disconnect. */
+void np2dn_command_cancel(uint32_t command_id);
 
 /* Returns 1 when completed, 0 while pending/not found. Completed results are consumed. */
 int np2dn_command_poll(uint32_t command_id, int32_t *result);

@@ -16,7 +16,8 @@ enum {
     NP2DN_IPC_OK = 0,
     NP2DN_IPC_INVALID_REQUEST = 1,
     NP2DN_IPC_QUEUE_FULL = 2,
-    NP2DN_IPC_SHUTTING_DOWN = 3
+    NP2DN_IPC_SHUTTING_DOWN = 3,
+    NP2DN_IPC_TIMEOUT = 4
 };
 
 #pragma pack(push, 1)
