@@ -5,6 +5,20 @@ import server
 
 
 class IpcProtocolTests(unittest.TestCase):
+    def test_integer_validators_accept_unsigned_boundaries(self):
+        self.assertEqual(server._u32(0, "value"), 0)
+        self.assertEqual(server._u32(0xFFFFFFFF, "value"), 0xFFFFFFFF)
+        self.assertEqual(server._u16(0, "value"), 0)
+        self.assertEqual(server._u16(0xFFFF, "value"), 0xFFFF)
+
+    def test_integer_validators_reject_coercible_non_integer_values(self):
+        for value in (True, False, 1.5, "1", None):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    server._u32(value, "value")
+                with self.assertRaises(ValueError):
+                    server._u16(value, "value")
+
     def test_request_size_matches_packed_c_struct(self):
         self.assertEqual(server.REQUEST.size, 320)
 
