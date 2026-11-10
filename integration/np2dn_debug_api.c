@@ -81,6 +81,7 @@ int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
     _UNASM decoded;
     uint32_t address;
     UINT instruction_length;
+    BOOL default_32bit = FALSE;
 
     if (buffer == NULL || length == NULL || capacity < 96u) return 0;
 
@@ -91,6 +92,7 @@ int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
         /* A 32-bit protected-mode code segment uses the full EIP offset. */
         if (CPU_STAT_PM && !CPU_STAT_VM86 && SEG_IS_32BIT(&CPU_CS_DESC)) {
             instruction_offset = CPU_EIP;
+            default_32bit = TRUE;
         }
         address = (CPU_STAT_PM ? CS_BASE : ((uint32_t)CPU_CS << 4)) +
                   instruction_offset;
@@ -98,7 +100,7 @@ int np2dn_debug_current_instruction(uint8_t *buffer, uint32_t capacity,
     /* address is linear; use logical reads so active paging is translated. */
     meml_reads(address, instruction, (UINT)sizeof(instruction));
     instruction_length = unasm(&decoded, instruction,
-                                (UINT)sizeof(instruction), FALSE, address);
+                                (UINT)sizeof(instruction), default_32bit, address);
     if (instruction_length == 0 || instruction_length > 15u ||
         decoded.mnemonic == NULL) {
         return 0;
