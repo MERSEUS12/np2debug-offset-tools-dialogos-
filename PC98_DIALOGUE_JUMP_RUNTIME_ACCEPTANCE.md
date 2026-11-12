@@ -45,18 +45,19 @@ Si no hay diálogo actual, el catálogo está truncado o el destino pertenece a 
 
 Esta fase sí modifica el estado del juego y requiere autorización explícita.
 
-1. Enviar `dialogue_jump_request(dialogue_id)` una sola vez.
-2. La respuesta positiva solo significa «solicitud aceptada», no «salto completado».
-3. Consultar `dialogue_jump_status` hasta que el estado sea terminal:
+1. Tomar el valor `generation` de la última respuesta de `dialogue_catalog_refresh` (la misma generación con la que se obtuvo el ID).
+2. Enviar `dialogue_jump_request(dialogue_id, catalog_generation)` una sola vez.
+3. La respuesta positiva solo significa «solicitud aceptada», no «salto completado».
+4. Consultar `dialogue_jump_status` hasta que el estado sea terminal:
    - `SUCCEEDED`: continuar con la comprobación visual.
    - `FAILED`: detenerse y revisar el error/rollback.
    - `ROLLING_BACK`: esperar a que termine; no enviar otra solicitud.
    - `CANCELLED`: no asumir que el destino se presentó.
-4. En `SUCCEEDED`, exigir que los tres indicadores sean verdaderos:
+5. En `SUCCEEDED`, exigir que los tres indicadores sean verdaderos:
    - `proof.state_verified`
    - `proof.presented`
    - `proof.continuation_ready`
-5. Consultar otra vez `dialogue_current` y confirmar que su ID corresponde al destino.
+6. Consultar otra vez `dialogue_current` y confirmar que su ID corresponde al destino.
 
 ## Fase C — Comprobación de pantalla y continuidad
 
