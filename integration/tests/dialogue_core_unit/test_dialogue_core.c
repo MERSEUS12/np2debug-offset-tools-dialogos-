@@ -12,6 +12,7 @@
 
 typedef struct FakeAdapterContext {
     uint32_t catalog_total;
+    int change_generation_after_first_page;
     int fail_apply;
     int omit_continuity;
     int apply_calls;
@@ -44,7 +45,8 @@ static int fake_enumerate(
         return 0;
     }
     *total = context->catalog_total;
-    *generation = 17;
+    *generation = (context->change_generation_after_first_page &&
+                   offset != 0) ? 18 : 17;
     *returned = 0;
     if (offset >= *total) {
         return 1;
@@ -252,6 +254,13 @@ int main(void)
           "restore complete test catalogue");
     CHECK(!np2dn_dialogue_catalog_is_truncated(),
           "complete catalogue clears truncation flag");
+    context.change_generation_after_first_page = 1;
+    CHECK(!np2dn_dialogue_catalog_refresh(),
+          "catalogue refresh rejects mixed generations");
+    CHECK(np2dn_dialogue_catalog_count() == 35 &&
+          np2dn_dialogue_catalog_generation() == 17,
+          "failed refresh preserves previous catalogue atomically");
+    context.change_generation_after_first_page = 0;
 
     CHECK(np2dn_dialogue_jump_request("dialogue_target"),
           "request target dialogue");
