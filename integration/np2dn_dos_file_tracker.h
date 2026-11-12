@@ -18,11 +18,15 @@ typedef struct NP2DN_DosFileInfo {
     uint32_t file_position;
     uint32_t file_size;
     uint32_t loaded_size;
+    uint32_t coverage_prefix;
     uint32_t sequence;
     uint8_t used;
+    uint8_t closed;
+    uint8_t mapping_seen;
     uint8_t mapping_valid;
     uint8_t size_known;
     uint8_t fully_loaded;
+    uint8_t reserved_flags[2];
     char name[NP2DN_DOS_FILE_NAME_MAX];
 } NP2DN_DosFileInfo;
 
