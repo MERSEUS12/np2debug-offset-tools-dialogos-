@@ -16,6 +16,9 @@ static void np2dn_pc98_text_next_generation(uint32_t *generation)
 void np2dn_pc98_text_observer_reset(void)
 {
     np2dn_pc98_text_observer_begin_full_redraw();
+    s_status.host_present_generation = 0;
+    s_status.last_host_presented_composition_generation = 0;
+    s_status.last_host_presented_text = 0;
     np2dn_pc98_text_next_generation(&s_status.geometry_generation);
 }
 
@@ -29,6 +32,7 @@ void np2dn_pc98_text_observer_begin_full_redraw(void)
     s_status.valid_cell_count = 0;
     s_status.last_composition_planes = 0;
     s_status.last_composition_included_text = 0;
+    s_status.last_host_presented_text = 0;
     np2dn_pc98_text_next_generation(&s_status.text_generation);
 }
 
@@ -78,10 +82,26 @@ void np2dn_pc98_text_observer_record_composition(uint8_t selected_planes)
     s_status.last_composition_planes = selected_planes;
     s_status.last_composition_included_text =
         (selected_planes & NP2DN_PC98_TEXT_PLANE_MASK) ? 1u : 0u;
+    s_status.last_host_presented_text = 0;
 
     if (s_status.last_composition_included_text) {
         np2dn_pc98_text_next_generation(&s_status.composition_generation);
     }
+}
+
+void np2dn_pc98_text_observer_record_host_presented(int success)
+{
+    if (!success || !s_status.last_composition_included_text ||
+        s_status.composition_generation == 0 ||
+        s_status.composition_generation ==
+            s_status.last_host_presented_composition_generation) {
+        return;
+    }
+
+    s_status.last_host_presented_composition_generation =
+        s_status.composition_generation;
+    np2dn_pc98_text_next_generation(&s_status.host_present_generation);
+    s_status.last_host_presented_text = 1;
 }
 
 int np2dn_pc98_text_observer_get_cell(uint16_t tram_index,
