@@ -58,6 +58,14 @@ def _u32(value: int, field: str) -> int:
     return value
 
 
+def _u64(value: int, field: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{field} debe ser un entero")
+    if value < 0 or value > 0xFFFFFFFFFFFFFFFF:
+        raise ValueError(f"{field} debe estar entre 0 y 18446744073709551615")
+    return value
+
+
 def _u16(value: int, field: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(f"{field} debe ser un entero")
