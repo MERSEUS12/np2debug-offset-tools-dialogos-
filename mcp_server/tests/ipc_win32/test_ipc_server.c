@@ -73,7 +73,7 @@ static int send_pending_request(HANDLE pipe)
     ZeroMemory(&request, sizeof(request));
     request.magic = NP2DN_IPC_MAGIC;
     request.version = NP2DN_IPC_VERSION;
-    request.type = NP2DN_CMD_STATUS_QUERY;
+    request.type = NP2DN_CMD_DIALOGUE_STATUS_QUERY;
     if (!WriteFile(pipe, &request, (DWORD)sizeof(request), &written, NULL))
         return 0;
     return written == sizeof(request);
