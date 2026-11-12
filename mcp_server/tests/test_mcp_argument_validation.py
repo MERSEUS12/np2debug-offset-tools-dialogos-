@@ -77,6 +77,44 @@ class McpArgumentValidationTests(unittest.TestCase):
                         (server.CMD_SKIP_ARM, 0x1000, 5, wait_kind),
                     )
 
+    def test_dialogue_catalog_rejects_invalid_pagination_before_ipc(self):
+        for offset, limit in ((True, 10), (0, 0), (0, 129), (-1, 10)):
+            with self.subTest(offset=offset, limit=limit):
+                self.assert_rejected_before_ipc(
+                    server.dialogue_catalog, offset, limit
+                )
+
+    def test_universal_dialogue_jump_rejects_empty_or_nul_id_before_ipc(self):
+        for dialogue_id in ("", "SCENE#1\\0bad", None):
+            with self.subTest(dialogue_id=dialogue_id):
+                self.assert_rejected_before_ipc(
+                    server.dialogue_jump_request, dialogue_id
+                )
+
+    def test_dialogue_catalog_entry_reports_missing_index(self):
+        response = json.dumps({"command_id": 1, "result": 0})
+        with patch.object(server, "_send_command", return_value=response):
+            with self.assertRaises(IndexError):
+                server.dialogue_catalog_entry(999)
+
+    def test_dialogue_status_decodes_continuity_proof(self):
+        payload = bytearray(28)
+        payload[0:4] = (8).to_bytes(4, "little")
+        payload[4:8] = (0).to_bytes(4, "little")
+        payload[17:21] = (7).to_bytes(4, "little")
+        payload[21:25] = (7).to_bytes(4, "little")
+        response = json.dumps({
+            "command_id": 1, "result": 1,
+            "payload_hex": bytes(payload).hex(),
+            "payload_length": len(payload),
+        })
+        with patch.object(server, "_send_command", return_value=response):
+            status = json.loads(server.dialogue_jump_status())
+        self.assertEqual(status["state"], "SUCCEEDED")
+        self.assertTrue(status["proof"]["state_verified"])
+        self.assertTrue(status["proof"]["presented"])
+        self.assertTrue(status["proof"]["continuation_ready"])
+
     def test_memory_reads_reject_address_range_overflow_before_ipc(self):
         self.assert_rejected_before_ipc(server.memory_read, 0xFFFFFFFF, 2)
         self.assert_rejected_before_ipc(
