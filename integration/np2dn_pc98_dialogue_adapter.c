@@ -584,6 +584,7 @@ static int np2dn_pc98_resolve(void *context, const char *dialogue_id,
     target->locator_size = entry->locator_size;
     memcpy(target->locator, entry->locator, entry->locator_size);
     target->flags = entry->flags;
+    target->catalog_generation = s_catalog_generation;
     return 1;
 }
 
