@@ -342,3 +342,55 @@ La inspección de `mem/memtram.c`, `io/gdc.h` y los consumidores de `tramupdate`
 Por tanto, para el diálogo semántico en este modo, la fuente primaria sigue siendo el registro de lecturas de carácter/atributo de `maketext*`; la ruta mixta añade una composición de color/máscara sobre el plano gráfico. La captura/OCR no es obligatoria si la pasada independiente de caracteres está habilitada y su composición posterior se confirma. Sí puede ser necesaria como evidencia adicional cuando se quiera demostrar el aspecto final de la ventana host o cuando el adaptador no pueda obtener una señal semántica interna suficiente.
 
 Esto también acota la discrepancia de la sección 7.6: el filtro `tramupdate & 2` puede afectar a la renovación incremental de la capa mixta, pero la pasada posterior `maketext*` reconoce cualquier flag distinto de cero y actualiza el plano de caracteres antes de limpiar `tramupdate`. La posible consecuencia es una capa mixta de color/máscara desactualizada, no necesariamente la ausencia del carácter en el plano de texto independiente. Se mantiene pendiente localizar todos los productores del bit 2 y comprobar el comportamiento visual antes de corregirlo.
+
+
+## 10. Estado de integración del núcleo y del adaptador PC-98
+
+### 10.1 Cableado real
+
+La rama `np2debug-next-integration` ya contiene el cableado de ejecución:
+
+- `pccore_init()` inicializa la cola, registra el adaptador `pc98-ha-script` y arranca el servidor IPC.
+- `np2dn_command_queue_pump()` ejecuta `np2dn_dialogue_tick()` en el hilo serializado de la interfaz/emulación. El núcleo no se ejecuta desde el hook por instrucción.
+- `pccore_term()` cancela una operación pendiente y detiene el servidor IPC antes de destruir los subsistemas del emulador.
+- `win9x/np21.vcxproj` incluye los módulos de núcleo universal, adaptador PC-98, catálogo de scripts, observador de texto, tracker DOS, cola, API de depuración e IPC.
+- La cola y el servidor IPC aceptan los comandos nuevos 25–29; las consultas que llevan payload usan la ruta de respuesta binaria de hasta 256 bytes.
+
+### 10.2 Herramientas MCP del catálogo y del salto universal
+
+Se exponen seis herramientas nuevas, manteniendo las herramientas antiguas de salto de bajo nivel por compatibilidad:
+
+- `dialogue_catalog_refresh`: reconstruye el catálogo activo y devuelve total, generación y truncamiento.
+- `dialogue_catalog`: devuelve una página de entradas con IDs estables y texto UTF-8.
+- `dialogue_catalog_entry`: obtiene una entrada concreta por índice.
+- `dialogue_jump_request`: solicita el salto por ID; la aceptación de la solicitud no se presenta como éxito.
+- `dialogue_jump_status`: expone fase, error, adaptador, IDs y evidencias de estado/presentación/continuidad.
+- `dialogue_operation_cancel`: cancela la operación universal sin reemplazar `dialogue_jump_cancel`, que sigue controlando el salto antiguo.
+
+El catálogo es de sesión y corresponde al script actualmente cargado. El núcleo mantiene IDs y localizadores opacos; no interpreta el formato PC-98.
+
+### 10.3 Adaptador PC-98 inicial
+
+El adaptador:
+
+1. Obtiene el script cargado a partir del tracker de archivos DOS y exige que el archivo esté completamente mapeado en memoria.
+2. Construye el catálogo con el parser PC-98 y genera IDs como `ARCHIVO#ordinal`.
+3. Valida que el localizador siga perteneciendo a la generación actual, al mismo script/segmento, a un bloque válido `18 01` o `18 02`, y a un token de espera `HA\\` dentro de los límites del archivo.
+4. Captura el segmento, ESI y contadores previos para poder restaurar el punto de espera anterior.
+5. Aplica el salto usando el hook existente de `np2jump_arm`, sin ejecutar operaciones pesadas desde el hook por instrucción.
+6. Verifica que el tracker vuelve a detectar el ESI y el bloque destino, que el texto destino aparece en las celdas observadas, que hubo una composición posterior con el plano de texto y que el blit DirectDraw hacia la superficie primaria terminó con `DD_OK`.
+7. Si falla la verificación después de aplicar el salto, intenta volver al ESI anterior mediante el mismo mecanismo controlado.
+
+La señal de presentación no es una estimación: `scrndraw_draw()` registra la composición efectiva y `scrnmng_update()` informa del resultado del blit host. El adaptador no acepta únicamente un cambio de registro o de ID.
+
+### 10.4 Significado de «como un libro» y límites actuales
+
+El objetivo funcional sigue siendo elegir una página/frase, entrar en un punto de espera normal del intérprete y poder continuar desde ahí con el flujo del juego. Para el primer adaptador PC-98, el destino se sitúa en el token `HA\\` asociado al bloque, no en un buffer de texto separado.
+
+Esto **no convierte todavía el adaptador PC-98 en un sistema universal para cualquier juego**. Su alcance actual es el script PC-98 activo y el formato de marcadores reconocido. Tampoco reconstruye automáticamente variables narrativas, decisiones o escenas arbitrarias: el callback `prepare` conserva el estado de retorno y valida el contexto disponible; los motores que requieran reconstruir variables, flags, inventario, rutas o escenas deberán implementar esa preparación en su propio adaptador.
+
+La aceptación final del comportamiento «libro» exige pruebas de ejecución controladas que confirmen, en orden: (a) aparece el texto destino en pantalla, (b) el intérprete queda en su espera normal, (c) una entrada normal del usuario avanza desde ese diálogo y (d) el juego sigue por la continuación esperada sin reutilizar accidentalmente el contexto de la página anterior. Esas pruebas de runtime no se han ejecutado en esta fase; no se debe declarar el sistema terminado ni ejecutar saltos/reanudar el emulador sin autorización expresa.
+
+### 10.5 Verificación automatizada
+
+En esta fase se actualizaron las pruebas de cola para comprobar los nuevos comandos de catálogo, solicitud, estado y cancelación; las pruebas IPC usan el comando 29 para verificar que el extremo superior del rango es aceptado. Las pruebas del núcleo universal, parser PC-98, tracker DOS y observador de texto continúan dentro del workflow de CI. La compilación completa Release NT x64 y el empaquetado del servidor MCP deben considerarse verificados únicamente cuando sus workflows correspondientes terminen con éxito en el commit actual.
