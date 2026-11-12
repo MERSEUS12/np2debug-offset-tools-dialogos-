@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define NP2DN_DIALOGUE_CORE_API_VERSION 3u
+#define NP2DN_DIALOGUE_CORE_API_VERSION 4u
 #define NP2DN_DIALOGUE_CATALOG_MAX 4096u
 #define NP2DN_DIALOGUE_CATALOG_PAGE_MAX 32u
 #define NP2DN_DIALOGUE_SPEAKER_MAX 48u
@@ -82,7 +82,8 @@ typedef enum NP2DN_DialogueError {
     NP2DN_DIALOGUE_ERROR_VERIFY_FAILED,
     NP2DN_DIALOGUE_ERROR_CONTINUITY_FAILED,
     NP2DN_DIALOGUE_ERROR_ROLLBACK_FAILED,
-    NP2DN_DIALOGUE_ERROR_ADAPTER_CONTRACT
+    NP2DN_DIALOGUE_ERROR_ADAPTER_CONTRACT,
+    NP2DN_DIALOGUE_ERROR_STALE_CATALOG
 } NP2DN_DialogueError;
 
 /*
@@ -125,6 +126,7 @@ typedef struct NP2DN_DialogueTarget {
     uint32_t locator_size;
     uint8_t locator[NP2DN_DIALOGUE_LOCATOR_MAX];
     uint32_t flags;
+    uint64_t catalog_generation;
 } NP2DN_DialogueTarget;
 
 typedef struct NP2DN_DialogueAdapter {
