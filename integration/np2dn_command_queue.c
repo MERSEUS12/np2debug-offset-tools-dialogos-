@@ -3,6 +3,7 @@
 #include "np2dn_command_queue.h"
 #include "np2dn_debug_api.h"
 #include "np2dn_dialogue_core.h"
+#include <string.h>
 
 typedef struct NP2DN_QueueSlot {
     NP2DN_Command command;
