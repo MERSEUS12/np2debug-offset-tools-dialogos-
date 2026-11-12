@@ -152,9 +152,10 @@ def _send_command(
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
     if command_type == CMD_DIALOGUE_CURRENT and result not in (0, 1):
         raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
-    if command_type in (CMD_DIALOGUE_CATALOG_REFRESH, CMD_DIALOGUE_CATALOG_GET,
-                        CMD_DIALOGUE_STATUS_QUERY) and result != 1:
+    if command_type in (CMD_DIALOGUE_CATALOG_REFRESH, CMD_DIALOGUE_STATUS_QUERY) and result != 1:
         raise RuntimeError("El emulador no pudo completar la consulta del catálogo/estado de diálogos")
+    if command_type == CMD_DIALOGUE_CATALOG_GET and result not in (0, 1):
+        raise RuntimeError("Respuesta inválida al consultar una entrada del catálogo")
     if command_type == CMD_DIALOGUE_JUMP_REQUEST and result != 1:
         raise RuntimeError("El núcleo rechazó la solicitud de salto de diálogo")
     if command_type == CMD_DIALOGUE_JUMP_CANCEL and result != 1:
@@ -248,6 +249,8 @@ def dialogue_catalog_entry(index: int) -> str:
     """Obtiene un diálogo del catálogo por índice, incluyendo su ID estable y texto UTF-8."""
     index = _u32(index, "index")
     response = json.loads(_send_command(CMD_DIALOGUE_CATALOG_GET, index))
+    if response.get("result") == 0:
+        raise IndexError(f"No existe una entrada de catálogo en el índice {index}")
     payload = bytes.fromhex(response.get("payload_hex", ""))
     if len(payload) < 6:
         raise RuntimeError("Payload incompleto para la entrada del catálogo")
@@ -311,7 +314,7 @@ def dialogue_catalog(offset: int = 0, limit: int = 32, refresh: bool = True) -> 
 @mcp.tool()
 def dialogue_jump_request(dialogue_id: str) -> str:
     """Solicita un salto universal a un ID del catálogo; el núcleo verifica estado, presentación y continuidad."""
-    if not isinstance(dialogue_id, str) or not dialogue_id or "\\0" in dialogue_id:
+    if not isinstance(dialogue_id, str) or not dialogue_id or "\0" in dialogue_id:
         raise ValueError("dialogue_id no puede estar vacío ni contener NUL")
     return _send_command(CMD_DIALOGUE_JUMP_REQUEST, script_name=dialogue_id)
 
