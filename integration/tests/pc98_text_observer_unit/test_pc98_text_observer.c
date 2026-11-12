@@ -48,6 +48,14 @@ int main(void)
           "changed attribute advances text generation");
 
     before = after;
+    np2dn_pc98_text_observer_begin_full_redraw();
+    np2dn_pc98_text_observer_get_status(&after);
+    CHECK(after.valid_cell_count == 0,
+          "full redraw invalidates the old cell snapshot");
+    CHECK(after.geometry_generation == before.geometry_generation,
+          "full redraw does not pretend screen geometry changed");
+
+    before = after;
     np2dn_pc98_text_observer_record_composition(0x05);
     np2dn_pc98_text_observer_get_status(&after);
     CHECK(after.composition_generation ==
@@ -63,12 +71,17 @@ int main(void)
     CHECK(after.composition_generation == before.composition_generation,
           "graphics-only composition does not count as text composition");
 
+    before = after;
+    np2dn_pc98_text_observer_record_cell(
+        0x0fff, 32, 79, 80, 0x41, 0x00, 0xe1, 0);
     np2dn_pc98_text_observer_invalidate_all();
     CHECK(!np2dn_pc98_text_observer_get_cell(0x0fff, &cell),
           "full invalidation clears cached cell");
     np2dn_pc98_text_observer_get_status(&after);
     CHECK(after.valid_cell_count == 0,
           "full invalidation clears valid-cell count");
+    CHECK(after.geometry_generation != before.geometry_generation,
+          "geometry invalidation advances geometry generation");
 
     printf("PC-98 text observer tests passed.\n");
     return 0;
