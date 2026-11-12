@@ -251,12 +251,15 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
     if (pending.type == NP2DN_DOS_PENDING_READ) {
         NP2DN_DosFileInfo *file = &s_files[index];
         uint32_t bytes_read = result_ax;
-        uint32_t end_offset = pending.file_offset + bytes_read;
+        uint32_t end_offset;
 
         if (bytes_read > pending.requested ||
-            end_offset > NP2DN_DOS_COVERAGE_BYTES * 8u) {
+            pending.file_offset > NP2DN_DOS_COVERAGE_BYTES * 8u ||
+            bytes_read > NP2DN_DOS_COVERAGE_BYTES * 8u -
+                         pending.file_offset) {
             return 1;
         }
+        end_offset = pending.file_offset + bytes_read;
 
         if (!file->mapping_seen) {
             file->mapping_seen = 1;
