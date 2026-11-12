@@ -350,6 +350,26 @@ int main(void)
     CHECK(context.cancel_calls == 1,
           "adapter cancellation callback");
 
+    CHECK(np2dn_dialogue_jump_request("dialogue_cancel"),
+          "request transition cancellable after apply");
+    np2dn_dialogue_tick(); /* observe */
+    np2dn_dialogue_tick(); /* resolve */
+    np2dn_dialogue_tick(); /* validate */
+    np2dn_dialogue_tick(); /* prepare */
+    np2dn_dialogue_tick(); /* apply -> pending */
+    np2dn_dialogue_cancel();
+    np2dn_dialogue_get_status(&status);
+    CHECK(status.state == NP2DN_DIALOGUE_STATE_ROLLING_BACK,
+          "cancelling an applied transition enters rollback");
+    np2dn_dialogue_tick(); /* rollback completes */
+    np2dn_dialogue_get_status(&status);
+    CHECK(status.state == NP2DN_DIALOGUE_STATE_CANCELLED,
+          "applied transition becomes cancelled only after rollback");
+    CHECK(context.rollback_calls == 3,
+          "cancel after apply invokes rollback");
+    CHECK(context.cancel_calls == 1,
+          "cancel after apply does not abandon the adapter checkpoint");
+
     printf("Dialogue core tests passed.\n");
     return 0;
 }
