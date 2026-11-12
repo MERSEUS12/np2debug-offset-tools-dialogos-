@@ -98,6 +98,10 @@ typedef struct NP2DN_DialogueSnapshot {
  * only within the adapter identified by adapter_id. It must never be treated
  * as a universal file offset, virtual address, CPU register, or script pointer.
  */
+/*
+ * Catalog text and speaker strings are UTF-8. IDs are stable and unique
+ * within catalog_generation; locators remain opaque to the universal core.
+ */
 typedef struct NP2DN_DialogueCatalogEntry {
     char dialogue_id[NP2DN_DIALOGUE_ID_MAX];
     char scene_id[NP2DN_DIALOGUE_SCENE_ID_MAX];
