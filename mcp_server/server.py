@@ -316,6 +316,12 @@ def dialogue_jump_request(dialogue_id: str) -> str:
     """Solicita un salto universal a un ID del catálogo; el núcleo verifica estado, presentación y continuidad."""
     if not isinstance(dialogue_id, str) or not dialogue_id or "\0" in dialogue_id:
         raise ValueError("dialogue_id no puede estar vacío ni contener NUL")
+    try:
+        encoded_id = dialogue_id.encode("mbcs")
+    except UnicodeEncodeError as exc:
+        raise ValueError("dialogue_id no se puede convertir a la codificación ANSI de Windows") from exc
+    if len(encoded_id) >= 96:
+        raise ValueError("dialogue_id debe ocupar menos de 96 bytes")
     return _send_command(CMD_DIALOGUE_JUMP_REQUEST, script_name=dialogue_id)
 
 
