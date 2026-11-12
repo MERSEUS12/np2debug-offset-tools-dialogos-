@@ -5,6 +5,7 @@
 
 typedef struct NP2DN_DialogueAdapterSlot {
     NP2DN_DialogueAdapter adapter;
+    char adapter_id[NP2DN_DIALOGUE_ID_MAX];
     void *context;
 } NP2DN_DialogueAdapterSlot;
 
@@ -127,6 +128,9 @@ int np2dn_dialogue_register_adapter(const NP2DN_DialogueAdapter *adapter,
     slot = &g_adapters[g_adapter_count];
     memset(slot, 0, sizeof(*slot));
     slot->adapter = *adapter;
+    np2dn_dialogue_copy_string(slot->adapter_id, sizeof(slot->adapter_id),
+                               adapter->adapter_id);
+    slot->adapter.adapter_id = slot->adapter_id;
     slot->context = context;
     ++g_adapter_count;
     return 1;
@@ -162,6 +166,10 @@ int np2dn_dialogue_jump_request(const char *dialogue_id)
 {
     NP2DN_DialogueAdapterSlot *slot = np2dn_dialogue_selected();
 
+    if (np2dn_dialogue_is_running(g_status.state)) {
+        g_status.error = NP2DN_DIALOGUE_ERROR_BUSY;
+        return 0;
+    }
     if (slot == NULL) {
         np2dn_dialogue_set_error(NP2DN_DIALOGUE_ERROR_NO_ADAPTER);
         return 0;
@@ -169,10 +177,6 @@ int np2dn_dialogue_jump_request(const char *dialogue_id)
     if (!np2dn_dialogue_string_valid(dialogue_id,
                                      NP2DN_DIALOGUE_ID_MAX)) {
         np2dn_dialogue_set_error(NP2DN_DIALOGUE_ERROR_INVALID_ARGUMENT);
-        return 0;
-    }
-    if (np2dn_dialogue_is_running(g_status.state)) {
-        g_status.error = NP2DN_DIALOGUE_ERROR_BUSY;
         return 0;
     }
 
