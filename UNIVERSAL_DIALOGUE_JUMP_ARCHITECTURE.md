@@ -272,3 +272,17 @@ La inspección de los bucles completos de `maketext()`, `maketext40()`, `maketex
 4. **Verificación del diálogo:** el adaptador debe elegir la evidencia según la ruta activa. En texto independiente puede cotejar los códigos/atributos activos y la composición posterior; en ruta mixta debe añadir evidencia semántica externa al registro TRAM de atributos. Si la evidencia disponible no identifica el texto destino, el resultado será `unverified`, nunca éxito.
 
 Esta corrección sustituye cualquier lectura de las secciones 7.3 y 7.4 que implique que las cuatro funciones leen códigos de carácter o que una única caché semántica de celdas basta para los cuatro caminos. Las cuatro rutas siguen siendo puntos de instrumentación, pero no proporcionan el mismo tipo de evidencia.
+
+
+#### 7.6 Auditoría de escrituras TRAM y discrepancia de flags de renovación
+
+La inspección de `mem/memtram.c`, `io/gdc.h` y los consumidores de `tramupdate` revela una discrepancia que debe resolverse antes de basar la verificación en renovaciones incrementales:
+
+- `memtram_wr8()` y `memtram_wr16()` marcan las celdas afectadas mediante `tramupdate[index] = 1` y activan `gdcs.textdisp |= 1`. Los accesos a la zona de caracteres y a la zona de atributos no usan el mismo filtro de escritura, y los accesos de palabra pueden marcar dos índices o envolver el índice 0xFFF/0.
+- `maketext()` y `maketext40()` consideran cualquier valor distinto de cero en `tramupdate[edi]`, y al terminar limpian toda la matriz `tramupdate`.
+- En cambio, `maketextgrph()` y `maketextgrph40()` buscan específicamente `tramupdate[edi] & 2`. En los caminos de escritura TRAM revisados, las funciones de escritura asignan el valor 1, no el bit 2.
+- `GDCSCRN_ALLDRAW` es 0x04, mientras que la marca ordinaria de renovación de texto activada por las escrituras es 0x01. Por tanto, una renovación mixta puede entrar por `gdcs.textdisp` y aun así no marcar `new_flag` mediante el filtro incremental descrito si no existe otra causa de renovación completa o gráfica.
+
+**Conclusión:** hay una posible incompatibilidad entre el productor de dirty flags TRAM y el consumidor de la ruta mixta. No se debe cambiar silenciosamente el filtro `& 2` ni asumir que es un bug confirmado: antes hay que localizar todos los productores de `tramupdate`, comprender el significado histórico de cada bit y comprobar si existe algún camino de actualización alternativo que justifique el bit 2.
+
+**Regla para el observador:** no reutilizar `tramupdate` como única fuente de verdad. La observación de texto independiente debe registrar las lecturas reales del renderizador. La observación mixta debe registrar los atributos realmente consumidos y las filas/píxeles que se regeneraron; además, debe informar de cualquier inconsistencia entre una escritura TRAM y la renovación mixta resultante. Cualquier corrección del dirty tracking debe tratarse como un cambio funcional separado, con pruebas de regresión para ambos modos y sin alterar la semántica del renderizador por conveniencia del depurador.
