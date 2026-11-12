@@ -326,17 +326,24 @@ int np2dn_dos_file_tracker_get_by_handle(uint16_t handle,
                                           NP2DN_DosFileInfo *info)
 {
     uint32_t i;
+    int found = -1;
+    uint32_t newest = 0;
 
     if (info == NULL) {
         return 0;
     }
     for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX; ++i) {
-        if (s_files[i].used && s_files[i].handle == handle) {
-            *info = s_files[i];
-            return 1;
+        if (s_files[i].used && s_files[i].handle == handle &&
+            s_files[i].sequence >= newest) {
+            newest = s_files[i].sequence;
+            found = (int)i;
         }
     }
-    return 0;
+    if (found < 0) {
+        return 0;
+    }
+    *info = s_files[found];
+    return 1;
 }
 
 int np2dn_dos_file_tracker_get_loaded_segment(uint16_t segment,
