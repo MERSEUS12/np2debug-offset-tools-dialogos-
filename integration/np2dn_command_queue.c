@@ -534,8 +534,8 @@ void np2dn_command_queue_pump(void)
             requested_length = (uint32_t)strlen(status.requested_dialogue_id);
             resolved_length = (uint32_t)strlen(status.resolved_dialogue_id);
             if (adapter_length > 32u) adapter_length = 32u;
-            if (requested_length > 80u) requested_length = 80u;
-            if (resolved_length > 80u) resolved_length = 80u;
+            if (requested_length > 95u) requested_length = 95u;
+            if (resolved_length > 95u) resolved_length = 95u;
             payload[25] = (uint8_t)adapter_length;
             payload[26] = (uint8_t)requested_length;
             payload[27] = (uint8_t)resolved_length;
