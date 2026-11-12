@@ -119,6 +119,10 @@ typedef struct NP2DN_DialogueCatalogEntry {
     uint32_t flags;
 } NP2DN_DialogueCatalogEntry;
 
+/*
+ * catalog_generation binds a resolved locator to the catalogue the user saw.
+ * A nonzero catalogue generation must match exactly before the core can apply it.
+ */
 typedef struct NP2DN_DialogueTarget {
     char dialogue_id[NP2DN_DIALOGUE_ID_MAX];
     char scene_id[NP2DN_DIALOGUE_SCENE_ID_MAX];
