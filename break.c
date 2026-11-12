@@ -375,7 +375,7 @@ static BOOL np2track_is_script_file(const char *name)
 	if (np2scene_isscript(name)) {
 		return TRUE;
 	}
-	while (name[len] && len < NP2DN_DOS_FILE_NAME_MAX) {
+	while (len < NP2DN_DOS_FILE_NAME_MAX && name[len]) {
 		len++;
 	}
 	return (len >= 2 && name[len - 2] == '.' &&
