@@ -835,7 +835,9 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
             cp->host_present_generation_before ||
         observer.last_host_presented_text == 0 ||
         observer.last_host_presented_composition_generation <=
-            cp->composition_generation_before) {
+            cp->composition_generation_before ||
+        (!cp->target_visible_before &&
+         observer.text_generation <= cp->text_generation_before)) {
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
 
