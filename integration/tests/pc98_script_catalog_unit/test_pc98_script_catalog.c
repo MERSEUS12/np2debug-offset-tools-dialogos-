@@ -96,7 +96,7 @@ int main(void)
           "first dialogue identity");
     CHECK(entries[0].target_esi ==
           first_marker + 2u +
-              (uint32_t)(sizeof("Hola\\\\CRmundo") - 1u) + 1u,
+              (uint32_t)(sizeof("Hola\\CRmundo") - 1u) + 1u,
           "first target points to H after slash");
     CHECK(entries[0].text_length == 10 &&
           memcmp(entries[0].text, "Hola\nmundo", 10) == 0,
