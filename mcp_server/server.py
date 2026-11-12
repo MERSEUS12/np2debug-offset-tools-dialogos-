@@ -312,17 +312,25 @@ def dialogue_catalog(offset: int = 0, limit: int = 32, refresh: bool = True) -> 
 
 
 @mcp.tool()
-def dialogue_jump_request(dialogue_id: str) -> str:
-    """Solicita un salto a un ID del catálogo actualizado; una generación obsoleta se rechaza con STALE_CATALOG."""
+def dialogue_jump_request(dialogue_id: str, catalog_generation: int) -> str:
+    """Solicita un salto usando el ID y la generación devueltos por dialogue_catalog; rechaza catálogos obsoletos."""
     if not isinstance(dialogue_id, str) or not dialogue_id or "\0" in dialogue_id:
         raise ValueError("dialogue_id no puede estar vacío ni contener NUL")
+    catalog_generation = _u64(catalog_generation, "catalog_generation")
+    if catalog_generation == 0:
+        raise ValueError("catalog_generation debe ser una generación válida")
     try:
         encoded_id = dialogue_id.encode("mbcs")
     except UnicodeEncodeError as exc:
         raise ValueError("dialogue_id no se puede convertir a la codificación ANSI de Windows") from exc
     if len(encoded_id) >= 96:
         raise ValueError("dialogue_id debe ocupar menos de 96 bytes")
-    return _send_command(CMD_DIALOGUE_JUMP_REQUEST, script_name=dialogue_id)
+    return _send_command(
+        CMD_DIALOGUE_JUMP_REQUEST,
+        a=catalog_generation & 0xffffffff,
+        b=(catalog_generation >> 32) & 0xffffffff,
+        script_name=dialogue_id,
+    )
 
 
 @mcp.tool()
