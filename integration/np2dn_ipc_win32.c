@@ -149,7 +149,7 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
         response.status = NP2DN_IPC_INVALID_REQUEST;
         response.result = 3;
     }
-    else if (request.type > NP2DN_CMD_BREAKPOINTS_LIST) {
+    else if (request.type > NP2DN_CMD_DIALOGUE_STATUS_QUERY) {
         response.status = NP2DN_IPC_INVALID_REQUEST;
         response.result = 4;
     }
@@ -206,7 +206,10 @@ static void np2dn_ipc_handle_request(HANDLE pipe)
             request.type == NP2DN_CMD_JUMP_TRACE ||
             request.type == NP2DN_CMD_CURRENT_INSTRUCTION ||
             request.type == NP2DN_CMD_CPU_REGISTERS ||
-            request.type == NP2DN_CMD_BREAKPOINTS_LIST) {
+            request.type == NP2DN_CMD_BREAKPOINTS_LIST ||
+            request.type == NP2DN_CMD_DIALOGUE_CATALOG_REFRESH ||
+            request.type == NP2DN_CMD_DIALOGUE_CATALOG_GET ||
+            request.type == NP2DN_CMD_DIALOGUE_STATUS_QUERY) {
             if (np2dn_command_poll_memory(command_id, &result, &payload_length,
                                           response.payload, NP2DN_IPC_MAX_PAYLOAD)) {
                 response.status = NP2DN_IPC_OK;
