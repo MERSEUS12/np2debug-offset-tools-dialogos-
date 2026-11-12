@@ -238,3 +238,18 @@ La revisión de las rutas completas obliga a ampliar la propuesta anterior: no b
 La observación del adaptador PC-98 combinará ambas señales: comprobará que las celdas del texto objetivo pertenecen al recorrido/caché activa y que una composición posterior incluyó el plano de texto. Si hay composición mixta, deberá conservarse el dato de que el plano gráfico puede cubrir o alterar parte del texto. Para afirmar que el usuario lo vio, seguirá haciendo falta una tercera evidencia del host (por ejemplo, captura de la superficie/ventana); las dos señales anteriores solo prueban el estado interno de composición del emulador.
 
 **Decisión de implementación:** no reproducir desde una API de consulta el algoritmo de scroll/CRT ni llamar a `maketext*` para «observar», porque esas funciones mutan `np2_tram`, `renewal_line`, `tramupdate` y estado de blink/cursor. La instrumentación debe acompañar el recorrido real que ya ejecuta el emulador y mantener una caché incremental invalidable. Antes de codificarla habrá que localizar y revisar las implementaciones completas de `maketextgrph()` y `maketextgrph40()`, además de todos los puntos que reinicializan o borran `np2_tram`.
+
+
+#### 7.4 Puntos reales de actualización e invalidación de la caché
+
+La revisión de `vram/maketgrp.c` confirma que las dos rutas mixtas existen por separado: `maketextgrph()` (80 columnas) y `maketextgrph40()` (40 columnas). Ambas recorren el plano de texto con sus propios parámetros GDC y CRT, además del plano gráfico. Por tanto, el registro de celdas debe instrumentarse dentro de las rutas que realmente leen los bytes de texto, no deducirse después a partir de los píxeles mezclados.
+
+Los puntos de borrado encontrados para `np2_tram` son:
+
+- `scrndraw_initialize()`: borra toda la superficie `np2_tram`. Debe invalidar la caché completa.
+- `dispsync_renewalvertical()`: borra las bandas superiores e inferiores cuando cambia la geometría vertical (`text_vbp`, `textymax` y `scrnymax`). Debe invalidar las filas correspondientes a esas bandas y avanzar la generación de geometría; no hace falta descartar celdas de filas que no fueron borradas.
+- `maketext()`, `maketext40()` y las dos funciones mixtas actualizan regiones de la superficie durante el recorrido normal. Sus renovaciones parciales deben actualizar la caché de forma incremental.
+
+La caché no puede asumir que cada llamada reconstruye todo el plano: las funciones pueden omitir líneas o regiones que no requieren renovación. Tampoco debe marcar como válido un bloque de texto solo porque sus bytes sigan presentes en la RAM de texto; el registro debe indicar que esos bytes fueron consumidos por una ruta de composición vigente bajo la configuración de pantalla actual.
+
+**Siguiente tarea de código:** revisar los bucles exactos de lectura de texto en ambas funciones de `maketgrp.c`, definir un pequeño tipo interno de observación sin dependencias del núcleo universal y añadir las actualizaciones/invalidation hooks en los cuatro caminos de composición y los dos puntos de borrado identificados. La API MCP y el núcleo universal consumirán después una copia estable de esa observación; no accederán directamente a variables locales del renderizador.
