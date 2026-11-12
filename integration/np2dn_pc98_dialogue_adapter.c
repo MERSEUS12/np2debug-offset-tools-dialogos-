@@ -819,6 +819,7 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
     uint16_t target_segment;
     uint32_t target_esi;
     uint32_t target_block;
+    uint64_t target_generation;
     uint32_t current_esi;
     uint32_t current_block;
     int current_id;
@@ -830,7 +831,9 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
         cp->magic != NP2DN_PC98_CHECKPOINT_MAGIC ||
         target->catalog_generation != cp->catalog_generation ||
         !np2dn_pc98_decode_locator(target, &target_segment, NULL,
-                                   &target_esi, &target_block, NULL, NULL)) {
+                                   &target_esi, &target_block, NULL,
+                                   &target_generation) ||
+        target_generation != cp->catalog_generation) {
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
     if ((uint32_t)(GetTickCount() - cp->start_tick) >
