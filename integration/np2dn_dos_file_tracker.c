@@ -25,8 +25,8 @@ typedef struct NP2DN_DosPendingCall {
     char name[NP2DN_DOS_FILE_NAME_MAX];
 } NP2DN_DosPendingCall;
 
-static NP2DN_DosFileInfo s_files[NP2DN_DOS_FILE_TRACKER_MAX];
-static uint8_t s_coverage[NP2DN_DOS_FILE_TRACKER_MAX]
+static NP2DN_DosFileInfo s_files[NP2DN_DOS_FILE_TRACKER_MAX_FILES];
+static uint8_t s_coverage[NP2DN_DOS_FILE_TRACKER_MAX_FILES]
                          [NP2DN_DOS_COVERAGE_BYTES];
 static NP2DN_DosPendingCall s_pending;
 static uint32_t s_sequence;
@@ -48,7 +48,7 @@ static int np2dn_dos_find_active_handle(uint16_t handle)
 {
     uint32_t i;
 
-    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX; ++i) {
+    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX_FILES; ++i) {
         if (s_files[i].used && !s_files[i].closed &&
             s_files[i].handle == handle) {
             return (int)i;
@@ -63,7 +63,7 @@ static int np2dn_dos_allocate_file(void)
     uint32_t oldest = 0;
     uint32_t oldest_sequence = 0xffffffffu;
 
-    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX; ++i) {
+    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX_FILES; ++i) {
         if (!s_files[i].used || s_files[i].closed) {
             return (int)i;
         }
@@ -340,7 +340,7 @@ int np2dn_dos_file_tracker_get_by_handle(uint16_t handle,
     if (info == NULL) {
         return 0;
     }
-    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX; ++i) {
+    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX_FILES; ++i) {
         if (s_files[i].used && s_files[i].handle == handle &&
             s_files[i].sequence >= newest) {
             newest = s_files[i].sequence;
@@ -364,7 +364,7 @@ int np2dn_dos_file_tracker_get_loaded_segment(uint16_t segment,
     if (info == NULL) {
         return 0;
     }
-    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX; ++i) {
+    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX_FILES; ++i) {
         if (s_files[i].used && s_files[i].mapping_valid &&
             s_files[i].fully_loaded && s_files[i].segment == segment &&
             s_files[i].sequence >= newest) {
@@ -382,7 +382,7 @@ int np2dn_dos_file_tracker_get_loaded_segment(uint16_t segment,
 int np2dn_dos_file_tracker_get_file(uint32_t index,
                                     NP2DN_DosFileInfo *info)
 {
-    if (info == NULL || index >= NP2DN_DOS_FILE_TRACKER_MAX ||
+    if (info == NULL || index >= NP2DN_DOS_FILE_TRACKER_MAX_FILES ||
         !s_files[index].used) {
         return 0;
     }
