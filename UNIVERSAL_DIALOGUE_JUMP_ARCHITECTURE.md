@@ -243,6 +243,13 @@ La primera consulta de script reconoce nombres `.BIN` y `.M`; el tracker DOS sub
 
 **Pendiente de validación runtime:** el observador y sus pruebas unitarias están integrados, pero aún no se ha comprobado con el juego ejecutándose que Macross cargue sus scripts mediante estas llamadas DOS y que el búfer leído coincida con el segmento ES usado por el intérprete. Hasta confirmar eso, el adaptador no debe declarar completo el catálogo.
 
+### 9.5 Señal de presentación en la superficie host
+
+La composición emulada por `scrndraw_draw` no se toma por sí sola como prueba de que el diálogo llegó a la ventana. Se añadió una segunda señal en `win9x/scrnmng.cpp`: después de cada `scrnmng_update`, el observador recibe el resultado real del `Blt` de DirectDraw hacia la superficie primaria. La ruta de recuperación por `DDERR_SURFACELOST` también conserva el HRESULT del segundo intento.
+
+El observador enlaza esa confirmación con la generación de composición de texto más reciente. Solo incrementa `host_present_generation` cuando el blit devuelve `DD_OK` y la composición pendiente incluía el plano de texto; los blits gráficos, fallidos o repetidos de una misma composición no pueden confirmar el diálogo. Así, el adaptador podrá exigir estado del intérprete, composición con texto y blit host exitoso antes de marcar `PRESENTED`.
+
+
 
 ---
 
