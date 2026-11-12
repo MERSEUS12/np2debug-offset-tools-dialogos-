@@ -225,6 +225,11 @@ int main(void)
           "adapter count");
     CHECK(np2dn_dialogue_select_adapter("fake-test-adapter"),
           "select fake adapter");
+    CHECK(!np2dn_dialogue_jump_request("dialogue_target"),
+          "jump is rejected before a dialogue catalogue is loaded");
+    np2dn_dialogue_get_status(&status);
+    CHECK(status.error == NP2DN_DIALOGUE_ERROR_STALE_CATALOG,
+          "missing catalogue is reported as stale");
     CHECK(np2dn_dialogue_catalog_refresh(),
           "refresh adapter dialogue catalogue");
     CHECK(np2dn_dialogue_catalog_count() == 35,
