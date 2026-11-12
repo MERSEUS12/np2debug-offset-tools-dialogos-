@@ -377,15 +377,15 @@ El adaptador:
 2. Construye el catálogo con el parser PC-98 y genera IDs como `ARCHIVO#ordinal`.
 3. Valida que el localizador siga perteneciendo a la generación actual, al mismo script/segmento, a un bloque válido `18 01` o `18 02`, y a un token de espera `HA\` dentro de los límites del archivo.
 4. Captura el segmento, el ESI y el bloque anterior, además de las generaciones de observación necesarias para verificar una restauración visual.
-5. Aplica el salto usando el hook existente de `np2jump_arm`, pero dirige el ESI al encabezado del bloque destino (`18 01`/`18 02`) para que el intérprete vuelva a ejecutar el texto desde el principio. El hook sigue esperando en el `HA\\` actual y no ejecuta operaciones pesadas.
-6. Espera a que el intérprete procese el bloque y alcance el `HA\\` propio del destino. Después verifica que el tracker identifica el ESI/bloque destino, que el texto destino aparece en las celdas observadas, que hubo una composición posterior con el plano de texto y que el blit DirectDraw hacia la superficie primaria terminó con `DD_OK`.
+5. Aplica el salto usando el hook existente de `np2jump_arm`, pero dirige el ESI al encabezado del bloque destino (`18 01`/`18 02`) para que el intérprete vuelva a ejecutar el texto desde el principio. El hook sigue esperando en el `HA\` actual y no ejecuta operaciones pesadas.
+6. Espera a que el intérprete procese el bloque y alcance el `HA\` propio del destino. Después verifica que el tracker identifica el ESI/bloque destino, que el texto destino aparece en las celdas observadas, que hubo una composición posterior con el plano de texto y que el blit DirectDraw hacia la superficie primaria terminó con `DD_OK`.
 7. Si falla la verificación después de aplicar el salto, reejecuta el bloque anterior desde su encabezado y exige que vuelva a aparecer en la composición host antes de considerar restaurado el estado.
 
 La señal de presentación no es una estimación: `scrndraw_draw()` registra la composición efectiva y `scrnmng_update()` informa del resultado del blit host. El adaptador no acepta únicamente un cambio de registro o de ID.
 
 ### 10.4 Significado de «como un libro» y límites actuales
 
-El objetivo funcional sigue siendo elegir una página/frase, entrar en un punto de espera normal del intérprete y poder continuar desde ahí con el flujo del juego. Para el primer adaptador PC-98, el destino se sitúa en el token `HA\` asociado al bloque, no en un buffer de texto separado.
+El objetivo funcional sigue siendo elegir una página/frase, entrar en un punto de espera normal del intérprete y poder continuar desde ahí con el flujo del juego. Para el primer adaptador PC-98, el salto entra por el encabezado del bloque seleccionado; el intérprete procesa su texto y llega al token `HA\` de ese mismo bloque, que es el punto normal de espera/continuación. No se considera éxito si solo se mueve el puntero al token de espera sin ejecutar el texto.
 
 Esto **no convierte todavía el adaptador PC-98 en un sistema universal para cualquier juego**. Su alcance actual es el script PC-98 activo y el formato de marcadores reconocido. Tampoco reconstruye automáticamente variables narrativas, decisiones o escenas arbitrarias: el callback `prepare` conserva el estado de retorno y valida el contexto disponible; los motores que requieran reconstruir variables, flags, inventario, rutas o escenas deberán implementar esa preparación en su propio adaptador.
 
