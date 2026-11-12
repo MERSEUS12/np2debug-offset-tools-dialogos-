@@ -313,7 +313,7 @@ def dialogue_catalog(offset: int = 0, limit: int = 32, refresh: bool = True) -> 
 
 @mcp.tool()
 def dialogue_jump_request(dialogue_id: str) -> str:
-    """Solicita un salto universal a un ID del catálogo; el núcleo verifica estado, presentación y continuidad."""
+    """Solicita un salto a un ID del catálogo actualizado; una generación obsoleta se rechaza con STALE_CATALOG."""
     if not isinstance(dialogue_id, str) or not dialogue_id or "\0" in dialogue_id:
         raise ValueError("dialogue_id no puede estar vacío ni contener NUL")
     try:
