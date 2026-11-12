@@ -50,3 +50,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & mcp_server/tests/ipc_win32/ipc_win32_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Probar núcleo universal de salto de diálogos
+        shell: pwsh
+        run: |
+          cl /nologo /W4 /I integration integration/tests/dialogue_core_unit/test_dialogue_core.c integration/np2dn_dialogue_core.c /Fe:integration/tests/dialogue_core_unit/dialogue_core_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & integration/tests/dialogue_core_unit/dialogue_core_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
