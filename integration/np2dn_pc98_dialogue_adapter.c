@@ -27,6 +27,7 @@ typedef struct NP2DN_PC98Checkpoint {
     uint32_t old_block_start;
     uint32_t target_esi;
     uint32_t target_block_start;
+    uint64_t catalog_generation;
     uint32_t jump_count_before;
     uint32_t rollback_count_before;
     uint32_t start_tick;
@@ -675,6 +676,7 @@ static int np2dn_pc98_prepare(
     uint32_t current_esi;
     uint32_t current_block;
     uint32_t target_block_start;
+    uint64_t target_generation;
     int current_id;
     int current_index;
     int target_index;
@@ -686,13 +688,14 @@ static int np2dn_pc98_prepare(
         np2jump_is_armed() || !np2dn_pc98_build_catalog(0) ||
         !np2dn_pc98_decode_locator(target, &target_segment, NULL,
                                    &target_esi, &target_block_start,
-                                   NULL, NULL) ||
+                                   NULL, &target_generation) ||
         !np2track_current(&current_esi, &current_id, &current_block,
                           NULL, 0) ||
         target_segment != np2track_getseg() ||
         current_esi == target_esi ||
         strcmp(current->scene_id, target->scene_id) != 0 ||
-        current->generation != s_catalog_generation) {
+        current->generation != s_catalog_generation ||
+        target_generation != s_catalog_generation) {
         return 0;
     }
 
@@ -718,6 +721,7 @@ static int np2dn_pc98_prepare(
     cp.old_block_start = current_block;
     cp.target_esi = target_esi;
     cp.target_block_start = target_block_start;
+    cp.catalog_generation = target_generation;
     cp.jump_count_before = np2jump_count();
     cp.start_tick = GetTickCount();
     np2dn_pc98_text_observer_get_status(&observer);
@@ -742,13 +746,21 @@ static NP2DN_DialogueResult np2dn_pc98_apply(
     uint32_t target_esi;
     uint32_t target_block_start;
     uint32_t entry_esi;
+    uint64_t target_generation;
 
     (void)context;
     if (cp == NULL || cp->magic != NP2DN_PC98_CHECKPOINT_MAGIC ||
         target == NULL ||
         !np2dn_pc98_decode_locator(target, &segment, NULL,
                                    &target_esi, &target_block_start,
-                                   NULL, NULL) ||
+                                   NULL, &target_generation) ||
+        !np2dn_pc98_build_catalog(1) ||
+        target_generation != cp->catalog_generation ||
+        target_generation != s_catalog_generation ||
+        segment != cp->target_segment ||
+        segment != np2track_getseg() ||
+        target_esi != cp->target_esi ||
+        target_block_start != cp->target_block_start ||
         target_block_start > 0xfffdu ||
         target_esi <= target_block_start + 2u) {
         return NP2DN_DIALOGUE_RESULT_ERROR;
@@ -839,6 +851,16 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
         current_id != (int)parsed->dialogue_id) {
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
+    if (!np2dn_pc98_build_catalog(1) ||
+        s_catalog_generation != cp->catalog_generation ||
+        np2track_getseg() != target_segment) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+    entry_index = np2dn_pc98_find_catalog_entry(target->dialogue_id);
+    if (entry_index < 0) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+    parsed = &s_script_entries[entry_index];
     if ((parsed->flags & NP2DN_PC98_SCRIPT_ENTRY_TEXT_TRUNCATED) != 0 ||
         (s_catalog_entries[entry_index].flags &
          NP2DN_DIALOGUE_CATALOG_ENTRY_TEXT_TRUNCATED) != 0) {
@@ -896,6 +918,13 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
 
     if (!cp->rollback_started) {
         NP2DN_PC98TextObserverStatus observer;
+        if (!np2dn_pc98_build_catalog(1) ||
+            s_catalog_generation != cp->catalog_generation ||
+            np2track_getseg() != cp->target_segment) {
+            np2jump_disarm();
+            s_active_checkpoint = *cp;
+            return NP2DN_DIALOGUE_RESULT_ERROR;
+        }
         cp->rollback_started = 1;
         cp->rollback_count_before = np2jump_count();
         cp->rollback_start_tick = GetTickCount();
@@ -919,8 +948,16 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
                              &restored_block, NULL, 0) &&
             restored_esi == cp->old_esi &&
             restored_block == cp->old_block_start) {
-            int restored_index = np2dn_pc98_find_ordinal(restored_id);
+            int restored_index;
             NP2DN_PC98TextObserverStatus observer;
+            if (!np2dn_pc98_build_catalog(1) ||
+                s_catalog_generation != cp->catalog_generation ||
+                np2track_getseg() != cp->old_segment) {
+                np2jump_disarm();
+                s_active_checkpoint = *cp;
+                return NP2DN_DIALOGUE_RESULT_ERROR;
+            }
+            restored_index = np2dn_pc98_find_ordinal(restored_id);
             np2dn_pc98_text_observer_get_status(&observer);
             if (restored_index >= 0 &&
                 observer.composition_generation >
