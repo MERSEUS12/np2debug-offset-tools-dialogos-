@@ -844,7 +844,7 @@ void scrnmng_update(void) {
 			if (r == DDERR_SURFACELOST) {
 				ddraw.backsurf->Restore();
 				ddraw.primsurf->Restore();
-				ddraw.primsurf->Blt(scrn, ddraw.backsurf, rect,
+				r = ddraw.primsurf->Blt(scrn, ddraw.backsurf, rect,
 															DDBLT_WAIT, NULL);
 			}
 		}
