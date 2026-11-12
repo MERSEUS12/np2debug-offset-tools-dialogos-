@@ -45,6 +45,7 @@ typedef struct NP2DN_PC98TextObserverStatus {
 
 /* Invalidate all cached cell observations. Safe on the emulator thread. */
 void np2dn_pc98_text_observer_reset(void);
+void np2dn_pc98_text_observer_begin_full_redraw(void);
 void np2dn_pc98_text_observer_invalidate_all(void);
 
 /* Record a cell only when maketext/maketext40 actually consumes its row. */
