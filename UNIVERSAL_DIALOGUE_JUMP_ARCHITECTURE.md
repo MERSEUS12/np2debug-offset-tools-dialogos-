@@ -1,6 +1,6 @@
 # NP2Debug Next — Arquitectura del sistema universal de salto de diálogos
 
-**Estado:** especificación de arquitectura inicial.  
+**Estado:** arquitectura implementada en el núcleo y primer adaptador PC-98; aceptación runtime pendiente. La sección 10 es el resumen vigente y actualiza las notas históricas de las secciones anteriores.  
 **Alcance:** videojuegos de distintos motores, arquitecturas y formatos de guion. Macross/PC-98 es el primer adaptador de prueba, no el límite del sistema.
 
 ## 1. Objetivo
@@ -215,9 +215,9 @@ Si falta la verificación de estado o la señal de presentación, el salto falla
 
 El callback `prepare` es responsable de preparar el contexto necesario para entrar en el diálogo seleccionado (variables, flags, escena, decisiones y estado del intérprete que el juego requiera). El callback `verify` no puede marcar continuidad lista hasta confirmar el punto de espera/avance normal correspondiente al motor. El núcleo no inventa ni modifica esos datos: cada adaptador debe conocerlos.
 
-La ampliación de continuidad subió `NP2DN_DIALOGUE_CORE_API_VERSION` a 2; el contrato de catálogo paginado lo eleva ahora a 3. El test del núcleo incluye un caso negativo: aunque el diálogo destino aparezca, si el adaptador no confirma continuidad, la operación no puede terminar en éxito y se solicita rollback.
+La ampliación de continuidad subió `NP2DN_DIALOGUE_CORE_API_VERSION` a 2; el contrato de catálogo paginado lo elevó a 3 y el vínculo de localizadores a la generación visible del catálogo lo eleva ahora a 4. El test del núcleo incluye un caso negativo: aunque el diálogo destino aparezca, si el adaptador no confirma continuidad, la operación no puede terminar en éxito y se solicita rollback.
 
-### 9.2 Catálogo universal paginado (API v3)
+### 9.2 Catálogo universal paginado (API v4)
 
 El contrato incorpora `enumerate` como callback obligatorio del adaptador y una estructura común `NP2DN_DialogueCatalogEntry`. El adaptador entrega IDs estables por generación, escena, personaje, texto UTF-8 y locator opaco; cada motor/formato se encarga de convertir su codificación original a UTF-8.
 
@@ -225,13 +225,15 @@ El núcleo solicita páginas de 32 entradas, valida IDs únicos y cadenas termin
 
 La actualización del catálogo es independiente del salto: enumerar no modifica el juego. El locator sigue siendo opaco y solo el adaptador puede interpretarlo. Esto permite que el núcleo presente una biblioteca uniforme de diálogos sin asumir offsets, segmentos, punteros ni formatos de script propios de un motor.
 
+En API v4, `NP2DN_DialogueTarget` incorpora `catalog_generation`. El adaptador fija la generación al resolver el ID y el núcleo la compara con la generación del catálogo que se mostró/consultó. Si el script cambia entre la enumeración y la resolución, la operación termina con `STALE_CATALOG` antes de aplicar el salto.
+
 ### 9.3 Primer parser de catálogo: PC-98 con bloques 18 01 / 18 02
 
 Se añadió un parser separado del núcleo universal para el formato PC-98 usado por el primer adaptador. Reconoce los marcadores `18 01` y `18 02` cuando están precedidos por `00`, `01` o `45`; busca el primer token de espera `\HA\` antes del siguiente bloque; devuelve el offset del carácter `H` como destino; conserva el ordinal de los bloques sin espera para que los IDs coincidan con el tracker actual; convierte `\CR` en salto de línea y conserva los demás bytes en su codificación original.
 
 El parser recibe un búfer y una longitud explícitos, nunca lee fuera del rango suministrado y limita el texto a 512 bytes marcando truncamiento. Sus pruebas cubren IDs con bloques omitidos, destinos exactos, saltos de línea, bloques sin espera, marcadores falsos, límites de lectura y catálogos de salida truncados.
 
-**Límite actual:** el parser está probado, pero todavía no está conectado a un adaptador runtime. El adaptador debe obtener del cargador del juego el segmento, inicio y longitud reales del script. No se debe escanear automáticamente todo el segmento de 64 KiB como si todo su contenido perteneciera al archivo: eso podría incluir datos residuales y producir destinos falsos.
+**Estado actual:** el parser está conectado al adaptador runtime PC-98 y recibe el segmento, inicio y longitud reales del script desde el tracker DOS. Sigue pendiente confirmar esa correlación con el juego ejecutándose. No se debe escanear automáticamente todo el segmento de 64 KiB como si todo su contenido perteneciera al archivo: eso podría incluir datos residuales y producir destinos falsos.
 
 ### 9.4 Observación de carga de archivos DOS
 
@@ -241,19 +243,19 @@ El tracker solo expone un rango como script cargado cuando conoce el tamaño rea
 
 La primera consulta de script reconoce nombres `.BIN` y `.M`; el tracker DOS subyacente no depende de una extensión concreta. La API `np2track_loaded_script_info` entrega segmento, offset inicial, longitud y nombre solo para rangos completos y reconocidos.
 
-**Pendiente de validación runtime:** el observador y sus pruebas unitarias están integrados, pero aún no se ha comprobado con el juego ejecutándose que Macross cargue sus scripts mediante estas llamadas DOS y que el búfer leído coincida con el segmento ES usado por el intérprete. Hasta confirmar eso, el adaptador no debe declarar completo el catálogo.
+**Pendiente de validación runtime:** el observador y sus pruebas unitarias están integrados, y el adaptador usa `np2track_loaded_script_info` para rechazar scripts incompletos. Aún falta comprobar con el juego ejecutándose que Macross cargue sus scripts mediante estas llamadas DOS y que el búfer leído coincida con el segmento ES usado por el intérprete.
 
 ### 9.5 Señal de presentación en la superficie host
 
 La composición emulada por `scrndraw_draw` no se toma por sí sola como prueba de que el diálogo llegó a la ventana. Se añadió una segunda señal en `win9x/scrnmng.cpp`: después de cada `scrnmng_update`, el observador recibe el resultado real del `Blt` de DirectDraw hacia la superficie primaria. La ruta de recuperación por `DDERR_SURFACELOST` también conserva el HRESULT del segundo intento.
 
-El observador enlaza esa confirmación con la generación de composición de texto más reciente. Solo incrementa `host_present_generation` cuando el blit devuelve `DD_OK` y la composición pendiente incluía el plano de texto; los blits gráficos, fallidos o repetidos de una misma composición no pueden confirmar el diálogo. Así, el adaptador podrá exigir estado del intérprete, composición con texto y blit host exitoso antes de marcar `PRESENTED`.
+El observador enlaza esa confirmación con la generación de composición de texto más reciente. Solo incrementa `host_present_generation` cuando el blit devuelve `DD_OK` y la composición pendiente incluía el plano de texto; los blits gráficos, fallidos o repetidos de una misma composición no pueden confirmar el diálogo. Así, el adaptador PC-98 exige estado del intérprete, composición con texto y blit host exitoso antes de marcar `PRESENTED`.
 
 
 
 ---
 
-Esta especificación define la arquitectura objetivo. No afirma que el núcleo universal, el catálogo, los adaptadores ni la verificación de presentación ya estén implementados.
+Las secciones anteriores conservan la investigación y las decisiones históricas que condujeron a la implementación. El estado de integración actual y sus límites se resumen en la sección 10.
 
 #### 7.2 Semántica real del retorno de `scrndraw_draw()`
 
