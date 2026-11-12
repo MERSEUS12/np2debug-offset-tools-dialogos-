@@ -42,9 +42,12 @@ typedef struct NP2DN_PC98TextObserverStatus {
     uint32_t text_generation;
     uint32_t geometry_generation;
     uint32_t composition_generation;
+    uint32_t host_present_generation;
+    uint32_t last_host_presented_composition_generation;
     uint32_t valid_cell_count;
     uint8_t last_composition_planes;
     uint8_t last_composition_included_text;
+    uint8_t last_host_presented_text;
 } NP2DN_PC98TextObserverStatus;
 
 /* Invalidate all cached cell observations. Safe on the emulator thread. */
@@ -60,6 +63,9 @@ void np2dn_pc98_text_observer_record_cell(
 
 /* Record only after a real composition function has been invoked. */
 void np2dn_pc98_text_observer_record_composition(uint8_t selected_planes);
+
+/* Record only after the host surface blit succeeds. */
+void np2dn_pc98_text_observer_record_host_presented(int success);
 
 /* Read-only snapshot access; index is a TRAM cell index in [0, 0xFFF]. */
 int np2dn_pc98_text_observer_get_cell(uint16_t tram_index,
