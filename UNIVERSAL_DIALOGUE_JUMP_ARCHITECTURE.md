@@ -215,7 +215,15 @@ Si falta la verificación de estado o la señal de presentación, el salto falla
 
 El callback `prepare` es responsable de preparar el contexto necesario para entrar en el diálogo seleccionado (variables, flags, escena, decisiones y estado del intérprete que el juego requiera). El callback `verify` no puede marcar continuidad lista hasta confirmar el punto de espera/avance normal correspondiente al motor. El núcleo no inventa ni modifica esos datos: cada adaptador debe conocerlos.
 
-Esta ampliación sube `NP2DN_DIALOGUE_CORE_API_VERSION` a 2. El test del núcleo incluye un caso negativo: aunque el diálogo destino aparezca, si el adaptador no confirma continuidad, la operación no puede terminar en éxito y se solicita rollback.
+La ampliación de continuidad subió `NP2DN_DIALOGUE_CORE_API_VERSION` a 2; el contrato de catálogo paginado lo eleva ahora a 3. El test del núcleo incluye un caso negativo: aunque el diálogo destino aparezca, si el adaptador no confirma continuidad, la operación no puede terminar en éxito y se solicita rollback.
+
+### 9.2 Catálogo universal paginado (API v3)
+
+El contrato incorpora `enumerate` como callback obligatorio del adaptador y una estructura común `NP2DN_DialogueCatalogEntry`. El adaptador entrega IDs estables por generación, escena, personaje, texto UTF-8 y locator opaco; cada motor/formato se encarga de convertir su codificación original a UTF-8.
+
+El núcleo solicita páginas de 32 entradas, valida IDs únicos y cadenas terminadas, comprueba que la generación no cambie entre páginas y publica el nuevo catálogo solo cuando la lectura completa es coherente. La caché admite hasta 4096 entradas y texto de hasta 512 bytes por entrada. Si el adaptador informa más entradas, el núcleo conserva las primeras 4096 y marca explícitamente `catalog_truncated`; nunca afirma que la lista está completa.
+
+La actualización del catálogo es independiente del salto: enumerar no modifica el juego. El locator sigue siendo opaco y solo el adaptador puede interpretarlo. Esto permite que el núcleo presente una biblioteca uniforme de diálogos sin asumir offsets, segmentos, punteros ni formatos de script propios de un motor.
 
 
 ---
