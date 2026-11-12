@@ -369,7 +369,7 @@ Se exponen seis herramientas nuevas, manteniendo las herramientas antiguas de sa
 - `dialogue_jump_status`: expone fase, error, adaptador, IDs y evidencias de estado/presentación/continuidad.
 - `dialogue_operation_cancel`: cancela la operación universal sin reemplazar `dialogue_jump_cancel`, que sigue controlando el salto antiguo.
 
-El catálogo es de sesión y corresponde al script actualmente cargado. El núcleo mantiene IDs y localizadores opacos; no interpreta el formato PC-98.
+El catálogo es de sesión y corresponde al script actualmente cargado. La API v4 vincula cada destino con la generación del catálogo; si el script cambia después de enumerarlo, el núcleo rechaza la solicitud con `STALE_CATALOG` antes de aplicar el salto. El núcleo mantiene IDs y localizadores opacos; no interpreta el formato PC-98. La cancelación después de iniciar `apply` usa la ruta de rollback y no abandona una transición a medio aplicar.
 
 ### 10.3 Adaptador PC-98 inicial
 
@@ -395,4 +395,4 @@ La aceptación final del comportamiento «libro» exige pruebas de ejecución co
 
 ### 10.5 Verificación automatizada
 
-En esta fase se actualizaron las pruebas de cola para comprobar los nuevos comandos de catálogo, solicitud, estado y cancelación; las pruebas IPC usan el comando 29 para verificar que el extremo superior del rango es aceptado. Las pruebas del núcleo universal, parser PC-98, tracker DOS y observador de texto continúan dentro del workflow de CI. La compilación completa Release NT x64 y el empaquetado del servidor MCP deben considerarse verificados únicamente cuando sus workflows correspondientes terminen con éxito en el commit actual.
+En esta fase se actualizaron las pruebas de cola para comprobar los nuevos comandos de catálogo, solicitud, estado y cancelación; las pruebas IPC usan el comando 29 para verificar que el extremo superior del rango es aceptado. Las pruebas del núcleo cubren cancelación con rollback y rechazo de generaciones obsoletas. Las pruebas del parser PC-98, tracker DOS y observador de texto continúan dentro del workflow de CI. La compilación completa Release NT x64 y el empaquetado del servidor MCP deben considerarse verificados únicamente cuando sus workflows correspondientes terminen con éxito en el commit actual.
