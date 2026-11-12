@@ -102,6 +102,7 @@ int np2dn_dialogue_register_adapter(const NP2DN_DialogueAdapter *adapter,
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_OBSERVE) == 0 ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_DIRECT_JUMP) == 0 ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_VERIFY_UI) == 0 ||
+        (adapter->capabilities & NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY) == 0 ||
         adapter->observe == NULL || adapter->resolve == NULL ||
         adapter->validate == NULL || adapter->prepare == NULL ||
         adapter->apply == NULL || adapter->poll == NULL ||
@@ -289,8 +290,15 @@ void np2dn_dialogue_tick(void)
             break;
         }
         if (result != NP2DN_DIALOGUE_RESULT_DONE ||
-            strcmp(g_status.after.dialogue_id, g_target.dialogue_id) != 0) {
+            strcmp(g_status.after.dialogue_id, g_target.dialogue_id) != 0 ||
+            (g_status.after.flags &
+             NP2DN_DIALOGUE_SNAPSHOT_PRESENTED) == 0) {
             np2dn_dialogue_fail(NP2DN_DIALOGUE_ERROR_VERIFY_FAILED);
+            return;
+        }
+        if ((g_status.after.flags &
+             NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY) == 0) {
+            np2dn_dialogue_fail(NP2DN_DIALOGUE_ERROR_CONTINUITY_FAILED);
             return;
         }
         g_status.state = NP2DN_DIALOGUE_STATE_SUCCEEDED;
