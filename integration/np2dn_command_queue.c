@@ -2,6 +2,7 @@
 #include "np2.h"
 #include "np2dn_command_queue.h"
 #include "np2dn_debug_api.h"
+#include "np2dn_dialogue_core.h"
 
 typedef struct NP2DN_QueueSlot {
     NP2DN_Command command;
@@ -445,5 +446,10 @@ void np2dn_command_queue_pump(void)
             }
         }
         LeaveCriticalSection(&s_queue_lock);
+    }
+
+    /* The dialogue state machine runs on the same serialized UI thread. */
+    if (np2dn_dialogue_adapter_count() != 0) {
+        np2dn_dialogue_tick();
     }
 }
