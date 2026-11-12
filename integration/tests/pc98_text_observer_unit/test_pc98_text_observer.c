@@ -73,12 +73,35 @@ int main(void)
     CHECK(after.last_composition_included_text == 1u &&
           after.last_composition_planes == 0x05u,
           "composition planes recorded");
+    before = after;
+    np2dn_pc98_text_observer_record_host_presented(0);
+    np2dn_pc98_text_observer_get_status(&after);
+    CHECK(after.host_present_generation == before.host_present_generation,
+          "failed host blit is not presented");
+    np2dn_pc98_text_observer_record_host_presented(1);
+    np2dn_pc98_text_observer_get_status(&after);
+    CHECK(after.host_present_generation ==
+          before.host_present_generation + 1u &&
+          after.last_host_presented_text == 1u &&
+          after.last_host_presented_composition_generation ==
+              after.composition_generation,
+          "successful host blit confirms composed text");
+    before = after;
+    np2dn_pc98_text_observer_record_host_presented(1);
+    np2dn_pc98_text_observer_get_status(&after);
+    CHECK(after.host_present_generation == before.host_present_generation,
+          "same composition is not counted twice");
 
     before = after;
     np2dn_pc98_text_observer_record_composition(0x02);
     np2dn_pc98_text_observer_get_status(&after);
     CHECK(after.composition_generation == before.composition_generation,
           "graphics-only composition does not count as text composition");
+    np2dn_pc98_text_observer_record_host_presented(1);
+    np2dn_pc98_text_observer_get_status(&after);
+    CHECK(after.host_present_generation == before.host_present_generation &&
+          after.last_host_presented_text == 0,
+          "graphics-only blit cannot confirm dialogue presentation");
 
     before = after;
     np2dn_pc98_text_observer_begin_full_redraw();
