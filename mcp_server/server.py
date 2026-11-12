@@ -696,7 +696,7 @@ def dialogue_jump_arm(
 
 
 @mcp.tool()
-def dialogue_jump_cancel() -> str:
+def dialogue_operation_cancel() -> str:
     """Cancela el salto a diálogo preparado."""
     return _send_command(CMD_JUMP_CANCEL)
 
