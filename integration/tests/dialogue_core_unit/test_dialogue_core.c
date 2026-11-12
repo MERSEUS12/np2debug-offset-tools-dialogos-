@@ -107,7 +107,8 @@ static NP2DN_DialogueResult fake_verify(
     strcpy(observed->dialogue_id, target->dialogue_id);
     strcpy(observed->scene_id, target->scene_id);
     observed->generation = 11;
-    observed->flags = NP2DN_DIALOGUE_SNAPSHOT_PRESENTED;
+    observed->flags = NP2DN_DIALOGUE_SNAPSHOT_STATE_VERIFIED |
+                      NP2DN_DIALOGUE_SNAPSHOT_PRESENTED;
     if (!context->omit_continuity) {
         observed->flags |= NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY;
     }
@@ -140,6 +141,7 @@ int main(void)
         "fake-test-adapter",
         NP2DN_DIALOGUE_CAP_OBSERVE |
         NP2DN_DIALOGUE_CAP_DIRECT_JUMP |
+        NP2DN_DIALOGUE_CAP_VERIFY_STATE |
         NP2DN_DIALOGUE_CAP_VERIFY_UI |
         NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY |
         NP2DN_DIALOGUE_CAP_ROLLBACK,
@@ -183,11 +185,13 @@ int main(void)
     CHECK(strcmp(status.after.dialogue_id, "dialogue_target") == 0,
           "verified destination ID");
     CHECK((status.after.flags &
-           (NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
+           (NP2DN_DIALOGUE_SNAPSHOT_STATE_VERIFIED |
+            NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
             NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY)) ==
-          (NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
+          (NP2DN_DIALOGUE_SNAPSHOT_STATE_VERIFIED |
+           NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
            NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY),
-          "destination presented and normal continuation ready");
+          "game state, presentation and normal continuation verified");
     CHECK(context.apply_calls == 1 && context.poll_calls == 1,
           "asynchronous apply/poll sequence");
     CHECK(context.verify_calls == 2,
