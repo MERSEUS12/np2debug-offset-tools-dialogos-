@@ -205,3 +205,17 @@ Un adaptador solo declara un salto exitoso cuando:
 ---
 
 Esta especificación define la arquitectura objetivo. No afirma que el núcleo universal, el catálogo, los adaptadores ni la verificación de presentación ya estén implementados.
+
+#### 7.2 Semántica real del retorno de `scrndraw_draw()`
+
+La inspección completa de `vram/scrndraw.c` añade una precisión importante a la instrumentación:
+
+- `scrndraw_draw()` inicializa `ret = 0`. Si `scrnmng_surflock()` devuelve `NULL`, sale sin dibujar; si `sdraw_getproctbl()` devuelve `NULL`, también sale sin dibujar.
+- Cuando la superficie y la tabla de funciones son válidas, configura origen/destino y ejecuta la función de dibujo seleccionada mediante `(*(*sdrawfn))(&sdraw, height)`. En la ruta normal esa función es `void` y `ret` permanece en cero.
+- `ret` solo recibe un valor de retorno en la rama especial que llama a `rasterdraw()`. Por tanto, **el valor devuelto por `scrndraw_draw()` no es un indicador general de éxito**: cero puede significar tanto salida temprana como dibujo normal ejecutado.
+- `pccore.c` asigna el retorno a `pcstat.screenupdate` y luego incrementa `drawcount`; ninguno de esos valores, aislado, permite distinguir una salida temprana de una ejecución normal del dibujador.
+
+Por ello, no se debe implementar la generación de superficie como `if (scrndraw_draw()) generation++`. Si se añade instrumentación, debe registrar explícitamente el camino de ejecución: superficie adquirida, tabla de dibujo válida, plano de texto incluido en la selección y función de dibujo invocada. Esa señal debe nombrarse como **dibujo emulado ejecutado**, no como confirmación de que la ventana host ya presentó los píxeles. La ruta rasterizada debe registrar además su resultado específico sin confundirlo con el indicador común.
+
+La observación de celdas también necesita distinguir dos cosas: las celdas que `maketext()` recalculó en una llamada y el contenido completo que permanece en `np2_tram`. Como el renderizador puede omitir filas/celdas sin renovación y conservar píxeles previos, una lista de celdas procesadas en la última llamada no representa necesariamente toda la superficie visible. Una futura instantánea semántica tendrá que ser persistente y mantener coherencia con invalidaciones, cambios de modo, scroll, página, atributos y redibujados completos; alternativamente, una lectura de observación puede reproducir el recorrido activo sin modificar estado.
+
