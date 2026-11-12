@@ -225,7 +225,7 @@ int main(void)
           "adapter count");
     CHECK(np2dn_dialogue_select_adapter("fake-test-adapter"),
           "select fake adapter");
-    CHECK(!np2dn_dialogue_jump_request("dialogue_target"),
+    CHECK(!np2dn_dialogue_jump_request("dialogue_target", 17),
           "jump is rejected before a dialogue catalogue is loaded");
     np2dn_dialogue_get_status(&status);
     CHECK(status.error == NP2DN_DIALOGUE_ERROR_STALE_CATALOG,
@@ -270,7 +270,7 @@ int main(void)
     context.change_generation_after_first_page = 0;
 
     context.change_generation_after_first_page = 1;
-    CHECK(np2dn_dialogue_jump_request("dialogue_target"),
+    CHECK(np2dn_dialogue_jump_request("dialogue_target", 17),
           "request against a catalog that changed after enumeration");
     np2dn_dialogue_tick(); /* observe */
     np2dn_dialogue_tick(); /* resolve rejects stale generation */
@@ -280,7 +280,7 @@ int main(void)
           "stale catalog generation is rejected before apply");
     context.change_generation_after_first_page = 0;
 
-    CHECK(np2dn_dialogue_jump_request("dialogue_target"),
+    CHECK(np2dn_dialogue_jump_request("dialogue_target", 17),
           "request target dialogue");
     np2dn_dialogue_tick(); /* observe */
     np2dn_dialogue_tick(); /* resolve */
@@ -313,7 +313,7 @@ int main(void)
 
     context.fail_apply = 1;
     context.apply_calls = 0;
-    CHECK(np2dn_dialogue_jump_request("dialogue_failure"),
+    CHECK(np2dn_dialogue_jump_request("dialogue_failure", 17),
           "request failing transition");
     np2dn_dialogue_tick();
     np2dn_dialogue_tick();
@@ -333,7 +333,7 @@ int main(void)
     context.fail_apply = 0;
     context.omit_continuity = 1;
     context.verify_calls = 0;
-    CHECK(np2dn_dialogue_jump_request("dialogue_without_continuity"),
+    CHECK(np2dn_dialogue_jump_request("dialogue_without_continuity", 17),
           "request target lacking normal-flow continuity");
     np2dn_dialogue_tick(); /* observe */
     np2dn_dialogue_tick(); /* resolve */
@@ -354,7 +354,7 @@ int main(void)
           "continuity failure triggers rollback");
 
     context.omit_continuity = 0;
-    CHECK(np2dn_dialogue_jump_request("dialogue_cancel"),
+    CHECK(np2dn_dialogue_jump_request("dialogue_cancel", 17),
           "request cancellable transition");
     np2dn_dialogue_tick();
     np2dn_dialogue_tick();
@@ -368,7 +368,7 @@ int main(void)
     CHECK(context.cancel_calls == 1,
           "adapter cancellation callback");
 
-    CHECK(np2dn_dialogue_jump_request("dialogue_cancel"),
+    CHECK(np2dn_dialogue_jump_request("dialogue_cancel", 17),
           "request transition cancellable after apply");
     np2dn_dialogue_tick(); /* observe */
     np2dn_dialogue_tick(); /* resolve */
