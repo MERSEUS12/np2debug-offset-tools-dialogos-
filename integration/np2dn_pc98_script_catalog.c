@@ -66,6 +66,14 @@ static void np2dn_pc98_script_copy_text(
             value = (uint8_t)'\n';
             i += 3u;
         }
+        else if (value == (uint8_t)'\\' && i + 2u < end &&
+                 data[i + 1u] >= (uint8_t)'A' &&
+                 data[i + 1u] <= (uint8_t)'Z' &&
+                 data[i + 2u] >= (uint8_t)'A' &&
+                 data[i + 2u] <= (uint8_t)'Z') {
+            i += 3u;
+            continue;
+        }
         else {
             ++i;
         }
