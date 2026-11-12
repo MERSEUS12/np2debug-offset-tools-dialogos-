@@ -173,6 +173,10 @@ int np2dn_dialogue_select_adapter(const char *adapter_id)
     for (i = 0; i < g_adapter_count; ++i) {
         if (strcmp(g_adapters[i].adapter.adapter_id, adapter_id) == 0) {
             g_selected_adapter = i;
+            memset(g_catalog, 0, sizeof(g_catalog));
+            g_catalog_count = 0;
+            g_catalog_generation = 0;
+            g_catalog_truncated = 0;
             g_status.adapter_index = i;
             np2dn_dialogue_copy_string(g_status.adapter_id,
                                        sizeof(g_status.adapter_id),
@@ -209,9 +213,11 @@ int np2dn_dialogue_catalog_refresh(void)
     uint32_t total = 0;
     uint32_t returned = 0;
     uint32_t offset = 0;
+    uint32_t expected_total = 0;
     uint64_t generation = 0;
+    uint64_t expected_generation = 0;
 
-    if (slot == NULL ||
+    if (slot == NULL || np2dn_dialogue_is_running(g_status.state) ||
         (slot->adapter.capabilities & NP2DN_DIALOGUE_CAP_ENUMERATE) == 0 ||
         slot->adapter.enumerate == NULL) {
         return 0;
@@ -225,6 +231,8 @@ int np2dn_dialogue_catalog_refresh(void)
         returned > total) {
         return 0;
     }
+    expected_total = total;
+    expected_generation = generation;
 
     while (offset < returned) {
         uint32_t i;
@@ -254,7 +262,8 @@ int np2dn_dialogue_catalog_refresh(void)
         if (slot->adapter.enumerate(slot->context, offset, capacity,
                                     page, &returned, &total,
                                     &generation) != 1 ||
-            returned == 0 || returned > capacity) {
+            returned == 0 || returned > capacity ||
+            total != expected_total || generation != expected_generation) {
             return 0;
         }
         for (i = 0; i < returned; ++i) {
@@ -285,8 +294,8 @@ int np2dn_dialogue_catalog_refresh(void)
                    sizeof(g_catalog[0]));
     }
     g_catalog_count = offset;
-    g_catalog_generation = generation;
-    g_catalog_truncated = (total > offset) ? 1 : 0;
+    g_catalog_generation = expected_generation;
+    g_catalog_truncated = (expected_total > offset) ? 1 : 0;
     return 1;
 }
 
