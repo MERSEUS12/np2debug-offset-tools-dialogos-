@@ -396,7 +396,8 @@ static int np2dn_pc98_observer_contains_text(const uint8_t *expected,
         }
         for (column = 0; column <= (uint32_t)last_column; ++column) {
             if (valid_cells[y][column] && visible_length < sizeof(visible)) {
-                visible[visible_length++] = visible_cells[y][column];
+                uint8_t value = visible_cells[y][column];
+                visible[visible_length++] = value ? value : (uint8_t)' ';
             }
         }
         if (visible_length < sizeof(visible)) {
@@ -857,8 +858,24 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
     if (np2jump_count() != cp->rollback_count_before) {
+        uint32_t restored_esi;
+        uint32_t restored_block;
+        int restored_id;
+        if (np2track_getseg() == cp->old_segment &&
+            np2track_current(&restored_esi, &restored_id,
+                             &restored_block, NULL, 0) &&
+            restored_esi == cp->old_esi) {
+            s_active_checkpoint = *cp;
+            return NP2DN_DIALOGUE_RESULT_DONE;
+        }
+        if ((uint32_t)(GetTickCount() - cp->rollback_start_tick) >
+            NP2DN_PC98_JUMP_TIMEOUT_MS) {
+            np2jump_disarm();
+            s_active_checkpoint = *cp;
+            return NP2DN_DIALOGUE_RESULT_ERROR;
+        }
         s_active_checkpoint = *cp;
-        return NP2DN_DIALOGUE_RESULT_DONE;
+        return NP2DN_DIALOGUE_RESULT_PENDING;
     }
     if ((uint32_t)(GetTickCount() - cp->rollback_start_tick) >
         NP2DN_PC98_JUMP_TIMEOUT_MS) {
