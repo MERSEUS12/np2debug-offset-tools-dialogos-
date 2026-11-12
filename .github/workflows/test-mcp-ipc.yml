@@ -58,3 +58,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & integration/tests/dialogue_core_unit/dialogue_core_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Probar observador de texto PC-98
+        shell: pwsh
+        run: |
+          cl /nologo /W4 /I integration integration/tests/pc98_text_observer_unit/test_pc98_text_observer.c integration/np2dn_pc98_text_observer.c /Fe:integration/tests/pc98_text_observer_unit/pc98_text_observer_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & integration/tests/pc98_text_observer_unit/pc98_text_observer_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
