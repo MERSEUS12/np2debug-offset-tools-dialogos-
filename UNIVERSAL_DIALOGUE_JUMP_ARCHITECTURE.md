@@ -140,7 +140,7 @@ El código existente se conserva como primer adaptador experimental.
 
 En la rama actual, `break.c` implementa un mecanismo específico:
 
-- `np2track_step()` detecta el patrón `HA\\` cuando `ES` coincide con el segmento del script.
+- `np2track_step()` detecta el patrón `HA\` cuando `ES` coincide con el segmento del script.
 - `np2track_current()` reconstruye el bloque anterior y devuelve el texto aproximado.
 - `np2jump_arm()` arma un destino basado en segmento y ESI.
 - `np2break_is_next()` espera el marcador y, cuando coincide, asigna el valor de destino a `CPU_ESI`.
@@ -375,7 +375,7 @@ El adaptador:
 
 1. Obtiene el script cargado a partir del tracker de archivos DOS y exige que el archivo esté completamente mapeado en memoria.
 2. Construye el catálogo con el parser PC-98 y genera IDs como `ARCHIVO#ordinal`.
-3. Valida que el localizador siga perteneciendo a la generación actual, al mismo script/segmento, a un bloque válido `18 01` o `18 02`, y a un token de espera `HA\\` dentro de los límites del archivo.
+3. Valida que el localizador siga perteneciendo a la generación actual, al mismo script/segmento, a un bloque válido `18 01` o `18 02`, y a un token de espera `HA\` dentro de los límites del archivo.
 4. Captura el segmento, ESI y contadores previos para poder restaurar el punto de espera anterior.
 5. Aplica el salto usando el hook existente de `np2jump_arm`, sin ejecutar operaciones pesadas desde el hook por instrucción.
 6. Verifica que el tracker vuelve a detectar el ESI y el bloque destino, que el texto destino aparece en las celdas observadas, que hubo una composición posterior con el plano de texto y que el blit DirectDraw hacia la superficie primaria terminó con `DD_OK`.
@@ -385,7 +385,7 @@ La señal de presentación no es una estimación: `scrndraw_draw()` registra la 
 
 ### 10.4 Significado de «como un libro» y límites actuales
 
-El objetivo funcional sigue siendo elegir una página/frase, entrar en un punto de espera normal del intérprete y poder continuar desde ahí con el flujo del juego. Para el primer adaptador PC-98, el destino se sitúa en el token `HA\\` asociado al bloque, no en un buffer de texto separado.
+El objetivo funcional sigue siendo elegir una página/frase, entrar en un punto de espera normal del intérprete y poder continuar desde ahí con el flujo del juego. Para el primer adaptador PC-98, el destino se sitúa en el token `HA\` asociado al bloque, no en un buffer de texto separado.
 
 Esto **no convierte todavía el adaptador PC-98 en un sistema universal para cualquier juego**. Su alcance actual es el script PC-98 activo y el formato de marcadores reconocido. Tampoco reconstruye automáticamente variables narrativas, decisiones o escenas arbitrarias: el callback `prepare` conserva el estado de retorno y valida el contexto disponible; los motores que requieran reconstruir variables, flags, inventario, rutas o escenas deberán implementar esa preparación en su propio adaptador.
 
