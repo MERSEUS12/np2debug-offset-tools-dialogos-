@@ -99,7 +99,8 @@ static void np2dn_dos_mark_coverage(uint32_t file_index,
             (uint8_t)(1u << (position & 7u));
     }
 
-    while (file->coverage_prefix < file->file_size) {
+    while (file->coverage_prefix < file->file_size &&
+           file->coverage_prefix < NP2DN_DOS_COVERAGE_BYTES * 8u) {
         uint32_t position = file->coverage_prefix;
         if ((s_coverage[file_index][position >> 3] &
              (uint8_t)(1u << (position & 7u))) == 0) {
@@ -309,6 +310,10 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
         if (pending.seek_origin == 2u) {
             file->file_size = new_position;
             file->size_known = 1;
+            if (file->mapping_valid &&
+                (uint32_t)file->base_offset + file->file_size > 0x10000u) {
+                file->mapping_valid = 0;
+            }
         }
         np2dn_dos_update_complete(file);
         return 1;
