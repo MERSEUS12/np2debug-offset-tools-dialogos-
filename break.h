@@ -105,6 +105,9 @@ void np2skip_arm_offset(UINT16 es, UINT32 stopoff, UINT wait_kind);	// stop at t
 // Position tracker (v9): remembers the last "\HA" wait of the script interpreter.
 // "Dialogue ID" = number of dialogue blocks (marker 18 01 / 18 02) before that position, 0-based.
 void np2track_setseg(UINT16 es);
+UINT16 np2track_getseg(void);
+BOOL np2track_loaded_script_info(UINT16 es, UINT16 *base_offset,
+                                 UINT32 *length, char *name, UINT name_max);
 BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT textmax);
 BOOL np2scene_last_script(char *name);						// last scene script (*.BIN) the game opened
 BOOL np2jump_trace_get(UINT idx, UINT16 *cs, UINT32 *eip, UINT32 *oldv, UINT32 *newv);
