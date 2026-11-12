@@ -368,13 +368,28 @@ UINT16 np2track_getseg(void)
 	return np2track_es;
 }
 
+static BOOL np2track_is_script_file(const char *name)
+{
+	UINT len = 0;
+
+	if (np2scene_isscript(name)) {
+		return TRUE;
+	}
+	while (name[len] && len < NP2DN_DOS_FILE_NAME_MAX) {
+		len++;
+	}
+	return (len >= 2 && name[len - 2] == '.' &&
+		np2scene_up(name[len - 1]) == 'M');
+}
+
 BOOL np2track_loaded_script_info(UINT16 es, UINT16 *base_offset,
                                  UINT32 *length, char *name, UINT name_max)
 {
 	NP2DN_DosFileInfo info;
 	UINT i;
 
-	if (!np2dn_dos_file_tracker_get_loaded_segment(es, &info)) {
+	if (!np2dn_dos_file_tracker_get_loaded_segment(es, &info) ||
+		!np2track_is_script_file(info.name)) {
 		return FALSE;
 	}
 	if (base_offset) {
@@ -402,7 +417,8 @@ static void np2track_step(void)
 	if (((UINT16)CPU_ES != np2track_es) || (CPU_ESI >= 0x10000)) {
 		return;
 	}
-	if (np2dn_dos_file_tracker_get_loaded_segment(np2track_es, &info)) {
+	if (np2track_loaded_script_info(np2track_es, &info.base_offset,
+										 &info.file_size, NULL, 0)) {
 		if (CPU_ESI < info.base_offset ||
 			CPU_ESI >= ((UINT32)info.base_offset + info.file_size)) {
 			return;
@@ -434,7 +450,8 @@ BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT
 	base = (UINT32)np2track_es << 4;
 	start = 0;
 	end = 0x10000;
-	if (np2dn_dos_file_tracker_get_loaded_segment(np2track_es, &info)) {
+	if (np2track_loaded_script_info(np2track_es, &info.base_offset,
+										 &info.file_size, NULL, 0)) {
 		start = info.base_offset;
 		end = start + info.file_size;
 		if (np2track_esi < start || np2track_esi >= end) {
