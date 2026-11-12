@@ -21,3 +21,12 @@ jobs:
             -o pc98_text_observer_tests
       - name: Run tests
         run: ./pc98_text_observer_tests
+      - name: Compile PC-98 script catalogue parser tests
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror \
+            -I integration \
+            integration/np2dn_pc98_script_catalog.c \
+            integration/tests/pc98_script_catalog_unit/test_pc98_script_catalog.c \
+            -o pc98_script_catalog_tests
+      - name: Run PC-98 script catalogue parser tests
+        run: ./pc98_script_catalog_tests
