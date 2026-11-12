@@ -130,6 +130,55 @@ int main(void)
           "non-contiguous buffer is never exposed as a complete script");
 
     CHECK(np2dn_dos_file_tracker_begin_open(
+              0x1000, 0x0740, "BASEOFF.M"),
+          "begin nonzero-base script open");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x0740, 0, 8, 0),
+          "complete nonzero-base script open");
+    CHECK(np2dn_dos_file_tracker_begin_read(
+              0x1000, 0x0750, 8, 0x7000, 0x0100, 200),
+          "read into nonzero buffer offset");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x0750, 0, 200, 0),
+          "complete nonzero-offset read");
+    CHECK(np2dn_dos_file_tracker_begin_seek(
+              0x1000, 0x0760, 8, 2),
+          "query nonzero-base file size");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x0760, 0, 200, 0),
+          "complete nonzero-base size query");
+    CHECK(np2dn_dos_file_tracker_get_loaded_segment(0x7000, &info) &&
+          info.base_offset == 0x0100 && info.file_size == 200,
+          "nonzero segment offset is retained accurately");
+
+    CHECK(np2dn_dos_file_tracker_begin_open(
+              0x1000, 0x0770, "GAP.M"),
+          "begin sparse read open");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x0770, 0, 9, 0),
+          "complete sparse read open");
+    CHECK(np2dn_dos_file_tracker_begin_seek(
+              0x1000, 0x0780, 9, 2),
+          "query sparse file size");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x0780, 0, 200, 0),
+          "complete sparse size query");
+    CHECK(np2dn_dos_file_tracker_begin_seek(
+              0x1000, 0x0790, 9, 0),
+          "seek sparse file to middle");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x0790, 0, 100, 0),
+          "complete sparse middle seek");
+    CHECK(np2dn_dos_file_tracker_begin_read(
+              0x1000, 0x07a0, 9, 0x7100, 100, 100),
+          "read only tail range");
+    CHECK(np2dn_dos_file_tracker_complete(
+              0x1000, 0x07a0, 0, 100, 0),
+          "complete tail-only read");
+    CHECK(!np2dn_dos_file_tracker_get_loaded_segment(0x7100, &info),
+          "coverage gaps prevent claiming a complete script");
+
+    CHECK(np2dn_dos_file_tracker_begin_open(
               0x1000, 0x0800, "FAILED.M"),
           "begin failed open");
     CHECK(np2dn_dos_file_tracker_complete(
