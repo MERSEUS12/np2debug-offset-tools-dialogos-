@@ -17,6 +17,8 @@ EXPECTED_TOOLS = {
     "emulator_status", "current_instruction", "fast_forward_status",
     "memory_read", "memory_read_block", "dialogue_current", "scene_history", "jump_trace",
     "cpu_registers", "breakpoints_list",
+    "dialogue_catalog_refresh", "dialogue_catalog_entry", "dialogue_catalog",
+    "dialogue_jump_request", "dialogue_jump_status",
 }
 
 
