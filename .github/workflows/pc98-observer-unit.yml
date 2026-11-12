@@ -1,0 +1,23 @@
+name: PC-98 text observer unit tests
+
+on:
+  push:
+    branches: [ np2debug-next-integration ]
+  pull_request:
+    branches: [ np2debug-next-integration ]
+
+jobs:
+  observer-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Compile observer and tests
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror \
+            -I integration \
+            integration/np2dn_pc98_text_observer.c \
+            integration/tests/pc98_text_observer_unit/test_pc98_text_observer.c \
+            -o pc98_text_observer_tests
+      - name: Run tests
+        run: ./pc98_text_observer_tests
