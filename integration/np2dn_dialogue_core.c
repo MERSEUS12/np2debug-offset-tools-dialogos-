@@ -23,6 +23,7 @@ static uint64_t g_catalog_generation;
 static int g_catalog_truncated;
 static int g_prepared;
 static int g_apply_started;
+static int g_cancel_requested;
 
 static int np2dn_dialogue_is_running(NP2DN_DialogueState state)
 {
@@ -360,6 +361,7 @@ int np2dn_dialogue_jump_request(const char *dialogue_id)
     g_status.resolved_dialogue_id[0] = '\0';
     g_prepared = 0;
     g_apply_started = 0;
+    g_cancel_requested = 0;
     g_status.state = NP2DN_DIALOGUE_STATE_OBSERVING;
     return 1;
 }
@@ -426,12 +428,11 @@ void np2dn_dialogue_tick(void)
 
     case NP2DN_DIALOGUE_STATE_APPLYING:
         if (!g_apply_started) {
+            /* Mark the attempt before entering adapter code so cancellation
+             * can roll back even an adapter that completes synchronously. */
+            g_apply_started = 1;
             result = slot->adapter.apply(slot->context, &g_target,
                                          g_checkpoint);
-            if (result == NP2DN_DIALOGUE_RESULT_PENDING) {
-                g_apply_started = 1;
-                break;
-            }
         }
         else {
             result = slot->adapter.poll(slot->context, &g_target,
@@ -479,8 +480,16 @@ void np2dn_dialogue_tick(void)
         }
         if (result != NP2DN_DIALOGUE_RESULT_DONE) {
             g_status.error = NP2DN_DIALOGUE_ERROR_ROLLBACK_FAILED;
+            g_status.state = NP2DN_DIALOGUE_STATE_FAILED;
         }
-        g_status.state = NP2DN_DIALOGUE_STATE_FAILED;
+        else if (g_cancel_requested) {
+            g_status.error = NP2DN_DIALOGUE_ERROR_NONE;
+            g_status.state = NP2DN_DIALOGUE_STATE_CANCELLED;
+            g_cancel_requested = 0;
+        }
+        else {
+            g_status.state = NP2DN_DIALOGUE_STATE_FAILED;
+        }
         break;
 
     default:
@@ -493,9 +502,22 @@ void np2dn_dialogue_cancel(void)
 {
     NP2DN_DialogueAdapterSlot *slot = np2dn_dialogue_selected();
 
-    if (!np2dn_dialogue_is_running(g_status.state)) {
+    if (!np2dn_dialogue_is_running(g_status.state) ||
+        g_status.state == NP2DN_DIALOGUE_STATE_ROLLING_BACK) {
         return;
     }
+
+    if (g_prepared && g_apply_started && slot != NULL &&
+        (slot->adapter.capabilities & NP2DN_DIALOGUE_CAP_ROLLBACK) != 0 &&
+        slot->adapter.rollback != NULL) {
+        /* Once apply has been attempted, cancel through the adapter's
+         * checkpointed rollback path instead of abandoning a half-transition. */
+        g_cancel_requested = 1;
+        g_status.error = NP2DN_DIALOGUE_ERROR_NONE;
+        g_status.state = NP2DN_DIALOGUE_STATE_ROLLING_BACK;
+        return;
+    }
+
     if (slot != NULL && slot->adapter.cancel != NULL) {
         slot->adapter.cancel(slot->context, g_checkpoint);
     }
