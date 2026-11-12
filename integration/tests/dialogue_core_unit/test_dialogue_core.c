@@ -101,6 +101,8 @@ static int fake_resolve(void *context, const char *dialogue_id,
     target->locator[1] = 0x22;
     target->locator[2] = 0x33;
     target->locator[3] = 0x44;
+    target->catalog_generation =
+        context->change_generation_after_first_page ? 18 : 17;
     return 1;
 }
 
@@ -260,6 +262,17 @@ int main(void)
     CHECK(np2dn_dialogue_catalog_count() == 35 &&
           np2dn_dialogue_catalog_generation() == 17,
           "failed refresh preserves previous catalogue atomically");
+    context.change_generation_after_first_page = 0;
+
+    context.change_generation_after_first_page = 1;
+    CHECK(np2dn_dialogue_jump_request("dialogue_target"),
+          "request against a catalog that changed after enumeration");
+    np2dn_dialogue_tick(); /* observe */
+    np2dn_dialogue_tick(); /* resolve rejects stale generation */
+    np2dn_dialogue_get_status(&status);
+    CHECK(status.state == NP2DN_DIALOGUE_STATE_FAILED &&
+          status.error == NP2DN_DIALOGUE_ERROR_STALE_CATALOG,
+          "stale catalog generation is rejected before apply");
     context.change_generation_after_first_page = 0;
 
     CHECK(np2dn_dialogue_jump_request("dialogue_target"),
