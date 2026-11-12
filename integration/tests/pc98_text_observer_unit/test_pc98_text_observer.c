@@ -72,6 +72,13 @@ int main(void)
           "graphics-only composition does not count as text composition");
 
     before = after;
+    np2dn_pc98_text_observer_begin_full_redraw();
+    np2dn_pc98_text_observer_get_status(&after);
+    CHECK(after.last_composition_included_text == 0 &&
+          after.last_composition_planes == 0,
+          "full redraw invalidates stale composition evidence");
+
+    before = after;
     np2dn_pc98_text_observer_record_cell(
         0x0fff, 32, 79, 80, 0x41, 0x00, 0xe1, 0);
     np2dn_pc98_text_observer_invalidate_all();
