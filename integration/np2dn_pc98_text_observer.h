@@ -22,6 +22,10 @@ enum {
     NP2DN_PC98_TEXT_CELL_KANJI_CONTINUATION = 0x01u
 };
 
+/*
+ * character_low/high are the raw bytes consumed by the renderer. They remain
+ * available for continuation cells; flags identify their interpretation.
+ */
 typedef struct NP2DN_PC98TextCell {
     uint8_t valid;
     uint8_t columns;
