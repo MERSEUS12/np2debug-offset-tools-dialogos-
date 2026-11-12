@@ -30,3 +30,12 @@ jobs:
             -o pc98_script_catalog_tests
       - name: Run PC-98 script catalogue parser tests
         run: ./pc98_script_catalog_tests
+      - name: Compile DOS file tracker tests
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror \
+            -I integration \
+            integration/np2dn_dos_file_tracker.c \
+            integration/tests/dos_file_tracker_unit/test_dos_file_tracker.c \
+            -o dos_file_tracker_tests
+      - name: Run DOS file tracker tests
+        run: ./dos_file_tracker_tests
