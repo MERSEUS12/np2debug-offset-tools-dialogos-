@@ -627,6 +627,7 @@ static int np2dn_pc98_validate(
     }
 
     if (generation != s_catalog_generation ||
+        target->catalog_generation != generation ||
         current->generation != s_catalog_generation ||
         segment != np2track_getseg() ||
         segment != s_segment || base_offset != s_base_offset ||
@@ -695,7 +696,8 @@ static int np2dn_pc98_prepare(
         current_esi == target_esi ||
         strcmp(current->scene_id, target->scene_id) != 0 ||
         current->generation != s_catalog_generation ||
-        target_generation != s_catalog_generation) {
+        target_generation != s_catalog_generation ||
+        target->catalog_generation != target_generation) {
         return 0;
     }
 
@@ -757,6 +759,7 @@ static NP2DN_DialogueResult np2dn_pc98_apply(
         !np2dn_pc98_build_catalog(1) ||
         target_generation != cp->catalog_generation ||
         target_generation != s_catalog_generation ||
+        target->catalog_generation != target_generation ||
         segment != cp->target_segment ||
         segment != np2track_getseg() ||
         target_esi != cp->target_esi ||
@@ -825,6 +828,7 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
     (void)context;
     if (target == NULL || observed == NULL ||
         cp->magic != NP2DN_PC98_CHECKPOINT_MAGIC ||
+        target->catalog_generation != cp->catalog_generation ||
         !np2dn_pc98_decode_locator(target, &target_segment, NULL,
                                    &target_esi, &target_block, NULL, NULL)) {
         return NP2DN_DIALOGUE_RESULT_ERROR;
