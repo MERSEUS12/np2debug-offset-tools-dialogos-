@@ -15,6 +15,12 @@ static uint32_t g_selected_adapter = 0xffffffffu;
 static NP2DN_DialogueStatus g_status;
 static NP2DN_DialogueTarget g_target;
 static uint8_t g_checkpoint[NP2DN_DIALOGUE_CHECKPOINT_MAX];
+static NP2DN_DialogueCatalogEntry g_catalog[NP2DN_DIALOGUE_CATALOG_MAX];
+static NP2DN_DialogueCatalogEntry
+    g_catalog_staging[NP2DN_DIALOGUE_CATALOG_MAX];
+static uint32_t g_catalog_count;
+static uint64_t g_catalog_generation;
+static int g_catalog_truncated;
 static int g_prepared;
 static int g_apply_started;
 
@@ -32,6 +38,22 @@ static int np2dn_dialogue_string_valid(const char *value, size_t max_length)
         return 0;
     }
     for (i = 0; i < max_length; ++i) {
+        if (value[i] == '\0') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int np2dn_dialogue_string_terminated(const char *value,
+                                                  size_t capacity)
+{
+    size_t i;
+
+    if (value == NULL) {
+        return 0;
+    }
+    for (i = 0; i < capacity; ++i) {
         if (value[i] == '\0') {
             return 1;
         }
@@ -100,11 +122,13 @@ int np2dn_dialogue_register_adapter(const NP2DN_DialogueAdapter *adapter,
                                      NP2DN_DIALOGUE_ID_MAX) ||
         adapter->api_version != NP2DN_DIALOGUE_CORE_API_VERSION ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_OBSERVE) == 0 ||
+        (adapter->capabilities & NP2DN_DIALOGUE_CAP_ENUMERATE) == 0 ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_DIRECT_JUMP) == 0 ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_VERIFY_STATE) == 0 ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_VERIFY_UI) == 0 ||
         (adapter->capabilities & NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY) == 0 ||
-        adapter->observe == NULL || adapter->resolve == NULL ||
+        adapter->observe == NULL || adapter->enumerate == NULL ||
+        adapter->resolve == NULL ||
         adapter->validate == NULL || adapter->prepare == NULL ||
         adapter->apply == NULL || adapter->poll == NULL ||
         adapter->verify == NULL) {
@@ -162,6 +186,133 @@ int np2dn_dialogue_select_adapter(const char *adapter_id)
 uint32_t np2dn_dialogue_adapter_count(void)
 {
     return g_adapter_count;
+}
+
+static int np2dn_dialogue_catalog_entry_valid(
+    const NP2DN_DialogueCatalogEntry *entry)
+{
+    return entry != NULL &&
+        np2dn_dialogue_string_valid(entry->dialogue_id,
+                                    sizeof(entry->dialogue_id)) &&
+        entry->locator_size <= NP2DN_DIALOGUE_LOCATOR_MAX &&
+        np2dn_dialogue_string_terminated(entry->scene_id,
+                                         sizeof(entry->scene_id)) &&
+        np2dn_dialogue_string_terminated(entry->speaker,
+                                         sizeof(entry->speaker)) &&
+        np2dn_dialogue_string_terminated(entry->text,
+                                         sizeof(entry->text));
+}
+
+int np2dn_dialogue_catalog_refresh(void)
+{
+    NP2DN_DialogueAdapterSlot *slot = np2dn_dialogue_selected();
+    uint32_t total = 0;
+    uint32_t returned = 0;
+    uint32_t offset = 0;
+    uint64_t generation = 0;
+
+    if (slot == NULL ||
+        (slot->adapter.capabilities & NP2DN_DIALOGUE_CAP_ENUMERATE) == 0 ||
+        slot->adapter.enumerate == NULL) {
+        return 0;
+    }
+
+    memset(g_catalog_staging, 0, sizeof(g_catalog_staging));
+    if (slot->adapter.enumerate(
+            slot->context, 0, NP2DN_DIALOGUE_CATALOG_PAGE_MAX,
+            g_catalog_staging, &returned, &total, &generation) != 1 ||
+        returned > NP2DN_DIALOGUE_CATALOG_PAGE_MAX ||
+        returned > total) {
+        return 0;
+    }
+
+    while (offset < returned) {
+        uint32_t i;
+        if (!np2dn_dialogue_catalog_entry_valid(
+                &g_catalog_staging[offset])) {
+            return 0;
+        }
+        for (i = 0; i < offset; ++i) {
+            if (strcmp(g_catalog_staging[i].dialogue_id,
+                       g_catalog_staging[offset].dialogue_id) == 0) {
+                return 0;
+            }
+        }
+        ++offset;
+    }
+
+    while (offset < total && offset < NP2DN_DIALOGUE_CATALOG_MAX) {
+        NP2DN_DialogueCatalogEntry page[NP2DN_DIALOGUE_CATALOG_PAGE_MAX];
+        uint32_t capacity = NP2DN_DIALOGUE_CATALOG_MAX - offset;
+        uint32_t i;
+
+        if (capacity > NP2DN_DIALOGUE_CATALOG_PAGE_MAX) {
+            capacity = NP2DN_DIALOGUE_CATALOG_PAGE_MAX;
+        }
+        memset(page, 0, sizeof(page));
+        returned = 0;
+        if (slot->adapter.enumerate(slot->context, offset, capacity,
+                                    page, &returned, &total,
+                                    &generation) != 1 ||
+            returned == 0 || returned > capacity) {
+            return 0;
+        }
+        for (i = 0; i < returned; ++i) {
+            uint32_t j;
+            if (!np2dn_dialogue_catalog_entry_valid(&page[i])) {
+                return 0;
+            }
+            for (j = 0; j < offset + i; ++j) {
+                const NP2DN_DialogueCatalogEntry *previous =
+                    (j < offset) ? &g_catalog_staging[j]
+                                 : &page[j - offset];
+                if (strcmp(previous->dialogue_id,
+                           page[i].dialogue_id) == 0) {
+                    return 0;
+                }
+            }
+        }
+        memcpy(g_catalog_staging + offset, page,
+               returned * sizeof(page[0]));
+        offset += returned;
+    }
+
+    memcpy(g_catalog, g_catalog_staging,
+           offset * sizeof(g_catalog[0]));
+    if (offset < NP2DN_DIALOGUE_CATALOG_MAX) {
+        memset(g_catalog + offset, 0,
+               (NP2DN_DIALOGUE_CATALOG_MAX - offset) *
+                   sizeof(g_catalog[0]));
+    }
+    g_catalog_count = offset;
+    g_catalog_generation = generation;
+    g_catalog_truncated = (total > offset) ? 1 : 0;
+    return 1;
+}
+
+uint32_t np2dn_dialogue_catalog_count(void)
+{
+    return g_catalog_count;
+}
+
+uint64_t np2dn_dialogue_catalog_generation(void)
+{
+    return g_catalog_generation;
+}
+
+int np2dn_dialogue_catalog_is_truncated(void)
+{
+    return g_catalog_truncated;
+}
+
+int np2dn_dialogue_catalog_get(uint32_t index,
+                              NP2DN_DialogueCatalogEntry *entry)
+{
+    if (entry == NULL || index >= g_catalog_count) {
+        return 0;
+    }
+    *entry = g_catalog[index];
+    return 1;
 }
 
 int np2dn_dialogue_jump_request(const char *dialogue_id)
