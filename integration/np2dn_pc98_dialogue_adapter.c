@@ -24,6 +24,7 @@ typedef struct NP2DN_PC98Checkpoint {
     uint16_t old_segment;
     uint16_t target_segment;
     uint32_t old_esi;
+    uint32_t old_block_start;
     uint32_t target_esi;
     uint32_t target_block_start;
     uint32_t jump_count_before;
@@ -708,6 +709,7 @@ static int np2dn_pc98_prepare(
     cp.old_segment = np2track_getseg();
     cp.target_segment = target_segment;
     cp.old_esi = current_esi;
+    cp.old_block_start = current_block;
     cp.target_esi = target_esi;
     cp.target_block_start = target_block_start;
     cp.jump_count_before = np2jump_count();
@@ -732,20 +734,28 @@ static NP2DN_DialogueResult np2dn_pc98_apply(
     NP2DN_PC98Checkpoint *cp = (NP2DN_PC98Checkpoint *)checkpoint;
     uint16_t segment;
     uint32_t target_esi;
+    uint32_t target_block_start;
+    uint32_t entry_esi;
 
     (void)context;
     if (cp == NULL || cp->magic != NP2DN_PC98_CHECKPOINT_MAGIC ||
         target == NULL ||
         !np2dn_pc98_decode_locator(target, &segment, NULL,
-                                   &target_esi, NULL, NULL, NULL)) {
+                                   &target_esi, &target_block_start,
+                                   NULL, NULL) ||
+        target_block_start > 0xfffdu ||
+        target_esi <= target_block_start + 2u) {
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
 
+    /* Enter at the first text byte, not at the trailing HA wait token.
+     * The interpreter must execute the target text and reach its own wait. */
+    entry_esi = target_block_start + 2u;
     cp->jump_count_before = np2jump_count();
     cp->start_tick = GetTickCount();
     cp->apply_started = 1;
     cp->rollback_started = 0;
-    np2jump_arm(segment, target_esi, NULL, 0);
+    np2jump_arm(segment, entry_esi, NULL, 0);
     s_active_checkpoint = *cp;
     return NP2DN_DIALOGUE_RESULT_PENDING;
 }
@@ -882,7 +892,8 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
         cp->rollback_started = 1;
         cp->rollback_count_before = np2jump_count();
         cp->rollback_start_tick = GetTickCount();
-        np2jump_arm(cp->old_segment, cp->old_esi, NULL, 0);
+        /* Re-run the previous dialogue so rollback restores both text and flow. */
+        np2jump_arm(cp->old_segment, cp->old_block_start + 2u, NULL, 0);
         s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
@@ -893,7 +904,8 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
         if (np2track_getseg() == cp->old_segment &&
             np2track_current(&restored_esi, &restored_id,
                              &restored_block, NULL, 0) &&
-            restored_esi == cp->old_esi) {
+            restored_esi == cp->old_esi &&
+            restored_block == cp->old_block_start) {
             s_active_checkpoint = *cp;
             return NP2DN_DIALOGUE_RESULT_DONE;
         }
