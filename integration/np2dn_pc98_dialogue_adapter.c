@@ -584,10 +584,12 @@ static int np2dn_pc98_validate(
     uint32_t loaded_length;
     char loaded_name[NP2DN_DOS_FILE_NAME_MAX];
     uint32_t physical;
+    uint32_t script_end;
+    uint8_t previous;
+    int entry_index;
 
     (void)context;
     if (current == NULL || target == NULL ||
-        (target->flags & NP2DN_DIALOGUE_CATALOG_ENTRY_TEXT_TRUNCATED) != 0 ||
         !np2dn_pc98_build_catalog(1) ||
         !np2dn_pc98_decode_locator(target, &segment, &base_offset,
                                    &target_esi, &block_start,
@@ -595,10 +597,22 @@ static int np2dn_pc98_validate(
         return 0;
     }
 
+    entry_index = np2dn_pc98_find_catalog_entry(target->dialogue_id);
+    if (entry_index < 0 ||
+        (s_catalog_entries[entry_index].flags &
+         NP2DN_DIALOGUE_CATALOG_ENTRY_TEXT_TRUNCATED) != 0 ||
+        s_catalog_entries[entry_index].locator_size != target->locator_size ||
+        memcmp(s_catalog_entries[entry_index].locator, target->locator,
+               target->locator_size) != 0) {
+        return 0;
+    }
+
     if (generation != s_catalog_generation ||
+        current->generation != s_catalog_generation ||
         segment != np2track_getseg() ||
         segment != s_segment || base_offset != s_base_offset ||
-        strcmp(current->scene_id, target->scene_id) != 0) {
+        strcmp(current->scene_id, target->scene_id) != 0 ||
+        strcmp(target->scene_id, s_script_name) != 0) {
         return 0;
     }
 
@@ -607,16 +621,22 @@ static int np2dn_pc98_validate(
                                      &loaded_length, loaded_name,
                                      sizeof(loaded_name)) ||
         loaded_base != base_offset || loaded_length != s_script_length ||
-        strcmp(loaded_name, target->scene_id) != 0 ||
-        target_esi < base_offset ||
-        target_esi >= (uint32_t)base_offset + loaded_length ||
-        block_start < base_offset ||
-        block_start + 1u >= (uint32_t)base_offset + loaded_length) {
+        strcmp(loaded_name, target->scene_id) != 0) {
+        return 0;
+    }
+
+    script_end = (uint32_t)base_offset + loaded_length;
+    if (block_start <= base_offset ||
+        block_start + 1u >= script_end ||
+        target_esi < block_start + 2u ||
+        target_esi + 2u >= script_end) {
         return 0;
     }
 
     physical = ((uint32_t)segment << 4);
-    if (memp_read8(physical + block_start) != 0x18u ||
+    previous = memp_read8(physical + block_start - 1u);
+    if ((previous != 0x00u && previous != 0x01u && previous != 0x45u) ||
+        memp_read8(physical + block_start) != 0x18u ||
         memp_read8(physical + block_start + 1u) != marker_type ||
         (marker_type != 0x01u && marker_type != 0x02u) ||
         memp_read8(physical + target_esi) != (UINT8)'H' ||
