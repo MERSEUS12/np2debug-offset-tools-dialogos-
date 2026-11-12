@@ -15,9 +15,7 @@ static void np2dn_pc98_text_next_generation(uint32_t *generation)
 
 void np2dn_pc98_text_observer_reset(void)
 {
-    memset(s_cells, 0, sizeof(s_cells));
-    s_status.valid_cell_count = 0;
-    np2dn_pc98_text_next_generation(&s_status.text_generation);
+    np2dn_pc98_text_observer_begin_full_redraw();
     np2dn_pc98_text_next_generation(&s_status.geometry_generation);
 }
 
@@ -29,6 +27,8 @@ void np2dn_pc98_text_observer_begin_full_redraw(void)
         s_cells[i].valid = 0;
     }
     s_status.valid_cell_count = 0;
+    s_status.last_composition_planes = 0;
+    s_status.last_composition_included_text = 0;
     np2dn_pc98_text_next_generation(&s_status.text_generation);
 }
 
