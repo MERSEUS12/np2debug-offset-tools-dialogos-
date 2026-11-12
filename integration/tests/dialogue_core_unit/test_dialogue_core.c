@@ -12,6 +12,7 @@
 
 typedef struct FakeAdapterContext {
     int fail_apply;
+    int omit_continuity;
     int apply_calls;
     int poll_calls;
     int verify_calls;
@@ -106,6 +107,10 @@ static NP2DN_DialogueResult fake_verify(
     strcpy(observed->dialogue_id, target->dialogue_id);
     strcpy(observed->scene_id, target->scene_id);
     observed->generation = 11;
+    observed->flags = NP2DN_DIALOGUE_SNAPSHOT_PRESENTED;
+    if (!context->omit_continuity) {
+        observed->flags |= NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY;
+    }
     return NP2DN_DIALOGUE_RESULT_DONE;
 }
 
@@ -136,6 +141,7 @@ int main(void)
         NP2DN_DIALOGUE_CAP_OBSERVE |
         NP2DN_DIALOGUE_CAP_DIRECT_JUMP |
         NP2DN_DIALOGUE_CAP_VERIFY_UI |
+        NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY |
         NP2DN_DIALOGUE_CAP_ROLLBACK,
         fake_observe,
         fake_resolve,
@@ -176,6 +182,12 @@ int main(void)
           "successful transition error");
     CHECK(strcmp(status.after.dialogue_id, "dialogue_target") == 0,
           "verified destination ID");
+    CHECK((status.after.flags &
+           (NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
+            NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY)) ==
+          (NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
+           NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY),
+          "destination presented and normal continuation ready");
     CHECK(context.apply_calls == 1 && context.poll_calls == 1,
           "asynchronous apply/poll sequence");
     CHECK(context.verify_calls == 2,
@@ -201,6 +213,29 @@ int main(void)
           "rollback invoked after apply failure");
 
     context.fail_apply = 0;
+    context.omit_continuity = 1;
+    context.verify_calls = 0;
+    CHECK(np2dn_dialogue_jump_request("dialogue_without_continuity"),
+          "request target lacking normal-flow continuity");
+    np2dn_dialogue_tick(); /* observe */
+    np2dn_dialogue_tick(); /* resolve */
+    np2dn_dialogue_tick(); /* validate */
+    np2dn_dialogue_tick(); /* prepare */
+    np2dn_dialogue_tick(); /* apply -> pending */
+    np2dn_dialogue_tick(); /* poll -> done */
+    np2dn_dialogue_tick(); /* verify -> pending */
+    np2dn_dialogue_tick(); /* verify -> missing continuity */
+    np2dn_dialogue_tick(); /* rollback */
+    np2dn_dialogue_get_status(&status);
+
+    CHECK(status.state == NP2DN_DIALOGUE_STATE_FAILED,
+          "missing continuity cannot succeed");
+    CHECK(status.error == NP2DN_DIALOGUE_ERROR_CONTINUITY_FAILED,
+          "continuity failure is reported distinctly");
+    CHECK(context.rollback_calls == 2,
+          "continuity failure triggers rollback");
+
+    context.omit_continuity = 0;
     CHECK(np2dn_dialogue_jump_request("dialogue_cancel"),
           "request cancellable transition");
     np2dn_dialogue_tick();
