@@ -2,7 +2,7 @@
 
 #include "../win9x/compiler.h"
 #include "../break.h"
-#include "../cpucore.h"
+#include "../i386c/cpumem.h"
 #include "np2dn_dialogue_core.h"
 #include "np2dn_pc98_script_catalog.h"
 #include "np2dn_pc98_text_observer.h"
