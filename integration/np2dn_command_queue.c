@@ -430,6 +430,131 @@ void np2dn_command_queue_pump(void)
                 for(j=0;j<4;++j){payload[pos+2u+j]=(uint8_t)(eip>>(j*8));payload[pos+6u+j]=(uint8_t)(old_esi>>(j*8));payload[pos+10u+j]=(uint8_t)(new_esi>>(j*8));}}
             if(result==1)payload_length=4u+total*14u;
         }
+        else if (command.type == NP2DN_CMD_DIALOGUE_CATALOG_REFRESH) {
+            uint32_t count;
+            uint32_t truncated;
+            uint64_t generation;
+            ZeroMemory(payload, sizeof(payload));
+            if (np2dn_dialogue_catalog_refresh()) {
+                count = np2dn_dialogue_catalog_count();
+                generation = np2dn_dialogue_catalog_generation();
+                truncated = (uint32_t)np2dn_dialogue_catalog_is_truncated();
+                payload[0] = (uint8_t)count;
+                payload[1] = (uint8_t)(count >> 8);
+                payload[2] = (uint8_t)(count >> 16);
+                payload[3] = (uint8_t)(count >> 24);
+                for (i = 0; i < 8u; ++i)
+                    payload[4u + i] = (uint8_t)(generation >> (i * 8u));
+                payload[12] = (uint8_t)truncated;
+                result = 1;
+                payload_length = 13u;
+            }
+            else result = -1;
+        }
+        else if (command.type == NP2DN_CMD_DIALOGUE_CATALOG_GET) {
+            NP2DN_DialogueCatalogEntry entry;
+            uint32_t id_length;
+            uint32_t text_length;
+            uint32_t text_capacity;
+            uint32_t flags;
+            ZeroMemory(payload, sizeof(payload));
+            ZeroMemory(&entry, sizeof(entry));
+            if (np2dn_dialogue_catalog_get(command.a, &entry)) {
+                id_length = (uint32_t)strlen(entry.dialogue_id);
+                if (id_length > 95u) id_length = 95u;
+                text_length = (uint32_t)strlen(entry.text);
+                text_capacity = 256u - 6u - id_length;
+                flags = entry.flags;
+                if (text_length > text_capacity) {
+                    text_length = text_capacity;
+                    while (text_length > 0u &&
+                           (((uint8_t)entry.text[text_length] & 0xc0u) == 0x80u)) {
+                        --text_length;
+                    }
+                    flags |= NP2DN_DIALOGUE_CATALOG_ENTRY_TEXT_TRUNCATED;
+                }
+                payload[0] = (uint8_t)id_length;
+                payload[1] = (uint8_t)text_length;
+                payload[2] = (uint8_t)flags;
+                payload[3] = (uint8_t)(flags >> 8);
+                payload[4] = (uint8_t)(flags >> 16);
+                payload[5] = (uint8_t)(flags >> 24);
+                if (id_length) CopyMemory(payload + 6u, entry.dialogue_id, id_length);
+                if (text_length)
+                    CopyMemory(payload + 6u + id_length, entry.text, text_length);
+                payload_length = 6u + id_length + text_length;
+                result = 1;
+            }
+            else result = 0;
+        }
+        else if (command.type == NP2DN_CMD_DIALOGUE_JUMP_REQUEST) {
+            result = (command.script_name[0] != '\0' &&
+                      np2dn_dialogue_jump_request(command.script_name)) ? 1 : -1;
+        }
+        else if (command.type == NP2DN_CMD_DIALOGUE_JUMP_CANCEL) {
+            np2dn_dialogue_cancel();
+            result = 1;
+        }
+        else if (command.type == NP2DN_CMD_DIALOGUE_STATUS_QUERY) {
+            NP2DN_DialogueStatus status;
+            uint32_t pos = 28u;
+            uint32_t adapter_length;
+            uint32_t requested_length;
+            uint32_t resolved_length;
+            ZeroMemory(payload, sizeof(payload));
+            ZeroMemory(&status, sizeof(status));
+            np2dn_dialogue_get_status(&status);
+            payload[0] = (uint8_t)status.state;
+            payload[1] = (uint8_t)((uint32_t)status.state >> 8);
+            payload[2] = (uint8_t)((uint32_t)status.state >> 16);
+            payload[3] = (uint8_t)((uint32_t)status.state >> 24);
+            payload[4] = (uint8_t)status.error;
+            payload[5] = (uint8_t)((uint32_t)status.error >> 8);
+            payload[6] = (uint8_t)((uint32_t)status.error >> 16);
+            payload[7] = (uint8_t)((uint32_t)status.error >> 24);
+            payload[8] = (uint8_t)status.tick_count;
+            payload[9] = (uint8_t)(status.tick_count >> 8);
+            payload[10] = (uint8_t)(status.tick_count >> 16);
+            payload[11] = (uint8_t)(status.tick_count >> 24);
+            payload[12] = (uint8_t)status.adapter_index;
+            payload[13] = (uint8_t)(status.adapter_index >> 8);
+            payload[14] = (uint8_t)(status.adapter_index >> 16);
+            payload[15] = (uint8_t)(status.adapter_index >> 24);
+            payload[16] = status.rollback_available;
+            payload[17] = (uint8_t)status.before.flags;
+            payload[18] = (uint8_t)(status.before.flags >> 8);
+            payload[19] = (uint8_t)(status.before.flags >> 16);
+            payload[20] = (uint8_t)(status.before.flags >> 24);
+            payload[21] = (uint8_t)status.after.flags;
+            payload[22] = (uint8_t)(status.after.flags >> 8);
+            payload[23] = (uint8_t)(status.after.flags >> 16);
+            payload[24] = (uint8_t)(status.after.flags >> 24);
+            adapter_length = (uint32_t)strlen(status.adapter_id);
+            requested_length = (uint32_t)strlen(status.requested_dialogue_id);
+            resolved_length = (uint32_t)strlen(status.resolved_dialogue_id);
+            if (adapter_length > 32u) adapter_length = 32u;
+            if (requested_length > 80u) requested_length = 80u;
+            if (resolved_length > 80u) resolved_length = 80u;
+            payload[25] = (uint8_t)adapter_length;
+            payload[26] = (uint8_t)requested_length;
+            payload[27] = (uint8_t)resolved_length;
+            if (adapter_length) {
+                CopyMemory(payload + pos, status.adapter_id, adapter_length);
+                pos += adapter_length;
+            }
+            if (requested_length) {
+                CopyMemory(payload + pos, status.requested_dialogue_id,
+                           requested_length);
+                pos += requested_length;
+            }
+            if (resolved_length) {
+                CopyMemory(payload + pos, status.resolved_dialogue_id,
+                           resolved_length);
+                pos += resolved_length;
+            }
+            payload_length = pos;
+            result = 1;
+        }
         else result = np2dn_execute_command(&command);
 
         EnterCriticalSection(&s_queue_lock);
