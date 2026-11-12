@@ -202,7 +202,8 @@ int np2dn_dialogue_catalog_get(uint32_t index,
                               NP2DN_DialogueCatalogEntry *entry);
 
 /* Request a jump. Work is performed incrementally by tick(). */
-int np2dn_dialogue_jump_request(const char *dialogue_id);
+int np2dn_dialogue_jump_request(const char *dialogue_id,
+                                 uint64_t expected_catalog_generation);
 void np2dn_dialogue_tick(void);
 void np2dn_dialogue_cancel(void);
 void np2dn_dialogue_get_status(NP2DN_DialogueStatus *status);
