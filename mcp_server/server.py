@@ -353,7 +353,8 @@ def dialogue_jump_status() -> str:
     errors = ["NONE", "NO_ADAPTER", "INVALID_ARGUMENT", "BUSY",
               "OBSERVE_FAILED", "TARGET_NOT_FOUND", "VALIDATION_FAILED",
               "PREPARE_FAILED", "APPLY_FAILED", "VERIFY_FAILED",
-              "CONTINUITY_FAILED", "ROLLBACK_FAILED", "ADAPTER_CONTRACT"]
+              "CONTINUITY_FAILED", "ROLLBACK_FAILED", "ADAPTER_CONTRACT",
+              "STALE_CATALOG"]
     return json.dumps({
         "state": states[state] if state < len(states) else f"UNKNOWN_{state}",
         "state_code": state,
