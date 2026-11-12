@@ -233,6 +233,16 @@ El parser recibe un búfer y una longitud explícitos, nunca lee fuera del rango
 
 **Límite actual:** el parser está probado, pero todavía no está conectado a un adaptador runtime. El adaptador debe obtener del cargador del juego el segmento, inicio y longitud reales del script. No se debe escanear automáticamente todo el segmento de 64 KiB como si todo su contenido perteneciera al archivo: eso podría incluir datos residuales y producir destinos falsos.
 
+### 9.4 Observación de carga de archivos DOS
+
+Se añadió un tracker de solo lectura para las llamadas DOS INT 21h de apertura (`AH=3D`), lectura (`AH=3F`), posicionamiento (`AH=42`) y cierre (`AH=3E`). Correlaciona cada entrada con su retorno mediante el CS:IP de retorno, conserva el nombre/handle y reconstruye la relación entre offsets del archivo y el búfer de memoria.
+
+El tracker solo expone un rango como script cargado cuando conoce el tamaño real (lectura EOF o seek al final), verifica que los bytes leídos cubran el archivo sin huecos y confirma que la correspondencia archivo→segmento sea contigua y quepa en el segmento. También admite un offset inicial distinto de cero. El reset del emulador limpia el historial del tracker.
+
+La primera consulta de script reconoce nombres `.BIN` y `.M`; el tracker DOS subyacente no depende de una extensión concreta. La API `np2track_loaded_script_info` entrega segmento, offset inicial, longitud y nombre solo para rangos completos y reconocidos.
+
+**Pendiente de validación runtime:** el observador y sus pruebas unitarias están integrados, pero aún no se ha comprobado con el juego ejecutándose que Macross cargue sus scripts mediante estas llamadas DOS y que el búfer leído coincida con el segmento ES usado por el intérprete. Hasta confirmar eso, el adaptador no debe declarar completo el catálogo.
+
 
 ---
 
