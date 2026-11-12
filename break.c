@@ -972,6 +972,9 @@ void np2break_reset()
 {
 	memset(np2breakflags, 0, sizeof(np2breakflags));
 	listarray_clr(np2breakaddrs);
+	np2dn_dos_file_tracker_reset();
+	np2track_esi = 0;
+	np2track_valid = FALSE;
 }
 
 void np2break_destroy()
