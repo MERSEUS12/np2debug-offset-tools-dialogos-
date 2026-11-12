@@ -115,6 +115,20 @@ class McpArgumentValidationTests(unittest.TestCase):
         self.assertTrue(status["proof"]["presented"])
         self.assertTrue(status["proof"]["continuation_ready"])
 
+    def test_dialogue_status_names_stale_catalog_error(self):
+        payload = bytearray(28)
+        payload[0:4] = (9).to_bytes(4, "little")
+        payload[4:8] = (13).to_bytes(4, "little")
+        response = json.dumps({
+            "command_id": 1, "result": 1,
+            "payload_hex": bytes(payload).hex(),
+            "payload_length": len(payload),
+        })
+        with patch.object(server, "_send_command", return_value=response):
+            status = json.loads(server.dialogue_jump_status())
+        self.assertEqual(status["state"], "FAILED")
+        self.assertEqual(status["error"], "STALE_CATALOG")
+
     def test_memory_reads_reject_address_range_overflow_before_ipc(self):
         self.assert_rejected_before_ipc(server.memory_read, 0xFFFFFFFF, 2)
         self.assert_rejected_before_ipc(
