@@ -219,3 +219,22 @@ Por ello, no se debe implementar la generación de superficie como `if (scrndraw
 
 La observación de celdas también necesita distinguir dos cosas: las celdas que `maketext()` recalculó en una llamada y el contenido completo que permanece en `np2_tram`. Como el renderizador puede omitir filas/celdas sin renovación y conservar píxeles previos, una lista de celdas procesadas en la última llamada no representa necesariamente toda la superficie visible. Una futura instantánea semántica tendrá que ser persistente y mantener coherencia con invalidaciones, cambios de modo, scroll, página, atributos y redibujados completos; alternativamente, una lectura de observación puede reproducir el recorrido activo sin modificar estado.
 
+
+
+#### 7.3 Contrato concreto para observar texto y dibujo ejecutado
+
+La revisión de las rutas completas obliga a ampliar la propuesta anterior: no basta con instrumentar únicamente `maketext()` y `maketext40()`.
+
+- En el camino de texto independiente, `drawscreen()` llama a una de esas dos funciones.
+- Cuando texto y gráficos se componen juntos, puede utilizar `maketextgrph()` o `maketextgrph40()`. Una instrumentación limitada a las dos primeras funciones dejaría fuera precisamente los modos mixtos.
+- `scrndraw_draw()` decide qué plano compone mediante `bit` y el selector `bit & 7`. Los casos 4, 5 y 6 incorporan `np2_tram` como texto solo o combinado con un plano gráfico. Por ello, la señal debe registrar el plano realmente seleccionado, no inferirlo solo de que `gdcs.textdisp` tenga el bit ENABLE.
+- La adquisición de superficie y la obtención de la tabla de dibujo ocurren antes de invocar la función. La ruta normal invoca una función `void`; la ruta rasterizada devuelve un resultado propio. Conviene separar «función de composición invocada» de «resultado rasterizado», sin convertir ninguno de ellos en una afirmación sobre el repintado de Windows.
+
+**Contrato recomendado, en dos señales independientes:**
+
+1. **Snapshot semántico de texto activo:** mantener una caché persistente de celdas que fueron consumidas por las rutas de composición de texto, con índice de celda, bytes de carácter y atributo, modo 40/80 columnas y generación de configuración de pantalla. Debe cubrir tanto `maketext*` como `maketextgrph*`. Se invalida ante reinicialización, borrado/reconstrucción completa de la superficie de texto y cambios que alteren el recorrido (modo, scroll/página, pitch o sincronización vertical). Las actualizaciones parciales sustituyen solo las celdas realmente procesadas; no borran el resto de la caché. La lectura de esta caché será de solo lectura y no ejecutará el renderizador.
+2. **Registro de composición de superficie:** en `scrndraw_draw()`, publicar un resultado estructurado por intento: superficie adquirida, tabla válida, plano(s) seleccionados, función normal invocada o rasterizador invocado, y contador monotónico de composiciones ejecutadas. El contador solo avanza después de la invocación efectiva. Un intento que sale antes queda registrado como no ejecutado. El nombre y contrato deben indicar «composición emulada», nunca «ventana presentada».
+
+La observación del adaptador PC-98 combinará ambas señales: comprobará que las celdas del texto objetivo pertenecen al recorrido/caché activa y que una composición posterior incluyó el plano de texto. Si hay composición mixta, deberá conservarse el dato de que el plano gráfico puede cubrir o alterar parte del texto. Para afirmar que el usuario lo vio, seguirá haciendo falta una tercera evidencia del host (por ejemplo, captura de la superficie/ventana); las dos señales anteriores solo prueban el estado interno de composición del emulador.
+
+**Decisión de implementación:** no reproducir desde una API de consulta el algoritmo de scroll/CRT ni llamar a `maketext*` para «observar», porque esas funciones mutan `np2_tram`, `renewal_line`, `tramupdate` y estado de blink/cursor. La instrumentación debe acompañar el recorrido real que ya ejecuta el emulador y mantener una caché incremental invalidable. Antes de codificarla habrá que localizar y revisar las implementaciones completas de `maketextgrph()` y `maketextgrph40()`, además de todos los puntos que reinicializan o borran `np2_tram`.
