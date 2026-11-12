@@ -149,6 +149,25 @@ Este mecanismo demuestra una forma de localizar un punto de espera e intervenir 
 
 El adaptador inicial deberá encapsular esas particularidades sin filtrarlas al núcleo universal.
 
+### 7.1 Auditoría de presentación PC-98 (hallazgos del código fuente)
+
+La ruta de texto del emulador se encuentra en `pccore.c:drawscreen()` y `vram/maketext.c`:
+
+- La VRAM de texto que consume el renderizador está en `mem[0xA0000 + cell*2]`; el atributo de cada celda está en `mem[0xA2000 + cell*2]`.
+- El renderizador solo considera celdas activas dentro de su recorrido de pantalla. En modo de 80 columnas incrementa el índice de celda de uno en uno; en modo de 40 columnas lo incrementa de dos en dos.
+- El inicio de la secuencia de celdas procede de `GDC_SCROLL`; el avance de fila utiliza `GDC_PITCH`. También intervienen los registros de sincronización, el desplazamiento vertical, los intervalos de espera y los cambios de página de scroll. Por ello, escanear todo el rango de VRAM en busca del texto esperado no demuestra que esté en pantalla.
+- `maketext()` y `maketext40()` convierten los códigos de carácter y atributos en píxeles dentro de `np2_tram`. `scrndraw_draw()` mezcla esa superficie con los planos gráficos según el modo de pantalla y actualiza la superficie nativa bloqueada por `scrnmng_surflock()`.
+
+**Precaución importante sobre `drawcount`:** el contador se incrementa en `drawscreen()` después de llamar a `scrndraw_draw()`, pero el incremento no está condicionado a que esta última haya obtenido una superficie válida ni a que haya ejecutado una función de dibujo. `scrndraw_draw()` puede salir por superficie nula o tabla de dibujo nula y devolver igualmente el control al llamador. Por tanto, `drawcount` aislado no es evidencia suficiente de que los píxeles hayan sido actualizados.
+
+La API de depuración actual (`np2dn_memory_read()` y `np2dn_memory_read_block()`) permite lecturas físicas mediante `memp_read8()` y lecturas lógicas mediante `meml_reads()`, pero no expone todavía una instantánea semántica de las celdas que el renderizador considera visibles, ni confirma que la superficie nativa se haya dibujado correctamente.
+
+#### Consecuencia para el adaptador
+
+La verificación deberá basarse en una observación del propio recorrido activo del renderizador, no en un escaneo indiscriminado de VRAM. La instrumentación más fiable sería registrar, durante una actualización de texto realmente procesada, los índices de celda y bytes de carácter/atributo que se consumieron, y asociar ese registro a una generación de dibujo que solo avance cuando se haya obtenido la superficie y ejecutado el dibujo. Además, deberá comprobarse que el plano de texto está habilitado y considerar la superposición de planos gráficos.
+
+Esto aún no prueba el repintado final de la ventana de Windows. Si el criterio de aceptación exige confirmar lo que ve el usuario, habrá que añadir una señal del host o una captura de la superficie presentada. La distinción entre RAM de texto, superficie emulada y ventana del host debe permanecer explícita en el contrato de verificación.
+
 ## 8. Plan de implementación
 
 ### Fase A — Contrato y separación
