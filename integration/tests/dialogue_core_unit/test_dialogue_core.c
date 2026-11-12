@@ -240,6 +240,18 @@ int main(void)
         CHECK(!np2dn_dialogue_catalog_get(35, &entry),
               "catalogue rejects out-of-range index");
     }
+    context.catalog_total = NP2DN_DIALOGUE_CATALOG_MAX + 5u;
+    CHECK(np2dn_dialogue_catalog_refresh(),
+          "refresh oversized catalogue");
+    CHECK(np2dn_dialogue_catalog_count() == NP2DN_DIALOGUE_CATALOG_MAX,
+          "catalogue respects bounded storage capacity");
+    CHECK(np2dn_dialogue_catalog_is_truncated(),
+          "oversized catalogue reports truncation");
+    context.catalog_total = 35;
+    CHECK(np2dn_dialogue_catalog_refresh(),
+          "restore complete test catalogue");
+    CHECK(!np2dn_dialogue_catalog_is_truncated(),
+          "complete catalogue clears truncation flag");
 
     CHECK(np2dn_dialogue_jump_request("dialogue_target"),
           "request target dialogue");
