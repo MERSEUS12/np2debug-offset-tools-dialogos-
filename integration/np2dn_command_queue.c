@@ -55,7 +55,7 @@ uint32_t np2dn_command_submit(const NP2DN_Command *command)
     uint32_t i, id = 0;
     if (InterlockedCompareExchange(&s_initialized, 0, 0) == 0 ||
         command == NULL || command->type < NP2DN_CMD_RESUME ||
-        command->type > NP2DN_CMD_BREAKPOINTS_LIST ||
+        command->type > NP2DN_CMD_DIALOGUE_STATUS_QUERY ||
         command->address_count > NP2DN_MAX_JUMP_ADDRESSES) return 0;
 
     EnterCriticalSection(&s_queue_lock);
