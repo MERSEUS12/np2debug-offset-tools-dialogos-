@@ -7,6 +7,7 @@
 #include	"dispsync.h"
 #include	"maketext.h"
 #include	"font/font.h"
+#include	"../integration/np2dn_pc98_text_observer.h"
 
 
 		TRAM_T	tramflag;
@@ -157,7 +158,8 @@ void maketext(int text_renewal) {
 
 	if (text_renewal) {
 		tramflag.gaiji = 0;
-	}
+		np2dn_pc98_text_observer_begin_full_redraw();
+}
 
 	multiple = ((!(gdc.mode1 & 8)) && (!(gdc.crt15khz & 1)))?0x20:0x00;
 	TEXT_LR = gdc.m.para[GDC_CSRFORM] & 0x1f;
@@ -241,6 +243,9 @@ void maketext(int text_renewal) {
 				kanji2nd = FALSE;
 				lastbitp = 0;
 				for (x=0; x<TEXTXMAX; x++) {						// width80
+					UINT8 observer_flags;
+					observer_flags = kanji2nd ?
+						NP2DN_PC98_TEXT_CELL_KANJI_CONTINUATION : 0;
 					if (edi == csrw) {
 						cur_line = x;
 					}
@@ -312,6 +317,10 @@ void maketext(int text_renewal) {
 							bitmap[x] = 0;
 						}
 					}
+					np2dn_pc98_text_observer_record_cell(
+						(UINT16)edi, (UINT16)y, (UINT16)x, 80,
+						mem[0xa0000 + edi*2], mem[0xa0001 + edi*2],
+						mem[0xa2000 + edi*2], observer_flags);
 					edi = LOW12(edi + 1);
 				}
 				if (!tramflag.curdisp) {
@@ -466,7 +475,8 @@ void maketext40(int text_renewal) {
 
 	if (text_renewal) {
 		tramflag.gaiji = 0;
-	}
+		np2dn_pc98_text_observer_begin_full_redraw();
+}
 
 	multiple = ((!(gdc.mode1 & 8)) && (!(gdc.crt15khz & 1)))?0x20:0x00;
 	TEXT_LR = gdc.m.para[GDC_CSRFORM] & 0x1f;
@@ -550,6 +560,9 @@ void maketext40(int text_renewal) {
 				kanji2nd = FALSE;
 				lastbitp = 0;
 				for (x=0; x<(TEXTXMAX/2); x++) {					// width40
+					UINT8 observer_flags;
+					observer_flags = kanji2nd ?
+						NP2DN_PC98_TEXT_CELL_KANJI_CONTINUATION : 0;
 					if (edi == csrw) {
 						cur_line = x;
 					}
@@ -621,6 +634,10 @@ void maketext40(int text_renewal) {
 							bitmap[x] = 0;
 						}
 					}
+					np2dn_pc98_text_observer_record_cell(
+						(UINT16)edi, (UINT16)y, (UINT16)x, 40,
+						mem[0xa0000 + edi*2], mem[0xa0001 + edi*2],
+						mem[0xa2000 + edi*2], observer_flags);
 					edi = LOW12(edi + 2);							// width40
 				}
 				if (!tramflag.curdisp) {
