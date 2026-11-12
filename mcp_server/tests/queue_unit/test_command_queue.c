@@ -176,6 +176,8 @@ static void test_dialogue_commands(void)
 
     ZeroMemory(&command, sizeof(command));
     command.type = NP2DN_CMD_DIALOGUE_JUMP_REQUEST;
+    command.a = 0x12345678u;
+    command.b = 0u;
     strcpy(command.script_name, "SCENE.M#0");
     id = np2dn_command_submit(&command);
     CHECK(id != 0, "universal dialogue jump request was rejected");
@@ -306,9 +308,12 @@ int np2dn_dialogue_catalog_get(uint32_t index, NP2DN_DialogueCatalogEntry *entry
     strcpy(entry->text, "Hello world");
     return 1;
 }
-int np2dn_dialogue_jump_request(const char *dialogue_id)
+int np2dn_dialogue_jump_request(const char *dialogue_id,
+                               uint64_t expected_catalog_generation)
 {
-    return dialogue_id != NULL && strcmp(dialogue_id, "SCENE.M#0") == 0;
+    return dialogue_id != NULL &&
+           strcmp(dialogue_id, "SCENE.M#0") == 0 &&
+           expected_catalog_generation == 0x12345678ULL;
 }
 void np2dn_dialogue_cancel(void) {}
 void np2dn_dialogue_tick(void) {}
