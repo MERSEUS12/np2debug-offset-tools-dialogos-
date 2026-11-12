@@ -227,7 +227,7 @@ La actualización del catálogo es independiente del salto: enumerar no modifica
 
 ### 9.3 Primer parser de catálogo: PC-98 con bloques 18 01 / 18 02
 
-Se añadió un parser separado del núcleo universal para el formato PC-98 usado por el primer adaptador. Reconoce los marcadores `18 01` y `18 02` cuando están precedidos por `00`, `01` o `45`; busca el primer token de espera `\\HA\\` antes del siguiente bloque; devuelve el offset del carácter `H` como destino; conserva el ordinal de los bloques sin espera para que los IDs coincidan con el tracker actual; convierte `\\CR` en salto de línea y conserva los demás bytes en su codificación original.
+Se añadió un parser separado del núcleo universal para el formato PC-98 usado por el primer adaptador. Reconoce los marcadores `18 01` y `18 02` cuando están precedidos por `00`, `01` o `45`; busca el primer token de espera `\HA\` antes del siguiente bloque; devuelve el offset del carácter `H` como destino; conserva el ordinal de los bloques sin espera para que los IDs coincidan con el tracker actual; convierte `\CR` en salto de línea y conserva los demás bytes en su codificación original.
 
 El parser recibe un búfer y una longitud explícitos, nunca lee fuera del rango suministrado y limita el texto a 512 bytes marcando truncamiento. Sus pruebas cubren IDs con bloques omitidos, destinos exactos, saltos de línea, bloques sin espera, marcadores falsos, límites de lectura y catálogos de salida truncados.
 
