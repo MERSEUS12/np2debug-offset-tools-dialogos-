@@ -84,7 +84,8 @@ typedef enum NP2DN_DialogueError {
 /*
  * The snapshot is engine-neutral. Adapters populate only fields they can
  * identify reliably. A zero generation means the adapter has no generation
- * counter. Text is intentionally kept outside the transition contract.
+ * counter. Flags carry explicit proof of state, presentation and continuation
+ * only after verify() has established those conditions.
  */
 typedef struct NP2DN_DialogueSnapshot {
     char dialogue_id[NP2DN_DIALOGUE_ID_MAX];
@@ -148,10 +149,10 @@ typedef struct NP2DN_DialogueAdapter {
         void *context, const NP2DN_DialogueTarget *target,
         uint8_t checkpoint[NP2DN_DIALOGUE_CHECKPOINT_MAX]);
     /*
-     * DONE must mean the target is active and presented, not merely that a
-     * pointer/register changed. If presentation cannot be observed, the
-     * adapter must not advertise VERIFY_UI and must report only what it can
-     * actually prove through its own verification policy.
+     * DONE requires the destination ID to match and observed->flags to include
+     * STATE_VERIFIED, PRESENTED and CONTINUATION_READY. The latter means the
+     * engine is at a valid normal-flow wait/advance point. A pointer/register
+     * change alone never satisfies this contract.
      */
     NP2DN_DialogueResult (*verify)(
         void *context, const NP2DN_DialogueTarget *target,
