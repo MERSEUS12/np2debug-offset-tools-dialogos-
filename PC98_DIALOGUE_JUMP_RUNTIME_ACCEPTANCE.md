@@ -60,7 +60,7 @@ Esta fase sí modifica el estado del juego y requiere autorización explícita.
 
 ## Fase C — Comprobación de pantalla y continuidad
 
-Con el juego detenido en la espera normal del diálogo destino:
+Con el intérprete en la espera normal del diálogo destino (el emulador sigue ejecutándose; no es una pausa de depuración):
 
 1. Confirmar visualmente que aparece el texto destino completo y no el texto anterior.
 2. Confirmar que `dialogue_current` señala el ID destino y que el tracker está en el marcador de espera de ese bloque.
