@@ -94,7 +94,8 @@ int main(void)
           entries[0].block_start == first_marker &&
           entries[0].marker_type == 0x01,
           "first dialogue identity");
-    CHECK(entries[0].target_esi == first_marker + 2u + 10u,
+    CHECK(entries[0].target_esi ==
+          first_marker + 2u + (uint32_t)(sizeof(first_text) - 1u) + 1u,
           "first target points to H after slash");
     CHECK(entries[0].text_length == 10 &&
           memcmp(entries[0].text, "Hola\nmundo", 10) == 0,
@@ -104,7 +105,8 @@ int main(void)
           entries[1].block_start == second_marker &&
           entries[1].target_esi > second_marker,
           "second dialogue identity and target");
-    CHECK(entries[2].dialogue_id == 3 &&
+    CHECK(third_marker > second_marker &&
+          entries[2].dialogue_id == 3 &&
           entries[2].block_start == fourth_marker &&
           entries[2].target_esi == expected_target,
           "dialogue IDs preserve skipped block ordinals");
