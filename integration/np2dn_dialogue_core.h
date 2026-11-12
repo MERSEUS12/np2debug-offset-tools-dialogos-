@@ -18,7 +18,11 @@
 extern "C" {
 #endif
 
-#define NP2DN_DIALOGUE_CORE_API_VERSION 2u
+#define NP2DN_DIALOGUE_CORE_API_VERSION 3u
+#define NP2DN_DIALOGUE_CATALOG_MAX 512u
+#define NP2DN_DIALOGUE_CATALOG_PAGE_MAX 32u
+#define NP2DN_DIALOGUE_SPEAKER_MAX 48u
+#define NP2DN_DIALOGUE_TEXT_MAX 256u
 #define NP2DN_DIALOGUE_MAX_ADAPTERS 8u
 #define NP2DN_DIALOGUE_ID_MAX 96u
 #define NP2DN_DIALOGUE_SCENE_ID_MAX 96u
@@ -94,6 +98,17 @@ typedef struct NP2DN_DialogueSnapshot {
  * only within the adapter identified by adapter_id. It must never be treated
  * as a universal file offset, virtual address, CPU register, or script pointer.
  */
+typedef struct NP2DN_DialogueCatalogEntry {
+    char dialogue_id[NP2DN_DIALOGUE_ID_MAX];
+    char scene_id[NP2DN_DIALOGUE_SCENE_ID_MAX];
+    char speaker[NP2DN_DIALOGUE_SPEAKER_MAX];
+    char text[NP2DN_DIALOGUE_TEXT_MAX];
+    uint32_t locator_kind;
+    uint32_t locator_size;
+    uint8_t locator[NP2DN_DIALOGUE_LOCATOR_MAX];
+    uint32_t flags;
+} NP2DN_DialogueCatalogEntry;
+
 typedef struct NP2DN_DialogueTarget {
     char dialogue_id[NP2DN_DIALOGUE_ID_MAX];
     char scene_id[NP2DN_DIALOGUE_SCENE_ID_MAX];
@@ -109,6 +124,10 @@ typedef struct NP2DN_DialogueAdapter {
     uint32_t capabilities;
 
     int (*observe)(void *context, NP2DN_DialogueSnapshot *snapshot);
+    int (*enumerate)(void *context, uint32_t offset, uint32_t capacity,
+                     NP2DN_DialogueCatalogEntry *entries,
+                     uint32_t *returned, uint32_t *total,
+                     uint64_t *generation);
     int (*resolve)(void *context, const char *dialogue_id,
                    NP2DN_DialogueTarget *target);
     int (*validate)(void *context,
@@ -158,6 +177,14 @@ int np2dn_dialogue_register_adapter(const NP2DN_DialogueAdapter *adapter,
                                     void *context);
 int np2dn_dialogue_select_adapter(const char *adapter_id);
 uint32_t np2dn_dialogue_adapter_count(void);
+
+/* Refresh and read the selected adapter's stable, session-scoped catalogue. */
+int np2dn_dialogue_catalog_refresh(void);
+uint32_t np2dn_dialogue_catalog_count(void);
+uint64_t np2dn_dialogue_catalog_generation(void);
+int np2dn_dialogue_catalog_is_truncated(void);
+int np2dn_dialogue_catalog_get(uint32_t index,
+                              NP2DN_DialogueCatalogEntry *entry);
 
 /* Request a jump. Work is performed incrementally by tick(). */
 int np2dn_dialogue_jump_request(const char *dialogue_id);
