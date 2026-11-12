@@ -376,10 +376,10 @@ El adaptador:
 1. Obtiene el script cargado a partir del tracker de archivos DOS y exige que el archivo esté completamente mapeado en memoria.
 2. Construye el catálogo con el parser PC-98 y genera IDs como `ARCHIVO#ordinal`.
 3. Valida que el localizador siga perteneciendo a la generación actual, al mismo script/segmento, a un bloque válido `18 01` o `18 02`, y a un token de espera `HA\` dentro de los límites del archivo.
-4. Captura el segmento, ESI y contadores previos para poder restaurar el punto de espera anterior.
-5. Aplica el salto usando el hook existente de `np2jump_arm`, sin ejecutar operaciones pesadas desde el hook por instrucción.
-6. Verifica que el tracker vuelve a detectar el ESI y el bloque destino, que el texto destino aparece en las celdas observadas, que hubo una composición posterior con el plano de texto y que el blit DirectDraw hacia la superficie primaria terminó con `DD_OK`.
-7. Si falla la verificación después de aplicar el salto, intenta volver al ESI anterior mediante el mismo mecanismo controlado.
+4. Captura el segmento, el ESI y el bloque anterior, además de las generaciones de observación necesarias para verificar una restauración visual.
+5. Aplica el salto usando el hook existente de `np2jump_arm`, pero dirige el ESI al encabezado del bloque destino (`18 01`/`18 02`) para que el intérprete vuelva a ejecutar el texto desde el principio. El hook sigue esperando en el `HA\\` actual y no ejecuta operaciones pesadas.
+6. Espera a que el intérprete procese el bloque y alcance el `HA\\` propio del destino. Después verifica que el tracker identifica el ESI/bloque destino, que el texto destino aparece en las celdas observadas, que hubo una composición posterior con el plano de texto y que el blit DirectDraw hacia la superficie primaria terminó con `DD_OK`.
+7. Si falla la verificación después de aplicar el salto, reejecuta el bloque anterior desde su encabezado y exige que vuelva a aparecer en la composición host antes de considerar restaurado el estado.
 
 La señal de presentación no es una estimación: `scrndraw_draw()` registra la composición efectiva y `scrnmng_update()` informa del resultado del blit host. El adaptador no acepta únicamente un cambio de registro o de ID.
 
