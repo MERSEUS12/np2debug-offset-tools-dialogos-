@@ -225,6 +225,14 @@ El núcleo solicita páginas de 32 entradas, valida IDs únicos y cadenas termin
 
 La actualización del catálogo es independiente del salto: enumerar no modifica el juego. El locator sigue siendo opaco y solo el adaptador puede interpretarlo. Esto permite que el núcleo presente una biblioteca uniforme de diálogos sin asumir offsets, segmentos, punteros ni formatos de script propios de un motor.
 
+### 9.3 Primer parser de catálogo: PC-98 con bloques 18 01 / 18 02
+
+Se añadió un parser separado del núcleo universal para el formato PC-98 usado por el primer adaptador. Reconoce los marcadores `18 01` y `18 02` cuando están precedidos por `00`, `01` o `45`; busca el primer token de espera `\\HA\\` antes del siguiente bloque; devuelve el offset del carácter `H` como destino; conserva el ordinal de los bloques sin espera para que los IDs coincidan con el tracker actual; convierte `\\CR` en salto de línea y conserva los demás bytes en su codificación original.
+
+El parser recibe un búfer y una longitud explícitos, nunca lee fuera del rango suministrado y limita el texto a 512 bytes marcando truncamiento. Sus pruebas cubren IDs con bloques omitidos, destinos exactos, saltos de línea, bloques sin espera, marcadores falsos, límites de lectura y catálogos de salida truncados.
+
+**Límite actual:** el parser está probado, pero todavía no está conectado a un adaptador runtime. El adaptador debe obtener del cargador del juego el segmento, inicio y longitud reales del script. No se debe escanear automáticamente todo el segmento de 64 KiB como si todo su contenido perteneciera al archivo: eso podría incluir datos residuales y producir destinos falsos.
+
 
 ---
 
