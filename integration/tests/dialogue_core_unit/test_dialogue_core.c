@@ -88,9 +88,9 @@ static int fake_enumerate(
 static int fake_resolve(void *context, const char *dialogue_id,
                         NP2DN_DialogueTarget *target)
 {
-    (void)context;
+    FakeAdapterContext *fake = (FakeAdapterContext *)context;
     memset(target, 0, sizeof(*target));
-    if (dialogue_id == NULL || dialogue_id[0] == '\0') {
+    if (fake == NULL || dialogue_id == NULL || dialogue_id[0] == '\0') {
         return 0;
     }
     strcpy(target->dialogue_id, dialogue_id);
@@ -102,7 +102,7 @@ static int fake_resolve(void *context, const char *dialogue_id,
     target->locator[2] = 0x33;
     target->locator[3] = 0x44;
     target->catalog_generation =
-        context->change_generation_after_first_page ? 18 : 17;
+        fake->change_generation_after_first_page ? 18 : 17;
     return 1;
 }
 
