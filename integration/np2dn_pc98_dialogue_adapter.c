@@ -5,6 +5,7 @@
 #include "np2dn_dialogue_core.h"
 #include "np2dn_pc98_script_catalog.h"
 #include "np2dn_pc98_text_observer.h"
+#include "np2dn_dos_file_tracker.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -48,6 +49,7 @@ static uint64_t s_catalog_generation;
 static uint8_t s_catalog_truncated;
 static uint8_t s_catalog_valid;
 static uint32_t s_text_codepage = 437u;
+static NP2DN_PC98Checkpoint s_active_checkpoint;
 
 static void np2dn_pc98_copy_string(char *destination, size_t capacity,
                                    const char *source)
