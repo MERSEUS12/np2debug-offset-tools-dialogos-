@@ -13,6 +13,7 @@
 #include "cpucore.h"
 #include "break.h"
 #include "unasmdef.tbl"
+#include "integration/np2dn_dos_file_tracker.h"
 #include "viewer.h"
 #ifdef WIN32
 #include "viewmenu.h"
@@ -244,6 +245,10 @@ static void np2scene_check(void)
 	UINT32	vec;
 	UINT32	lin;
 	UINT32	base;
+	UINT32	stk;
+	UINT32	ret;
+	UINT16	ret_ip;
+	UINT16	ret_cs;
 	UINT	i;
 	UINT	len;
 	UINT	slot;
@@ -252,9 +257,40 @@ static void np2scene_check(void)
 
 	cur = ((UINT32)(UINT16)CPU_CS << 4) + (CPU_EIP & 0xffff);
 	vec = ((UINT32)memp_read16(0x86) << 4) + (UINT32)memp_read16(0x84);
-	if ((cur != vec) || (CPU_AH != 0x3d)) {
+
+	/* Complete the previous DOS INT 21h call when execution returns. */
+	np2dn_dos_file_tracker_complete(
+		(UINT16)CPU_CS, (UINT16)CPU_EIP, (UINT8)(CPU_EFLAG & 1),
+		(UINT16)CPU_AX, (UINT16)CPU_DX);
+
+	if (cur != vec) {
 		return;
 	}
+	stk = ((UINT32)(UINT16)CPU_SS << 4) + (UINT32)(UINT16)CPU_SP;
+	ret_ip = memp_read16(stk);
+	ret_cs = memp_read16(stk + 2);
+
+	/* Observe DOS file operations without changing their arguments/results. */
+	if (CPU_AH == 0x3f) {
+		np2dn_dos_file_tracker_begin_read(
+			ret_cs, ret_ip, (UINT16)CPU_BX, (UINT16)CPU_DS,
+			(UINT16)CPU_DX, (UINT16)CPU_CX);
+		return;
+	}
+	if (CPU_AH == 0x42) {
+		np2dn_dos_file_tracker_begin_seek(
+			ret_cs, ret_ip, (UINT16)CPU_BX, (UINT8)CPU_AL);
+		return;
+	}
+	if (CPU_AH == 0x3e) {
+		np2dn_dos_file_tracker_begin_close(
+			ret_cs, ret_ip, (UINT16)CPU_BX);
+		return;
+	}
+	if (CPU_AH != 0x3d) {
+		return;
+	}
+
 	lin = ((UINT32)(UINT16)CPU_DS << 4) + (UINT32)(UINT16)CPU_DX;
 	len = 0;
 	while (len < 79) {
@@ -298,18 +334,17 @@ static void np2scene_check(void)
 	np2scene_log[slot].name[(i < 15) ? i : 15] = '\0';
 	np2scene_log[slot].linear = lin + base;
 	np2scene_log[slot].redir = redir;
-	{	// the stack of the INT 21h handler entry holds IP, CS, FLAGS of the caller
-		UINT32 stk = ((UINT32)(UINT16)CPU_SS << 4) + (UINT32)(UINT16)CPU_SP;
-		UINT32 ret;
-
-		np2scene_log[slot].cip = memp_read16(stk);
-		np2scene_log[slot].ccs = memp_read16(stk + 2);
-		ret = ((UINT32)np2scene_log[slot].ccs << 4) + np2scene_log[slot].cip;
-		for (i = 0; i < 16; i++) {
-			np2scene_log[slot].ctx[i] = (ret >= 16) ? memp_read8(ret - 16 + i) : 0;
-		}
+	np2scene_log[slot].cip = ret_ip;
+	np2scene_log[slot].ccs = ret_cs;
+	ret = ((UINT32)ret_cs << 4) + ret_ip;
+	for (i = 0; i < 16; i++) {
+		np2scene_log[slot].ctx[i] = (ret >= 16) ? memp_read8(ret - 16 + i) : 0;
 	}
 	np2scene_nlog++;
+
+	/* Capture the effective name after any scene redirection. */
+	np2dn_dos_file_tracker_begin_open(
+		ret_cs, ret_ip, redir ? np2scene_target : full + base);
 }
 /// =======
 
