@@ -63,10 +63,11 @@ void np2break_destroy();
 
 /// Jump tool hook
 /// -----------------
-// Armed by the "Jump to dialogue" tool.  The jump is applied once, the first time
-// the script interpreter (ES = script segment) is waiting at a "\HA" command
-// (ES:ESI points to "HA\").  If naddr > 0, execution must also be at one of the
-// given linear CS:IP addresses.
+// Armed by a dialogue adapter. The hook waits until the script interpreter
+// (ES = script segment) reaches its current "\HA" wait (ES:ESI points to "HA\").
+// It then replaces ESI with the caller-supplied entry offset: a block header to
+// execute/render a dialogue, or a wait marker for legacy low-level use.
+// If naddr > 0, execution must also be at one of the given linear CS:IP addresses.
 #define	NP2JUMP_MAXADDR	8
 void np2jump_arm(UINT16 es, UINT32 esi, const UINT32 *addrs, UINT naddr);
 void np2jump_disarm(void);
