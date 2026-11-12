@@ -329,7 +329,8 @@ int np2dn_dialogue_catalog_get(uint32_t index,
     return 1;
 }
 
-int np2dn_dialogue_jump_request(const char *dialogue_id)
+int np2dn_dialogue_jump_request(
+    const char *dialogue_id, uint64_t expected_catalog_generation)
 {
     NP2DN_DialogueAdapterSlot *slot = np2dn_dialogue_selected();
 
@@ -346,7 +347,8 @@ int np2dn_dialogue_jump_request(const char *dialogue_id)
         np2dn_dialogue_set_error(NP2DN_DIALOGUE_ERROR_INVALID_ARGUMENT);
         return 0;
     }
-    if (g_catalog_count == 0) {
+    if (g_catalog_count == 0 ||
+        expected_catalog_generation != g_catalog_generation) {
         np2dn_dialogue_set_error(NP2DN_DIALOGUE_ERROR_STALE_CATALOG);
         return 0;
     }
