@@ -11,6 +11,7 @@
 } while (0)
 
 typedef struct FakeAdapterContext {
+    uint32_t catalog_total;
     int fail_apply;
     int omit_continuity;
     int apply_calls;
@@ -27,6 +28,58 @@ static int fake_observe(void *context, NP2DN_DialogueSnapshot *snapshot)
     strcpy(snapshot->dialogue_id, "dialogue_before");
     strcpy(snapshot->scene_id, "scene_alpha");
     snapshot->generation = 10;
+    return 1;
+}
+
+static int fake_enumerate(
+    void *opaque, uint32_t offset, uint32_t capacity,
+    NP2DN_DialogueCatalogEntry *entries, uint32_t *returned,
+    uint32_t *total, uint64_t *generation)
+{
+    FakeAdapterContext *context = (FakeAdapterContext *)opaque;
+    uint32_t i;
+
+    if (entries == NULL || returned == NULL || total == NULL ||
+        generation == NULL || capacity == 0) {
+        return 0;
+    }
+    *total = context->catalog_total;
+    *generation = 17;
+    *returned = 0;
+    if (offset >= *total) {
+        return 1;
+    }
+    for (i = 0; i < capacity && offset + i < *total; ++i) {
+        NP2DN_DialogueCatalogEntry *entry = &entries[i];
+        memset(entry, 0, sizeof(*entry));
+        if (offset + i == 0) {
+            strcpy(entry->dialogue_id, "dialogue_target");
+            strcpy(entry->text, "Target page");
+        }
+        else if (offset + i == 1) {
+            strcpy(entry->dialogue_id, "dialogue_failure");
+            strcpy(entry->text, "Failure page");
+        }
+        else if (offset + i == 2) {
+            strcpy(entry->dialogue_id, "dialogue_without_continuity");
+            strcpy(entry->text, "Page without continuation");
+        }
+        else if (offset + i == 3) {
+            strcpy(entry->dialogue_id, "dialogue_cancel");
+            strcpy(entry->text, "Cancel page");
+        }
+        else {
+            snprintf(entry->dialogue_id, sizeof(entry->dialogue_id),
+                     "dialogue_%03u", offset + i);
+            strcpy(entry->text, "Indexed page");
+        }
+        strcpy(entry->scene_id, "scene_alpha");
+        strcpy(entry->speaker, "Test");
+        entry->locator_kind = 7;
+        entry->locator_size = 4;
+        entry->locator[0] = (uint8_t)(offset + i);
+        ++(*returned);
+    }
     return 1;
 }
 
@@ -140,12 +193,14 @@ int main(void)
         NP2DN_DIALOGUE_CORE_API_VERSION,
         "fake-test-adapter",
         NP2DN_DIALOGUE_CAP_OBSERVE |
+        NP2DN_DIALOGUE_CAP_ENUMERATE |
         NP2DN_DIALOGUE_CAP_DIRECT_JUMP |
         NP2DN_DIALOGUE_CAP_VERIFY_STATE |
         NP2DN_DIALOGUE_CAP_VERIFY_UI |
         NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY |
         NP2DN_DIALOGUE_CAP_ROLLBACK,
         fake_observe,
+        fake_enumerate,
         fake_resolve,
         fake_validate,
         fake_prepare,
@@ -159,12 +214,32 @@ int main(void)
     NP2DN_DialogueStatus status;
 
     memset(&context, 0, sizeof(context));
+    context.catalog_total = 35;
     CHECK(np2dn_dialogue_register_adapter(&adapter, &context),
           "register fake adapter");
     CHECK(np2dn_dialogue_adapter_count() == 1,
           "adapter count");
     CHECK(np2dn_dialogue_select_adapter("fake-test-adapter"),
           "select fake adapter");
+    CHECK(np2dn_dialogue_catalog_refresh(),
+          "refresh adapter dialogue catalogue");
+    CHECK(np2dn_dialogue_catalog_count() == 35,
+          "catalogue loads across multiple pages");
+    CHECK(np2dn_dialogue_catalog_generation() == 17,
+          "catalogue generation is retained");
+    CHECK(!np2dn_dialogue_catalog_is_truncated(),
+          "catalogue below capacity is complete");
+    {
+        NP2DN_DialogueCatalogEntry entry;
+        CHECK(np2dn_dialogue_catalog_get(2, &entry),
+              "read catalogue entry");
+        CHECK(strcmp(entry.dialogue_id,
+                     "dialogue_without_continuity") == 0 &&
+              strcmp(entry.text, "Page without continuation") == 0,
+              "catalogue entry fields preserved");
+        CHECK(!np2dn_dialogue_catalog_get(35, &entry),
+              "catalogue rejects out-of-range index");
+    }
 
     CHECK(np2dn_dialogue_jump_request("dialogue_target"),
           "request target dialogue");
