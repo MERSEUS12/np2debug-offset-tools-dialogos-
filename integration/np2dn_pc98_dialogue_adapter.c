@@ -885,7 +885,8 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
             return NP2DN_DIALOGUE_RESULT_DONE;
         }
         if ((uint32_t)(GetTickCount() - cp->rollback_start_tick) >
-            NP2DN_PC98_JUMP_TIMEOUT_MS) {
+                NP2DN_PC98_JUMP_TIMEOUT_MS &&
+            !np2dn_pc98_emulator_paused()) {
             np2jump_disarm();
             s_active_checkpoint = *cp;
             return NP2DN_DIALOGUE_RESULT_ERROR;
