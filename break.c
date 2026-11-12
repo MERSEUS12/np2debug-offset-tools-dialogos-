@@ -397,9 +397,16 @@ BOOL np2track_loaded_script_info(UINT16 es, UINT16 *base_offset,
 static void np2track_step(void)
 {
 	UINT32 sp;
+	NP2DN_DosFileInfo info;
 
 	if (((UINT16)CPU_ES != np2track_es) || (CPU_ESI >= 0x10000)) {
 		return;
+	}
+	if (np2dn_dos_file_tracker_get_loaded_segment(np2track_es, &info)) {
+		if (CPU_ESI < info.base_offset ||
+			CPU_ESI >= ((UINT32)info.base_offset + info.file_size)) {
+			return;
+		}
 	}
 	sp = ((UINT32)np2track_es << 4) + CPU_ESI;
 	if ((memp_read8(sp) != 'H') || (memp_read8(sp + 1) != 'A') ||
