@@ -723,7 +723,9 @@ static NP2DN_DialogueResult np2dn_pc98_apply(
     cp->jump_count_before = np2jump_count();
     cp->start_tick = GetTickCount();
     cp->apply_started = 1;
+    cp->rollback_started = 0;
     np2jump_arm(segment, target_esi, NULL, 0);
+    s_active_checkpoint = *cp;
     return NP2DN_DIALOGUE_RESULT_PENDING;
 }
 
@@ -738,6 +740,7 @@ static NP2DN_DialogueResult np2dn_pc98_poll(
     if (cp == NULL || cp->magic != NP2DN_PC98_CHECKPOINT_MAGIC) {
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
+    s_active_checkpoint = *cp;
     if (np2jump_count() != cp->jump_count_before) {
         return NP2DN_DIALOGUE_RESULT_DONE;
     }
@@ -753,8 +756,7 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
     void *context, const NP2DN_DialogueTarget *target,
     NP2DN_DialogueSnapshot *observed)
 {
-    NP2DN_PC98Checkpoint *cp;
-    uint8_t *checkpoint;
+    NP2DN_PC98Checkpoint *cp = &s_active_checkpoint;
     NP2DN_PC98TextObserverStatus observer;
     uint16_t target_segment;
     uint32_t target_esi;
@@ -766,21 +768,67 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
     NP2DN_PC98ScriptDialogue *parsed;
 
     (void)context;
-    (void)target;
-    (void)observed;
-    /* The core passes the checkpoint through the adapter context below. */
-    checkpoint = NULL;
-    cp = (NP2DN_PC98Checkpoint *)checkpoint;
-    (void)cp;
-    (void)target_segment;
-    (void)target_esi;
-    (void)target_block;
-    (void)current_esi;
-    (void)current_block;
-    (void)current_id;
-    (void)entry_index;
-    (void)parsed;
-    return NP2DN_DIALOGUE_RESULT_ERROR;
+    if (target == NULL || observed == NULL ||
+        cp->magic != NP2DN_PC98_CHECKPOINT_MAGIC ||
+        !np2dn_pc98_decode_locator(target, &target_segment, NULL,
+                                   &target_esi, &target_block, NULL, NULL)) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+    if ((uint32_t)(GetTickCount() - cp->start_tick) >
+        NP2DN_PC98_JUMP_TIMEOUT_MS) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+    if (np2jump_count() == cp->jump_count_before ||
+        np2track_getseg() != target_segment ||
+        !np2track_current(&current_esi, &current_id, &current_block,
+                          NULL, 0)) {
+        return NP2DN_DIALOGUE_RESULT_PENDING;
+    }
+
+    entry_index = np2dn_pc98_find_catalog_entry(target->dialogue_id);
+    if (entry_index < 0) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+    parsed = &s_script_entries[entry_index];
+    if (current_esi != target_esi ||
+        current_block != target_block ||
+        current_id != (int)parsed->dialogue_id) {
+        return NP2DN_DIALOGUE_RESULT_PENDING;
+    }
+    if ((parsed->flags & NP2DN_PC98_SCRIPT_ENTRY_TEXT_TRUNCATED) != 0 ||
+        (s_catalog_entries[entry_index].flags &
+         NP2DN_DIALOGUE_CATALOG_ENTRY_TEXT_TRUNCATED) != 0) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+
+    np2dn_pc98_text_observer_get_status(&observer);
+    if (observer.composition_generation <=
+            cp->composition_generation_before ||
+        observer.host_present_generation <=
+            cp->host_present_generation_before ||
+        observer.last_host_presented_text == 0 ||
+        observer.last_host_presented_composition_generation <=
+            cp->composition_generation_before) {
+        return NP2DN_DIALOGUE_RESULT_PENDING;
+    }
+
+    if (!np2dn_pc98_observer_contains_text(
+            parsed->text, parsed->text_length)) {
+        return NP2DN_DIALOGUE_RESULT_PENDING;
+    }
+
+    memset(observed, 0, sizeof(*observed));
+    np2dn_pc98_copy_string(observed->dialogue_id,
+                           sizeof(observed->dialogue_id),
+                           target->dialogue_id);
+    np2dn_pc98_copy_string(observed->scene_id,
+                           sizeof(observed->scene_id),
+                           target->scene_id);
+    observed->generation = s_catalog_generation;
+    observed->flags = NP2DN_DIALOGUE_SNAPSHOT_STATE_VERIFIED |
+                      NP2DN_DIALOGUE_SNAPSHOT_PRESENTED |
+                      NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY;
+    return NP2DN_DIALOGUE_RESULT_DONE;
 }
 
 static NP2DN_DialogueResult np2dn_pc98_rollback(
@@ -796,6 +844,7 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
     if (!cp->apply_started ||
         np2jump_count() == cp->jump_count_before) {
         np2jump_disarm();
+        s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_DONE;
     }
 
@@ -804,16 +853,20 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
         cp->rollback_count_before = np2jump_count();
         cp->rollback_start_tick = GetTickCount();
         np2jump_arm(cp->old_segment, cp->old_esi, NULL, 0);
+        s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
     if (np2jump_count() != cp->rollback_count_before) {
+        s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_DONE;
     }
     if ((uint32_t)(GetTickCount() - cp->rollback_start_tick) >
         NP2DN_PC98_JUMP_TIMEOUT_MS) {
         np2jump_disarm();
+        s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
+    s_active_checkpoint = *cp;
     return NP2DN_DIALOGUE_RESULT_PENDING;
 }
 
@@ -824,6 +877,7 @@ static void np2dn_pc98_cancel(
     (void)context;
     (void)checkpoint;
     np2jump_disarm();
+    memset(&s_active_checkpoint, 0, sizeof(s_active_checkpoint));
 }
 
 static const NP2DN_DialogueAdapter s_adapter = {
