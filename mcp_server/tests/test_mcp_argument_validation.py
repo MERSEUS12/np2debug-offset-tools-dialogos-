@@ -84,12 +84,26 @@ class McpArgumentValidationTests(unittest.TestCase):
                     server.dialogue_catalog, offset, limit
                 )
 
-    def test_universal_dialogue_jump_rejects_empty_or_nul_id_before_ipc(self):
-        for dialogue_id in ("", "SCENE#1\0bad", "A" * 96, None):
-            with self.subTest(dialogue_id=dialogue_id):
+    def test_universal_dialogue_jump_rejects_invalid_id_or_generation_before_ipc(self):
+        for dialogue_id, generation in (
+            ("", 17), ("SCENE#1\0bad", 17), ("A" * 96, 17), (None, 17),
+            ("SCENE#1", True), ("SCENE#1", 0), ("SCENE#1", -1),
+            ("SCENE#1", 0x10000000000000000),
+        ):
+            with self.subTest(dialogue_id=dialogue_id, generation=generation):
                 self.assert_rejected_before_ipc(
-                    server.dialogue_jump_request, dialogue_id
+                    server.dialogue_jump_request, dialogue_id, generation
                 )
+
+    def test_universal_dialogue_jump_passes_catalog_generation_as_two_words(self):
+        with patch.object(server, "_send_command", return_value="{}") as send_command:
+            server.dialogue_jump_request("SCENE#7", 0x123456789ABCDEF0)
+        send_command.assert_called_once_with(
+            server.CMD_DIALOGUE_JUMP_REQUEST,
+            a=0x9ABCDEF0,
+            b=0x12345678,
+            script_name="SCENE#7",
+        )
 
     def test_dialogue_catalog_entry_reports_missing_index(self):
         response = json.dumps({"command_id": 1, "result": 0})
