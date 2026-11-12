@@ -3,6 +3,7 @@
 #include	"pccore.h"
 #include	"iocore.h"
 #include	"scrndraw.h"
+#include	"../integration/np2dn_pc98_text_observer.h"
 #include	"dispsync.h"
 
 
@@ -122,6 +123,9 @@ BOOL dispsync_renewalvertical(void) {
 	dsync.grph_vbp = grph_vbp;
 	dsync.textymax = textymax;
 	dsync.grphymax = grphymax;
+
+	/* The visible text geometry changed; cached cell locations are stale. */
+	np2dn_pc98_text_observer_invalidate_all();
 
 	scrnymax = max(grphymax, textymax);
 	scrnymax = (scrnymax + 7) & (~7);
