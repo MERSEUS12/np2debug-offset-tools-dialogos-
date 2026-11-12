@@ -319,7 +319,8 @@ void maketext(int text_renewal) {
 					}
 					np2dn_pc98_text_observer_record_cell(
 						(UINT16)edi, (UINT16)y, (UINT16)x, 80,
-						mem[0xa0000 + edi*2], mem[0xa0001 + edi*2],
+						(observer_flags ? 0 : mem[0xa0000 + edi*2]),
+						(observer_flags ? 0 : mem[0xa0001 + edi*2]),
 						mem[0xa2000 + edi*2], observer_flags);
 					edi = LOW12(edi + 1);
 				}
@@ -636,7 +637,8 @@ void maketext40(int text_renewal) {
 					}
 					np2dn_pc98_text_observer_record_cell(
 						(UINT16)edi, (UINT16)y, (UINT16)x, 40,
-						mem[0xa0000 + edi*2], mem[0xa0001 + edi*2],
+						(observer_flags ? 0 : mem[0xa0000 + edi*2]),
+						(observer_flags ? 0 : mem[0xa0001 + edi*2]),
 						mem[0xa2000 + edi*2], observer_flags);
 					edi = LOW12(edi + 2);							// width40
 				}
