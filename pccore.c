@@ -52,6 +52,8 @@
 #ifdef WIN32
 #include "integration/np2dn_command_queue.h"
 #include "integration/np2dn_ipc.h"
+#include "integration/np2dn_dialogue_core.h"
+#include "integration/np2dn_pc98_dialogue_adapter.h"
 #endif
 #ifdef WIN32
 #include	"mountdir.h"
@@ -284,6 +286,7 @@ void pccore_init(void) {
 	np2break_create();
 #ifdef WIN32
 	np2dn_command_queue_init();
+	np2dn_pc98_dialogue_adapter_register();
 	np2dn_ipc_start();
 #endif
 	md_create();
@@ -292,6 +295,8 @@ void pccore_init(void) {
 void pccore_term(void) {
 
 #ifdef WIN32
+	/* Cancel an in-flight dialogue operation before stopping MCP producers. */
+	np2dn_dialogue_cancel();
 	/* Stop MCP producers before tearing down emulator subsystems they can access. */
 	np2dn_ipc_stop();
 #endif
