@@ -346,6 +346,10 @@ int np2dn_dialogue_jump_request(const char *dialogue_id)
         np2dn_dialogue_set_error(NP2DN_DIALOGUE_ERROR_INVALID_ARGUMENT);
         return 0;
     }
+    if (g_catalog_count == 0) {
+        np2dn_dialogue_set_error(NP2DN_DIALOGUE_ERROR_STALE_CATALOG);
+        return 0;
+    }
 
     memset(&g_status.before, 0, sizeof(g_status.before));
     memset(&g_status.after, 0, sizeof(g_status.after));
@@ -399,6 +403,11 @@ void np2dn_dialogue_tick(void)
                                          sizeof(g_target.dialogue_id)) ||
             g_target.locator_size > NP2DN_DIALOGUE_LOCATOR_MAX) {
             np2dn_dialogue_fail(NP2DN_DIALOGUE_ERROR_TARGET_NOT_FOUND);
+            return;
+        }
+        if (g_catalog_generation != 0 &&
+            g_target.catalog_generation != g_catalog_generation) {
+            np2dn_dialogue_fail(NP2DN_DIALOGUE_ERROR_STALE_CATALOG);
             return;
         }
         np2dn_dialogue_copy_string(g_status.resolved_dialogue_id,
