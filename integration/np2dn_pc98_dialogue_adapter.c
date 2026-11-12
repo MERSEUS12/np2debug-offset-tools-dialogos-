@@ -6,6 +6,7 @@
 #include "np2dn_pc98_script_catalog.h"
 #include "np2dn_pc98_text_observer.h"
 #include "np2dn_dos_file_tracker.h"
+#include "np2dn_debug_api.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -50,6 +51,14 @@ static uint8_t s_catalog_truncated;
 static uint8_t s_catalog_valid;
 static uint32_t s_text_codepage = 437u;
 static NP2DN_PC98Checkpoint s_active_checkpoint;
+
+static int np2dn_pc98_emulator_paused(void)
+{
+    NP2DN_DebugStatus status;
+    memset(&status, 0, sizeof(status));
+    np2dn_debug_get_status(&status);
+    return status.stop_emulation != 0;
+}
 
 static void np2dn_pc98_copy_string(char *destination, size_t capacity,
                                    const char *source)
@@ -745,6 +754,12 @@ static NP2DN_DialogueResult np2dn_pc98_poll(
     if (np2jump_count() != cp->jump_count_before) {
         return NP2DN_DIALOGUE_RESULT_DONE;
     }
+    if (!np2jump_is_armed()) {
+        return NP2DN_DIALOGUE_RESULT_ERROR;
+    }
+    if (np2dn_pc98_emulator_paused()) {
+        return NP2DN_DIALOGUE_RESULT_PENDING;
+    }
     if ((uint32_t)(GetTickCount() - cp->start_tick) >
         NP2DN_PC98_JUMP_TIMEOUT_MS) {
         np2jump_disarm();
@@ -776,7 +791,8 @@ static NP2DN_DialogueResult np2dn_pc98_verify(
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
     if ((uint32_t)(GetTickCount() - cp->start_tick) >
-        NP2DN_PC98_JUMP_TIMEOUT_MS) {
+            NP2DN_PC98_JUMP_TIMEOUT_MS &&
+        !np2dn_pc98_emulator_paused()) {
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
     if (np2jump_count() == cp->jump_count_before ||
@@ -878,7 +894,8 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
     if ((uint32_t)(GetTickCount() - cp->rollback_start_tick) >
-        NP2DN_PC98_JUMP_TIMEOUT_MS) {
+            NP2DN_PC98_JUMP_TIMEOUT_MS &&
+        !np2dn_pc98_emulator_paused()) {
         np2jump_disarm();
         s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_ERROR;
