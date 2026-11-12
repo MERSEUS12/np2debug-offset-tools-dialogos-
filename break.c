@@ -356,9 +356,41 @@ static BOOL		np2track_valid = FALSE;
 
 void np2track_setseg(UINT16 es)
 {
-	if (es >= 0x100) {
+	if (es >= 0x100 && es != np2track_es) {
 		np2track_es = es;
+		np2track_esi = 0;
+		np2track_valid = FALSE;
 	}
+}
+
+UINT16 np2track_getseg(void)
+{
+	return np2track_es;
+}
+
+BOOL np2track_loaded_script_info(UINT16 es, UINT16 *base_offset,
+                                 UINT32 *length, char *name, UINT name_max)
+{
+	NP2DN_DosFileInfo info;
+	UINT i;
+
+	if (!np2dn_dos_file_tracker_get_loaded_segment(es, &info)) {
+		return FALSE;
+	}
+	if (base_offset) {
+		*base_offset = info.base_offset;
+	}
+	if (length) {
+		*length = info.file_size;
+	}
+	if (name && name_max) {
+		for (i = 0; (i + 1 < name_max) &&
+		            (i + 1 < NP2DN_DOS_FILE_NAME_MAX) && info.name[i]; i++) {
+			name[i] = info.name[i];
+		}
+		name[i] = '\0';
+	}
+	return TRUE;
 }
 
 // called once per emulated instruction: remember the last wait at a "\HA" command
@@ -381,22 +413,34 @@ static void np2track_step(void)
 BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT textmax)
 {
 	UINT32	base;
+	UINT32	start;
+	UINT32	end;
 	UINT32	i;
 	UINT32	last;
 	int		n;
 	UINT	k;
+	NP2DN_DosFileInfo info;
 
 	if (!np2track_valid) {
 		return FALSE;
 	}
 	base = (UINT32)np2track_es << 4;
+	start = 0;
+	end = 0x10000;
+	if (np2dn_dos_file_tracker_get_loaded_segment(np2track_es, &info)) {
+		start = info.base_offset;
+		end = start + info.file_size;
+		if (np2track_esi < start || np2track_esi >= end) {
+			return FALSE;
+		}
+	}
 	n = 0;
-	last = 0;
-	for (i = 1; (i + 1) < np2track_esi; i++) {
+	last = start;
+	for (i = start + 1; (i + 1) < np2track_esi && i < end; i++) {
 		if ((memp_read8(base + i) == 0x18) &&
 			((memp_read8(base + i + 1) == 1) || (memp_read8(base + i + 1) == 2))) {
 			UINT8 p = memp_read8(base + i - 1);
-			if ((p == 0x00) || (p == 0x01) || (p == 0x45)) {		// same rule as the extractor
+			if ((p == 0x00) || (p == 0x01) || (p == 0x45)) {
 				n++;
 				last = i;
 			}
@@ -405,12 +449,20 @@ BOOL np2track_current(UINT32 *esi, int *id, UINT32 *blockstart, char *text, UINT
 	*esi = np2track_esi;
 	*id = n - 1;
 	*blockstart = last;
-	k = 0;
-	if (text) {
-		for (i = last + 2; (i < np2track_esi) && ((k + 1) < textmax); i++) {
+	if (text && textmax) {
+		k = 0;
+		for (i = last + 2; (i + 1) < np2track_esi &&
+						 i < end && ((k + 1) < textmax); i++) {
 			UINT8 c = memp_read8(base + i);
 			if (c == '\\') {
-				break;					// the control suffix (\HA...) starts here
+				if ((i + 2) < np2track_esi &&
+					memp_read8(base + i + 1) == 'C' &&
+					memp_read8(base + i + 2) == 'R') {
+					text[k++] = '\n';
+					i += 2;
+					continue;
+				}
+				break;
 			}
 			text[k++] = ((c >= 0x20) && (c < 0x7f)) ? (char)c : '.';
 		}
