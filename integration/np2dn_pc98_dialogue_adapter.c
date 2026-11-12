@@ -31,9 +31,11 @@ typedef struct NP2DN_PC98Checkpoint {
     uint32_t rollback_start_tick;
     uint64_t composition_generation_before;
     uint32_t host_present_generation_before;
+    uint32_t text_generation_before;
+    uint8_t target_visible_before;
     uint8_t apply_started;
     uint8_t rollback_started;
-    uint8_t reserved[2];
+    uint8_t reserved;
 } NP2DN_PC98Checkpoint;
 
 static uint8_t s_script_data[NP2DN_PC98_SCRIPT_BUFFER_SIZE];
@@ -669,6 +671,7 @@ static int np2dn_pc98_prepare(
     uint32_t target_block_start;
     int current_id;
     int current_index;
+    int target_index;
     uint16_t target_segment;
     uint32_t target_esi;
 
@@ -688,11 +691,14 @@ static int np2dn_pc98_prepare(
     }
 
     current_index = np2dn_pc98_find_ordinal(current_id);
-    if (current_index < 0 ||
+    target_index = np2dn_pc98_find_catalog_entry(target->dialogue_id);
+    if (current_index < 0 || target_index < 0 ||
         current_block != s_base_offset +
                          s_script_entries[current_index].block_start ||
         strcmp(current->dialogue_id,
-               s_catalog_entries[current_index].dialogue_id) != 0) {
+               s_catalog_entries[current_index].dialogue_id) != 0 ||
+        (s_script_entries[target_index].flags &
+         NP2DN_PC98_SCRIPT_ENTRY_TEXT_TRUNCATED) != 0) {
         return 0;
     }
 
@@ -708,6 +714,10 @@ static int np2dn_pc98_prepare(
     np2dn_pc98_text_observer_get_status(&observer);
     cp.composition_generation_before = observer.composition_generation;
     cp.host_present_generation_before = observer.host_present_generation;
+    cp.text_generation_before = observer.text_generation;
+    cp.target_visible_before = (uint8_t)np2dn_pc98_observer_contains_text(
+        s_script_entries[target_index].text,
+        s_script_entries[target_index].text_length);
     memset(checkpoint, 0, NP2DN_DIALOGUE_CHECKPOINT_MAX);
     memcpy(checkpoint, &cp, sizeof(cp));
     s_active_checkpoint = cp;
