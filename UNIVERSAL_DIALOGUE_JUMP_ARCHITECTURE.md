@@ -205,12 +205,13 @@ Un adaptador solo declara un salto exitoso cuando:
 
 ### 9.1 Contrato obligatorio de continuidad del núcleo (API v2)
 
-El núcleo universal ahora exige que todo adaptador anuncie `NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY`, además de la verificación de presentación. La instantánea posterior debe marcar:
+El núcleo universal ahora exige que todo adaptador anuncie `NP2DN_DIALOGUE_CAP_VERIFY_STATE`, `NP2DN_DIALOGUE_CAP_VERIFY_UI` y `NP2DN_DIALOGUE_CAP_VERIFY_CONTINUITY`. La instantánea posterior debe marcar:
 
+- `NP2DN_DIALOGUE_SNAPSHOT_STATE_VERIFIED`: el motor adoptó el destino y el adaptador comprobó su estado interno relevante.
 - `NP2DN_DIALOGUE_SNAPSHOT_PRESENTED`: el diálogo seleccionado quedó activo y fue incluido en la composición de presentación que el adaptador puede demostrar.
 - `NP2DN_DIALOGUE_SNAPSHOT_CONTINUATION_READY`: el estado del intérprete/motor es coherente y puede recibir la siguiente acción normal del juego desde el destino.
 
-Si falta la primera señal, el salto falla como no verificado. Si la presentación está confirmada pero falta continuidad, el núcleo informa `NP2DN_DIALOGUE_ERROR_CONTINUITY_FAILED` y solicita rollback cuando el adaptador lo soporte. Ninguna de estas señales se puede sustituir por un cambio de puntero o registro.
+Si falta la verificación de estado o la señal de presentación, el salto falla como no verificado. Si ambas están confirmadas pero falta continuidad, el núcleo informa `NP2DN_DIALOGUE_ERROR_CONTINUITY_FAILED` y solicita rollback cuando el adaptador lo soporte. Ninguna de estas señales se puede sustituir por un cambio de puntero o registro.
 
 El callback `prepare` es responsable de preparar el contexto necesario para entrar en el diálogo seleccionado (variables, flags, escena, decisiones y estado del intérprete que el juego requiera). El callback `verify` no puede marcar continuidad lista hasta confirmar el punto de espera/avance normal correspondiente al motor. El núcleo no inventa ni modifica esos datos: cada adaptador debe conocerlos.
 
