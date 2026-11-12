@@ -6,6 +6,7 @@
 #include	"sdraw.h"
 #include	"dispsync.h"
 #include	"palettes.h"
+#include	"../integration/np2dn_pc98_text_observer.h"
 
 
 	UINT8	renewal_line[SURFACE_HEIGHT];
@@ -27,6 +28,7 @@ static void updateallline(UINT32 update) {
 
 void scrndraw_initialize(void) {
 
+	np2dn_pc98_text_observer_reset();
 	ZeroMemory(np2_tram, sizeof(np2_tram));
 	ZeroMemory(np2_vram, sizeof(np2_vram));
 	updateallline(0x80808080);
@@ -44,7 +46,8 @@ void scrndraw_changepalette(void) {
 	updateallline(0x80808080);
 }
 
-static UINT8 rasterdraw(SDRAWFN sdrawfn, SDRAW sdraw, int maxy) {
+static UINT8 rasterdraw(SDRAWFN sdrawfn, SDRAW sdraw, int maxy,
+                         int *draw_invoked) {
 
 	RGB32		pal[16];
 	SINT32		clk;
@@ -53,6 +56,9 @@ static UINT8 rasterdraw(SDRAWFN sdrawfn, SDRAW sdraw, int maxy) {
 	int			nextupdate;
 	int			y;
 
+	if (draw_invoked != NULL) {
+		*draw_invoked = 0;
+	}
 	TRACEOUT(("rasterdraw: maxy = %d", maxy));
 	CopyMemory(pal, palevent.pal, sizeof(pal));
 	clk = maxy;
@@ -83,6 +89,9 @@ static UINT8 rasterdraw(SDRAWFN sdrawfn, SDRAW sdraw, int maxy) {
 #endif
 			}
 			(*sdrawfn)(sdraw, y);
+			if (draw_invoked != NULL) {
+				*draw_invoked = 1;
+			}
 			nextupdate = y;
 			// お弁当を食べる
 			while(clk < event->clock) {
@@ -109,6 +118,9 @@ static UINT8 rasterdraw(SDRAWFN sdrawfn, SDRAW sdraw, int maxy) {
 #endif
 		}
 		(*sdrawfn)(sdraw, maxy);
+		if (draw_invoked != NULL) {
+			*draw_invoked = 1;
+		}
 	}
 	if (palevent.vsyncpal) {
 		return(2);
@@ -133,6 +145,7 @@ const SDRAWFN	*sdrawfn;
 	UINT8		bit;
 	int			i;
 	int			height;
+	int			draw_invoked;
 
 	if (redraw) {
 		updateallline(0x80808080);
@@ -236,9 +249,13 @@ const SDRAWFN	*sdrawfn;
 	sdraw.yalign = surf->yalign;
 	if (((gdc.analog & 3) != 1) || (palevent.events >= PALEVENTMAX)) {
 		(*(*sdrawfn))(&sdraw, height);
+		draw_invoked = 1;
 	}
 	else {
-		ret = rasterdraw(*sdrawfn, &sdraw, height);
+		ret = rasterdraw(*sdrawfn, &sdraw, height, &draw_invoked);
+	}
+	if (draw_invoked) {
+		np2dn_pc98_text_observer_record_composition((UINT8)(bit & 7));
 	}
 
 sddr_exit2:
