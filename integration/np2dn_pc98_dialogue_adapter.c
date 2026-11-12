@@ -1,6 +1,6 @@
 #include "np2dn_pc98_dialogue_adapter.h"
 
-#include "../compiler.h"
+#include "../win9x/compiler.h"
 #include "../break.h"
 #include "../cpucore.h"
 #include "np2dn_dialogue_core.h"
