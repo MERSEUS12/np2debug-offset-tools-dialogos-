@@ -656,21 +656,33 @@ static int np2dn_pc98_prepare(
     NP2DN_PC98TextObserverStatus observer;
     uint32_t current_esi;
     uint32_t current_block;
+    uint32_t target_block_start;
     int current_id;
+    int current_index;
     uint16_t target_segment;
     uint32_t target_esi;
 
     (void)context;
     if (current == NULL || target == NULL || checkpoint == NULL ||
-        np2jump_is_armed() ||
+        np2jump_is_armed() || !np2dn_pc98_build_catalog(0) ||
         !np2dn_pc98_decode_locator(target, &target_segment, NULL,
-                                   &target_esi, &cp.target_block_start,
+                                   &target_esi, &target_block_start,
                                    NULL, NULL) ||
         !np2track_current(&current_esi, &current_id, &current_block,
                           NULL, 0) ||
         target_segment != np2track_getseg() ||
         current_esi == target_esi ||
-        strcmp(current->scene_id, target->scene_id) != 0) {
+        strcmp(current->scene_id, target->scene_id) != 0 ||
+        current->generation != s_catalog_generation) {
+        return 0;
+    }
+
+    current_index = np2dn_pc98_find_ordinal(current_id);
+    if (current_index < 0 ||
+        current_block != s_base_offset +
+                         s_script_entries[current_index].block_start ||
+        strcmp(current->dialogue_id,
+               s_catalog_entries[current_index].dialogue_id) != 0) {
         return 0;
     }
 
@@ -680,7 +692,7 @@ static int np2dn_pc98_prepare(
     cp.target_segment = target_segment;
     cp.old_esi = current_esi;
     cp.target_esi = target_esi;
-    cp.target_block_start = np2dn_pc98_read_u32(target->locator + 8);
+    cp.target_block_start = target_block_start;
     cp.jump_count_before = np2jump_count();
     cp.start_tick = GetTickCount();
     np2dn_pc98_text_observer_get_status(&observer);
@@ -688,6 +700,7 @@ static int np2dn_pc98_prepare(
     cp.host_present_generation_before = observer.host_present_generation;
     memset(checkpoint, 0, NP2DN_DIALOGUE_CHECKPOINT_MAX);
     memcpy(checkpoint, &cp, sizeof(cp));
+    s_active_checkpoint = cp;
     return 1;
 }
 
