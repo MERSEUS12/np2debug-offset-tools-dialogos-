@@ -147,6 +147,7 @@
     <ClCompile Include="..\break.c" />
     <ClCompile Include="..\integration\np2dn_debug_api.c" />
     <ClCompile Include="..\integration\np2dn_pc98_text_observer.c" />
+    <ClCompile Include="..\integration\np2dn_pc98_script_catalog.c" />
     <ClCompile Include="..\integration\np2dn_dialogue_core.c" />
     <ClCompile Include="..\integration\np2dn_command_queue.c" />
     <ClCompile Include="..\integration\np2dn_ipc_win32.c" />
@@ -504,6 +505,7 @@
     <ClInclude Include="..\break.h" />
     <ClInclude Include="..\integration\np2dn_debug_api.h" />
     <ClInclude Include="..\integration\np2dn_pc98_text_observer.h" />
+    <ClInclude Include="..\integration\np2dn_pc98_script_catalog.h" />
     <ClInclude Include="..\integration\np2dn_dialogue_core.h" />
     <ClInclude Include="..\integration\np2dn_command_queue.h" />
     <ClInclude Include="..\integration\np2dn_ipc.h" />
