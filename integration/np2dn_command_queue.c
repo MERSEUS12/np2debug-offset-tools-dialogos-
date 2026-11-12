@@ -489,8 +489,12 @@ void np2dn_command_queue_pump(void)
             else result = 0;
         }
         else if (command.type == NP2DN_CMD_DIALOGUE_JUMP_REQUEST) {
+            uint64_t expected_generation =
+                (uint64_t)command.a | ((uint64_t)command.b << 32);
             result = (command.script_name[0] != '\0' &&
-                      np2dn_dialogue_jump_request(command.script_name)) ? 1 : -1;
+                      expected_generation != 0 &&
+                      np2dn_dialogue_jump_request(command.script_name,
+                                                  expected_generation)) ? 1 : -1;
         }
         else if (command.type == NP2DN_CMD_DIALOGUE_JUMP_CANCEL) {
             np2dn_dialogue_cancel();
