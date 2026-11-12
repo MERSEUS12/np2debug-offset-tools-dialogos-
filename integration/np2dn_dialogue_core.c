@@ -257,12 +257,16 @@ int np2dn_dialogue_catalog_refresh(void)
         if (capacity > NP2DN_DIALOGUE_CATALOG_PAGE_MAX) {
             capacity = NP2DN_DIALOGUE_CATALOG_PAGE_MAX;
         }
+        if (capacity > expected_total - offset) {
+            capacity = expected_total - offset;
+        }
         memset(page, 0, sizeof(page));
         returned = 0;
         if (slot->adapter.enumerate(slot->context, offset, capacity,
                                     page, &returned, &total,
                                     &generation) != 1 ||
             returned == 0 || returned > capacity ||
+            returned > expected_total - offset ||
             total != expected_total || generation != expected_generation) {
             return 0;
         }
