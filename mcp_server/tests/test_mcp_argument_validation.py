@@ -85,7 +85,7 @@ class McpArgumentValidationTests(unittest.TestCase):
                 )
 
     def test_universal_dialogue_jump_rejects_empty_or_nul_id_before_ipc(self):
-        for dialogue_id in ("", "SCENE#1\\0bad", None):
+        for dialogue_id in ("", "SCENE#1\0bad", None):
             with self.subTest(dialogue_id=dialogue_id):
                 self.assert_rejected_before_ipc(
                     server.dialogue_jump_request, dialogue_id
