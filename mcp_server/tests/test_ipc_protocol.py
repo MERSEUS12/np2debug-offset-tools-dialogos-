@@ -118,6 +118,11 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(server.CMD_CURRENT_INSTRUCTION, 22)
         self.assertEqual(server.CMD_CPU_REGISTERS, 23)
         self.assertEqual(server.CMD_BREAKPOINTS_LIST, 24)
+        self.assertEqual(server.CMD_DIALOGUE_CATALOG_REFRESH, 25)
+        self.assertEqual(server.CMD_DIALOGUE_CATALOG_GET, 26)
+        self.assertEqual(server.CMD_DIALOGUE_JUMP_REQUEST, 27)
+        self.assertEqual(server.CMD_DIALOGUE_JUMP_CANCEL, 28)
+        self.assertEqual(server.CMD_DIALOGUE_STATUS_QUERY, 29)
 
     def test_breakpoint_list_payload_layout(self):
         entries = [(0x12345, 0x04), (0x23456, 0x0B)]
