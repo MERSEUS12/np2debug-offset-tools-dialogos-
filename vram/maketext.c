@@ -65,6 +65,7 @@ void maketext_initialize(void) {
 
 void maketext_reset(void) {
 
+	np2dn_pc98_text_observer_reset();
 	ZeroMemory(&tramflag, sizeof(tramflag));
 }
 
