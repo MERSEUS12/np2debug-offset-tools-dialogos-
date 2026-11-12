@@ -6,6 +6,7 @@
 
 #include "np2.h"
 #include "np2dn_command_queue.h"
+#include "np2dn_dialogue_core.h"
 
 HWND g_hWndMain = NULL;
 
@@ -137,6 +138,74 @@ static void test_executing_cancel(void)
           "queue did not recover after abandoned execution");
 }
 
+static void test_dialogue_commands(void)
+{
+    NP2DN_Command command;
+    uint32_t id;
+    uint32_t length = 0;
+    int32_t result = 0;
+    uint8_t payload[256];
+
+    ZeroMemory(&command, sizeof(command));
+    command.type = NP2DN_CMD_DIALOGUE_CATALOG_REFRESH;
+    id = np2dn_command_submit(&command);
+    CHECK(id != 0, "dialogue catalogue refresh command was rejected");
+    drain_wake_messages();
+    np2dn_command_queue_pump();
+    CHECK(np2dn_command_poll_memory(id, &result, &length,
+                                    payload, sizeof(payload)) == 1,
+          "dialogue catalogue refresh result was not published");
+    CHECK(result == 1 && length == 13 &&
+          payload[0] == 1 && payload[4] == 0x78,
+          "dialogue catalogue refresh payload was incorrect");
+
+    ZeroMemory(&command, sizeof(command));
+    command.type = NP2DN_CMD_DIALOGUE_CATALOG_GET;
+    command.a = 0;
+    id = np2dn_command_submit(&command);
+    CHECK(id != 0, "dialogue catalogue get command was rejected");
+    drain_wake_messages();
+    np2dn_command_queue_pump();
+    CHECK(np2dn_command_poll_memory(id, &result, &length,
+                                    payload, sizeof(payload)) == 1,
+          "dialogue catalogue entry result was not published");
+    CHECK(result == 1 && length == 6 + 9 + 11 &&
+          memcmp(payload + 6, "SCENE.M#0", 9) == 0 &&
+          memcmp(payload + 15, "Hello world", 11) == 0,
+          "dialogue catalogue entry payload was incorrect");
+
+    ZeroMemory(&command, sizeof(command));
+    command.type = NP2DN_CMD_DIALOGUE_JUMP_REQUEST;
+    strcpy(command.script_name, "SCENE.M#0");
+    id = np2dn_command_submit(&command);
+    CHECK(id != 0, "universal dialogue jump request was rejected");
+    drain_wake_messages();
+    np2dn_command_queue_pump();
+    CHECK(np2dn_command_poll(id, &result) == 1 && result == 1,
+          "universal dialogue jump request did not complete");
+
+    ZeroMemory(&command, sizeof(command));
+    command.type = NP2DN_CMD_DIALOGUE_STATUS_QUERY;
+    id = np2dn_command_submit(&command);
+    CHECK(id != 0, "dialogue status query was rejected");
+    drain_wake_messages();
+    np2dn_command_queue_pump();
+    CHECK(np2dn_command_poll_memory(id, &result, &length,
+                                    payload, sizeof(payload)) == 1,
+          "dialogue status payload was not published");
+    CHECK(result == 1 && length == 28,
+          "dialogue status payload length was incorrect");
+
+    ZeroMemory(&command, sizeof(command));
+    command.type = NP2DN_CMD_DIALOGUE_JUMP_CANCEL;
+    id = np2dn_command_submit(&command);
+    CHECK(id != 0, "dialogue jump cancel command was rejected");
+    drain_wake_messages();
+    np2dn_command_queue_pump();
+    CHECK(np2dn_command_poll(id, &result) == 1 && result == 1,
+          "dialogue jump cancel did not complete");
+}
+
 static void test_capacity_and_reuse(void)
 {
     uint32_t ids[NP2DN_QUEUE_CAPACITY];
@@ -163,6 +232,7 @@ int main(void)
     test_pending_cancel();
     test_completed_cancel();
     test_executing_cancel();
+    test_dialogue_commands();
     test_capacity_and_reuse();
 
     CHECK(np2dn_command_queue_init() == 1, "queue re-init failed");
@@ -219,6 +289,33 @@ int np2dn_debug_current_instruction(uint8_t *a, uint32_t b, uint32_t *c) { (void
 int np2dn_debug_cpu_registers(uint8_t *a, uint32_t b, uint32_t *c) { (void)a;(void)b;(void)c;return 0; }
 uint32_t np2dn_breakpoint_count(void) { return 0; }
 int np2dn_breakpoint_get(uint32_t a, uint32_t *b, uint8_t *c) { (void)a;(void)b;(void)c;return 0; }
+
+
+/* Dialogue-core stubs keep this queue test independent of the emulator core. */
+uint32_t np2dn_dialogue_adapter_count(void) { return 0; }
+int np2dn_dialogue_catalog_refresh(void) { return 1; }
+uint32_t np2dn_dialogue_catalog_count(void) { return 1; }
+uint64_t np2dn_dialogue_catalog_generation(void) { return 0x12345678ULL; }
+int np2dn_dialogue_catalog_is_truncated(void) { return 0; }
+int np2dn_dialogue_catalog_get(uint32_t index, NP2DN_DialogueCatalogEntry *entry)
+{
+    if (index != 0 || entry == NULL) return 0;
+    ZeroMemory(entry, sizeof(*entry));
+    strcpy(entry->dialogue_id, "SCENE.M#0");
+    strcpy(entry->scene_id, "SCENE.M");
+    strcpy(entry->text, "Hello world");
+    return 1;
+}
+int np2dn_dialogue_jump_request(const char *dialogue_id)
+{
+    return dialogue_id != NULL && strcmp(dialogue_id, "SCENE.M#0") == 0;
+}
+void np2dn_dialogue_cancel(void) {}
+void np2dn_dialogue_tick(void) {}
+void np2dn_dialogue_get_status(NP2DN_DialogueStatus *status)
+{
+    if (status != NULL) ZeroMemory(status, sizeof(*status));
+}
 
 /* Keep this harness standalone: emulator APIs are intentionally stubbed. */
 
