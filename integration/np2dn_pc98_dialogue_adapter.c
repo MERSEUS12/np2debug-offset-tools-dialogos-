@@ -748,9 +748,9 @@ static NP2DN_DialogueResult np2dn_pc98_apply(
         return NP2DN_DIALOGUE_RESULT_ERROR;
     }
 
-    /* Enter at the first text byte, not at the trailing HA wait token.
-     * The interpreter must execute the target text and reach its own wait. */
-    entry_esi = target_block_start + 2u;
+    /* Re-enter at the block header, not at its trailing HA wait token.
+     * The interpreter must process the marker, render the text and reach its own wait. */
+    entry_esi = target_block_start;
     cp->jump_count_before = np2jump_count();
     cp->start_tick = GetTickCount();
     cp->apply_started = 1;
@@ -892,8 +892,8 @@ static NP2DN_DialogueResult np2dn_pc98_rollback(
         cp->rollback_started = 1;
         cp->rollback_count_before = np2jump_count();
         cp->rollback_start_tick = GetTickCount();
-        /* Re-run the previous dialogue so rollback restores both text and flow. */
-        np2jump_arm(cp->old_segment, cp->old_block_start + 2u, NULL, 0);
+        /* Re-run the previous block so rollback restores both text and flow. */
+        np2jump_arm(cp->old_segment, cp->old_block_start, NULL, 0);
         s_active_checkpoint = *cp;
         return NP2DN_DIALOGUE_RESULT_PENDING;
     }
