@@ -228,7 +228,7 @@ int np2dn_dialogue_catalog_refresh(void)
             slot->context, 0, NP2DN_DIALOGUE_CATALOG_PAGE_MAX,
             g_catalog_staging, &returned, &total, &generation) != 1 ||
         returned > NP2DN_DIALOGUE_CATALOG_PAGE_MAX ||
-        returned > total) {
+        returned > total || (total != 0 && returned == 0)) {
         return 0;
     }
     expected_total = total;
