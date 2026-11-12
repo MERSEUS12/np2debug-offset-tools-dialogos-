@@ -74,3 +74,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & integration/tests/pc98_script_catalog_unit/pc98_script_catalog_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Probar tracker de archivos DOS
+        shell: pwsh
+        run: |
+          cl /nologo /W4 /I integration integration/tests/dos_file_tracker_unit/test_dos_file_tracker.c integration/np2dn_dos_file_tracker.c /Fe:integration/tests/dos_file_tracker_unit/dos_file_tracker_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & integration/tests/dos_file_tracker_unit/dos_file_tracker_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
