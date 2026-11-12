@@ -41,6 +41,11 @@ CMD_JUMP_TRACE = 21
 CMD_CURRENT_INSTRUCTION = 22
 CMD_CPU_REGISTERS = 23
 CMD_BREAKPOINTS_LIST = 24
+CMD_DIALOGUE_CATALOG_REFRESH = 25
+CMD_DIALOGUE_CATALOG_GET = 26
+CMD_DIALOGUE_JUMP_REQUEST = 27
+CMD_DIALOGUE_JUMP_CANCEL = 28
+CMD_DIALOGUE_STATUS_QUERY = 29
 
 mcp = FastMCP("np2debug-next")
 
@@ -147,6 +152,13 @@ def _send_command(
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
     if command_type == CMD_DIALOGUE_CURRENT and result not in (0, 1):
         raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
+    if command_type in (CMD_DIALOGUE_CATALOG_REFRESH, CMD_DIALOGUE_CATALOG_GET,
+                        CMD_DIALOGUE_STATUS_QUERY) and result != 1:
+        raise RuntimeError("El emulador no pudo completar la consulta del catálogo/estado de diálogos")
+    if command_type == CMD_DIALOGUE_JUMP_REQUEST and result != 1:
+        raise RuntimeError("El núcleo rechazó la solicitud de salto de diálogo")
+    if command_type == CMD_DIALOGUE_JUMP_CANCEL and result != 1:
+        raise RuntimeError("El núcleo no pudo cancelar la operación de salto")
     if command_type in (CMD_SCENE_HISTORY, CMD_JUMP_TRACE) and result != 1:
         raise RuntimeError("Respuesta IPC inválida para historial de escenas")
     if command_type in (CMD_CURRENT_INSTRUCTION, CMD_CPU_REGISTERS) and result != 1:
@@ -210,6 +222,154 @@ def dialogue_current() -> str:
         "text_note": "Los bytes no imprimibles o fuera de ASCII se representan como puntos; no es una decodificación Shift-JIS.",
         "command_id": response.get("command_id"),
     }, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_catalog_refresh() -> str:
+    """Reconstruye el catálogo de diálogos del script activo y devuelve su generación."""
+    response = json.loads(_send_command(CMD_DIALOGUE_CATALOG_REFRESH))
+    payload = bytes.fromhex(response.get("payload_hex", ""))
+    if len(payload) != 13:
+        raise RuntimeError("Respuesta inválida al actualizar el catálogo de diálogos")
+    count = struct.unpack_from("<I", payload, 0)[0]
+    generation = struct.unpack_from("<Q", payload, 4)[0]
+    truncated = bool(payload[12])
+    return json.dumps({
+        "count": count,
+        "generation": generation,
+        "truncated": truncated,
+        "adapter": "pc98-ha-script",
+        "note": "El catálogo corresponde al script activo detectado; la API universal mantiene IDs y localizadores opacos al núcleo.",
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_catalog_entry(index: int) -> str:
+    """Obtiene un diálogo del catálogo por índice, incluyendo su ID estable y texto UTF-8."""
+    index = _u32(index, "index")
+    response = json.loads(_send_command(CMD_DIALOGUE_CATALOG_GET, index))
+    payload = bytes.fromhex(response.get("payload_hex", ""))
+    if len(payload) < 6:
+        raise RuntimeError("Payload incompleto para la entrada del catálogo")
+    id_length, text_length, flags = struct.unpack_from("<BBI", payload, 0)
+    if len(payload) != 6 + id_length + text_length:
+        raise RuntimeError("Longitudes incoherentes en la entrada del catálogo")
+    try:
+        dialogue_id = payload[6:6 + id_length].decode("ascii")
+        dialogue_text = payload[6 + id_length:].decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("El catálogo devolvió un ID o texto con codificación inválida") from exc
+    return json.dumps({
+        "index": index,
+        "dialogue_id": dialogue_id,
+        "text": dialogue_text,
+        "text_encoding": "UTF-8",
+        "truncated": bool(flags & 1),
+        "flags": flags,
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_catalog(offset: int = 0, limit: int = 32, refresh: bool = True) -> str:
+    """Lista una página del catálogo activo. Límite máximo: 128 diálogos por consulta."""
+    offset = _u32(offset, "offset")
+    limit = _u32(limit, "limit")
+    if limit < 1 or limit > 128:
+        raise ValueError("limit debe estar entre 1 y 128")
+    catalog = json.loads(dialogue_catalog_refresh()) if refresh else None
+    entries = []
+    for index in range(offset, offset + limit):
+        response = json.loads(_send_command(CMD_DIALOGUE_CATALOG_GET, index))
+        if response.get("result") == 0:
+            break
+        payload = bytes.fromhex(response.get("payload_hex", ""))
+        if len(payload) < 6:
+            raise RuntimeError("Payload incompleto para la entrada del catálogo")
+        id_length, text_length, flags = struct.unpack_from("<BBI", payload, 0)
+        if len(payload) != 6 + id_length + text_length:
+            raise RuntimeError("Longitudes incoherentes en la entrada del catálogo")
+        try:
+            dialogue_id = payload[6:6 + id_length].decode("ascii")
+            dialogue_text = payload[6 + id_length:].decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise RuntimeError("El catálogo devolvió un ID o texto con codificación inválida") from exc
+        entries.append({
+            "index": index,
+            "dialogue_id": dialogue_id,
+            "text": dialogue_text,
+            "truncated": bool(flags & 1),
+        })
+    return json.dumps({
+        "catalog": catalog,
+        "offset": offset,
+        "returned": len(entries),
+        "entries": entries,
+        "next_offset": offset + len(entries) if len(entries) == limit else None,
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_jump_request(dialogue_id: str) -> str:
+    """Solicita un salto universal a un ID del catálogo; el núcleo verifica estado, presentación y continuidad."""
+    if not isinstance(dialogue_id, str) or not dialogue_id or "\\0" in dialogue_id:
+        raise ValueError("dialogue_id no puede estar vacío ni contener NUL")
+    return _send_command(CMD_DIALOGUE_JUMP_REQUEST, script_name=dialogue_id)
+
+
+@mcp.tool()
+def dialogue_jump_status() -> str:
+    """Devuelve el estado de la máquina de salto, incluida la verificación de continuidad."""
+    response = json.loads(_send_command(CMD_DIALOGUE_STATUS_QUERY))
+    payload = bytes.fromhex(response.get("payload_hex", ""))
+    if len(payload) < 28:
+        raise RuntimeError("Payload incompleto del estado de salto")
+    state, error, ticks, adapter_index = struct.unpack_from("<IIII", payload, 0)
+    rollback_available = bool(payload[16])
+    before_flags, after_flags = struct.unpack_from("<II", payload, 17)
+    adapter_len, requested_len, resolved_len = payload[25:28]
+    if len(payload) != 28 + adapter_len + requested_len + resolved_len:
+        raise RuntimeError("Longitudes incoherentes en el estado de salto")
+    pos = 28
+    try:
+        adapter = payload[pos:pos + adapter_len].decode("ascii")
+        pos += adapter_len
+        requested = payload[pos:pos + requested_len].decode("utf-8")
+        pos += requested_len
+        resolved = payload[pos:pos + resolved_len].decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("Codificación inválida en el estado de salto") from exc
+    states = ["IDLE", "OBSERVING", "RESOLVING", "VALIDATING", "PREPARING",
+              "APPLYING", "VERIFYING", "ROLLING_BACK", "SUCCEEDED", "FAILED",
+              "CANCELLED"]
+    errors = ["NONE", "NO_ADAPTER", "INVALID_ARGUMENT", "BUSY",
+              "OBSERVE_FAILED", "TARGET_NOT_FOUND", "VALIDATION_FAILED",
+              "PREPARE_FAILED", "APPLY_FAILED", "VERIFY_FAILED",
+              "CONTINUITY_FAILED", "ROLLBACK_FAILED", "ADAPTER_CONTRACT"]
+    return json.dumps({
+        "state": states[state] if state < len(states) else f"UNKNOWN_{state}",
+        "state_code": state,
+        "error": errors[error] if error < len(errors) else f"UNKNOWN_{error}",
+        "error_code": error,
+        "tick_count": ticks,
+        "adapter_index": adapter_index,
+        "adapter_id": adapter,
+        "requested_dialogue_id": requested,
+        "resolved_dialogue_id": resolved,
+        "rollback_available": rollback_available,
+        "before_flags": before_flags,
+        "after_flags": after_flags,
+        "proof": {
+            "state_verified": bool(after_flags & 1),
+            "presented": bool(after_flags & 2),
+            "continuation_ready": bool(after_flags & 4),
+        },
+    }, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_jump_cancel() -> str:
+    """Cancela la operación de salto universal en curso."""
+    return _send_command(CMD_DIALOGUE_JUMP_CANCEL)
 
 
 @mcp.tool()
