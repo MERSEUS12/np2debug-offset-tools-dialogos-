@@ -16,6 +16,7 @@
 #include "winloc.h"
 #include "mousemng.h"
 #include "scrnmng.h"
+#include "../integration/np2dn_pc98_text_observer.h"
 #include "sysmng.h"
 #include "menu.h"
 #include "np2class.h"
@@ -818,6 +819,7 @@ void scrnmng_update(void) {
 	RECT	*rect;
 	RECT	*scrn;
 	HRESULT	r;
+	BOOL	presented = FALSE;
 
 	if (scrnmng.palchanged) {
 		scrnmng.palchanged = FALSE;
@@ -863,11 +865,13 @@ void scrnmng_update(void) {
 			if (r == DDERR_SURFACELOST) {
 				ddraw.backsurf->Restore();
 				ddraw.primsurf->Restore();
-				ddraw.primsurf->Blt(&dst, ddraw.backsurf, &ddraw.rect,
+				r = ddraw.primsurf->Blt(&dst, ddraw.backsurf, &ddraw.rect,
 														DDBLT_WAIT, NULL);
 			}
 		}
+		presented = (r == DD_OK);
 	}
+	np2dn_pc98_text_observer_record_host_presented(presented);
 }
 
 
