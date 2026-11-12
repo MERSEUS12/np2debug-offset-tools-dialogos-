@@ -21,7 +21,7 @@ void np2dn_pc98_text_observer_reset(void)
     np2dn_pc98_text_next_generation(&s_status.geometry_generation);
 }
 
-void np2dn_pc98_text_observer_invalidate_all(void)
+void np2dn_pc98_text_observer_begin_full_redraw(void)
 {
     uint32_t i;
 
@@ -30,6 +30,11 @@ void np2dn_pc98_text_observer_invalidate_all(void)
     }
     s_status.valid_cell_count = 0;
     np2dn_pc98_text_next_generation(&s_status.text_generation);
+}
+
+void np2dn_pc98_text_observer_invalidate_all(void)
+{
+    np2dn_pc98_text_observer_begin_full_redraw();
     np2dn_pc98_text_next_generation(&s_status.geometry_generation);
 }
 
