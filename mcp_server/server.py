@@ -242,6 +242,8 @@ def dialogue_tracker_status() -> str:
                 "vector_segment_hex": f"0x{values[23]:04X}",
                 "cs_base": values[24],
                 "cs_base_hex": f"0x{values[24]:05X}",
+                "cs_base_plus_eip_linear": (values[24] + values[26]) & 0xFFFFFFFF,
+                "cs_base_plus_eip_linear_hex": f"0x{((values[24] + values[26]) & 0xFFFFFFFF):05X}",
                 "cpu_cs": values[25],
                 "cpu_cs_hex": f"0x{values[25]:04X}",
                 "cpu_eip": values[26],
