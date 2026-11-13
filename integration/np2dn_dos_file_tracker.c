@@ -120,6 +120,25 @@ void np2dn_dos_file_tracker_reset(void)
     memset(&s_stats, 0, sizeof(s_stats));
 }
 
+void np2dn_dos_file_tracker_note_vector_probe(uint32_t cur, uint32_t vec,
+                                              uint16_t vector_offset,
+                                              uint16_t vector_segment,
+                                              uint32_t cs_base,
+                                              uint16_t cpu_cs,
+                                              uint32_t cpu_eip,
+                                              uint32_t mode_flags)
+{
+    ++s_stats.vector_checks;
+    s_stats.last_cur = cur;
+    s_stats.last_vec = vec;
+    s_stats.last_vector_offset = vector_offset;
+    s_stats.last_vector_segment = vector_segment;
+    s_stats.last_cs_base = cs_base;
+    s_stats.last_cpu_cs = cpu_cs;
+    s_stats.last_cpu_eip = cpu_eip;
+    s_stats.cpu_mode_flags = mode_flags;
+}
+
 void np2dn_dos_file_tracker_note_int21(uint8_t ah, uint16_t cs, uint16_t ip)
 {
     ++s_stats.int21_hits;
