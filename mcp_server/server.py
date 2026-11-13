@@ -236,7 +236,7 @@ def dialogue_tracker_status() -> str:
         for i in range(returned):
             record = struct.unpack_from("<H16sHHHIIIIIH", payload, 76 + i * 46)
             slot, raw_name, handle, segment, base_offset, file_position, file_size, loaded_size, coverage_prefix, sequence, flags = record
-            name = raw_name.split(b"\\0", 1)[0].decode("ascii", errors="replace")
+            name = raw_name.split(b"\0", 1)[0].decode("ascii", errors="replace")
             files.append({
                 "slot": slot, "name": name, "handle": handle,
                 "segment": segment, "segment_hex": f"0x{segment:04X}",
