@@ -425,102 +425,186 @@ void np2dn_command_queue_pump(void)
             }
         }
         else if (command.type == NP2DN_CMD_DOS_TRACKER_STATUS) {
-            NP2DN_DosTrackerStats stats;
-            uint32_t offset = command.a;
-            uint32_t requested = command.b;
-            uint32_t returned = 0;
-            uint32_t slot;
-            uint32_t pos = 108u;
-
             ZeroMemory(payload, sizeof(payload));
-            if (offset > NP2DN_DOS_FILE_TRACKER_MAX_FILES ||
-                requested < 1u || requested > 3u) {
-                result = -1;
+            if (command.c == 1u) {
+                uint32_t offset = command.a;
+                uint32_t requested = command.b;
+                uint32_t returned = 0;
+                uint32_t slot;
+                uint32_t pos = 12u;
+                if (offset > NP2DN_DOS_FILE_HISTORY_MAX ||
+                    requested < 1u || requested > 2u) {
+                    result = -1;
+                }
+                else {
+                    payload[0] = (uint8_t)NP2DN_DOS_FILE_HISTORY_MAX;
+                    payload[1] = (uint8_t)(NP2DN_DOS_FILE_HISTORY_MAX >> 8);
+                    payload[2] = (uint8_t)(NP2DN_DOS_FILE_HISTORY_MAX >> 16);
+                    payload[3] = (uint8_t)(NP2DN_DOS_FILE_HISTORY_MAX >> 24);
+                    payload[4] = (uint8_t)offset;
+                    payload[5] = (uint8_t)(offset >> 8);
+                    payload[6] = (uint8_t)(offset >> 16);
+                    payload[7] = (uint8_t)(offset >> 24);
+                    for (slot = offset;
+                         slot < NP2DN_DOS_FILE_HISTORY_MAX &&
+                         slot < offset + requested; ++slot) {
+                        NP2DN_DosFileHistoryInfo history;
+                        NP2DN_DosFileInfo *info;
+                        uint16_t flags = 0;
+                        uint32_t fields[10];
+                        uint32_t j;
+                        if (!np2dn_dos_file_tracker_get_history(slot, &history))
+                            continue;
+                        info = &history.file;
+                        if (info->closed) flags |= 0x0001u;
+                        if (info->mapping_seen) flags |= 0x0002u;
+                        if (info->mapping_valid) flags |= 0x0004u;
+                        if (info->size_known) flags |= 0x0008u;
+                        if (info->fully_loaded) flags |= 0x0010u;
+                        payload[pos] = (uint8_t)slot;
+                        payload[pos + 1u] = (uint8_t)(slot >> 8);
+                        CopyMemory(payload + pos + 2u, info->name, 32u);
+                        payload[pos + 34u] = (uint8_t)info->handle;
+                        payload[pos + 35u] = (uint8_t)(info->handle >> 8);
+                        payload[pos + 36u] = (uint8_t)info->segment;
+                        payload[pos + 37u] = (uint8_t)(info->segment >> 8);
+                        payload[pos + 38u] = (uint8_t)info->base_offset;
+                        payload[pos + 39u] = (uint8_t)(info->base_offset >> 8);
+                        payload[pos + 40u] = (uint8_t)flags;
+                        payload[pos + 41u] = (uint8_t)(flags >> 8);
+                        payload[pos + 42u] = history.reason;
+                        payload[pos + 43u] = history.last_seek_origin;
+                        fields[0] = info->sequence;
+                        fields[1] = info->file_position;
+                        fields[2] = info->file_size;
+                        fields[3] = info->loaded_size;
+                        fields[4] = info->coverage_prefix;
+                        fields[5] = history.read_count;
+                        fields[6] = history.bytes_read;
+                        fields[7] = history.seek_count;
+                        fields[8] = history.last_file_offset;
+                        fields[9] = history.last_seek_position;
+                        for (j = 0; j < 10u; ++j) {
+                            payload[pos + 44u + j * 4u] = (uint8_t)fields[j];
+                            payload[pos + 45u + j * 4u] = (uint8_t)(fields[j] >> 8);
+                            payload[pos + 46u + j * 4u] = (uint8_t)(fields[j] >> 16);
+                            payload[pos + 47u + j * 4u] = (uint8_t)(fields[j] >> 24);
+                        }
+                        payload[pos + 84u] = (uint8_t)history.last_buffer_segment;
+                        payload[pos + 85u] = (uint8_t)(history.last_buffer_segment >> 8);
+                        payload[pos + 86u] = (uint8_t)history.last_buffer_offset;
+                        payload[pos + 87u] = (uint8_t)(history.last_buffer_offset >> 8);
+                        payload[pos + 88u] = (uint8_t)history.last_requested;
+                        payload[pos + 89u] = (uint8_t)(history.last_requested >> 8);
+                        payload[pos + 90u] = (uint8_t)history.last_received;
+                        payload[pos + 91u] = (uint8_t)(history.last_received >> 8);
+                        pos += 92u;
+                        ++returned;
+                    }
+                    payload[8] = (uint8_t)returned;
+                    payload[9] = (uint8_t)(returned >> 8);
+                    payload[10] = (uint8_t)(returned >> 16);
+                    payload[11] = (uint8_t)(returned >> 24);
+                    result = 1;
+                    payload_length = pos;
+                }
             }
             else {
-                np2dn_dos_file_tracker_get_stats(&stats);
-                {
-                    uint32_t values[26];
-                    uint32_t k;
-                    values[0] = stats.int21_hits;
-                    values[1] = stats.ah_3d;
-                    values[2] = stats.ah_3f;
-                    values[3] = stats.ah_42;
-                    values[4] = stats.ah_3e;
-                    values[5] = stats.ah_other;
-                    values[6] = stats.begin_open;
-                    values[7] = stats.begin_read;
-                    values[8] = stats.begin_seek;
-                    values[9] = stats.begin_close;
-                    values[10] = stats.completed_ok;
-                    values[11] = stats.completed_error;
-                    values[12] = stats.pending_type;
-                    values[13] = stats.last_ah;
-                    values[14] = stats.last_cs;
-                    values[15] = stats.last_ip;
-                    values[16] = stats.file_count;
-                    values[17] = offset;
-                    values[18] = stats.virtual_8086;
-                    values[19] = stats.vector_checks;
-                    values[20] = stats.last_cur;
-                    values[21] = stats.last_vec;
-                    values[22] = stats.last_vector_offset;
-                    values[23] = stats.last_vector_segment;
-                    values[24] = stats.last_cpu_cs;
-                    values[25] = stats.last_cpu_eip;
-                    for (k = 0; k < 26u; ++k) {
-                        payload[k * 4u] = (uint8_t)values[k];
-                        payload[k * 4u + 1u] = (uint8_t)(values[k] >> 8);
-                        payload[k * 4u + 2u] = (uint8_t)(values[k] >> 16);
-                        payload[k * 4u + 3u] = (uint8_t)(values[k] >> 24);
-                    }
+                NP2DN_DosTrackerStats stats;
+                uint32_t offset = command.a;
+                uint32_t requested = command.b;
+                uint32_t returned = 0;
+                uint32_t slot;
+                uint32_t pos = 108u;
+                if (offset > NP2DN_DOS_FILE_TRACKER_MAX_FILES ||
+                    requested < 1u || requested > 3u) {
+                    result = -1;
                 }
-                for (slot = offset;
-                     slot < NP2DN_DOS_FILE_TRACKER_MAX_FILES &&
-                     slot < offset + requested; ++slot) {
-                    NP2DN_DosFileInfo info;
-                    uint16_t flags = 0;
-                    uint32_t j;
-                    if (!np2dn_dos_file_tracker_get_file(slot, &info)) continue;
-                    if (info.closed) flags |= 0x0001u;
-                    if (info.mapping_seen) flags |= 0x0002u;
-                    if (info.mapping_valid) flags |= 0x0004u;
-                    if (info.size_known) flags |= 0x0008u;
-                    if (info.fully_loaded) flags |= 0x0010u;
-                    payload[pos] = (uint8_t)slot;
-                    payload[pos + 1u] = (uint8_t)(slot >> 8);
-                    CopyMemory(payload + pos + 2u, info.name, 16u);
-                    payload[pos + 18u] = (uint8_t)info.handle;
-                    payload[pos + 19u] = (uint8_t)(info.handle >> 8);
-                    payload[pos + 20u] = (uint8_t)info.segment;
-                    payload[pos + 21u] = (uint8_t)(info.segment >> 8);
-                    payload[pos + 22u] = (uint8_t)info.base_offset;
-                    payload[pos + 23u] = (uint8_t)(info.base_offset >> 8);
+                else {
+                    np2dn_dos_file_tracker_get_stats(&stats);
                     {
-                        uint32_t fields[5];
-                        fields[0] = info.file_position;
-                        fields[1] = info.file_size;
-                        fields[2] = info.loaded_size;
-                        fields[3] = info.coverage_prefix;
-                        fields[4] = info.sequence;
-                        for (j = 0; j < 5u; ++j) {
-                            payload[pos + 24u + j * 4u] = (uint8_t)fields[j];
-                            payload[pos + 25u + j * 4u] = (uint8_t)(fields[j] >> 8);
-                            payload[pos + 26u + j * 4u] = (uint8_t)(fields[j] >> 16);
-                            payload[pos + 27u + j * 4u] = (uint8_t)(fields[j] >> 24);
+                        uint32_t values[26];
+                        uint32_t k;
+                        values[0] = stats.int21_hits;
+                        values[1] = stats.ah_3d;
+                        values[2] = stats.ah_3f;
+                        values[3] = stats.ah_42;
+                        values[4] = stats.ah_3e;
+                        values[5] = stats.ah_other;
+                        values[6] = stats.begin_open;
+                        values[7] = stats.begin_read;
+                        values[8] = stats.begin_seek;
+                        values[9] = stats.begin_close;
+                        values[10] = stats.completed_ok;
+                        values[11] = stats.completed_error;
+                        values[12] = stats.pending_type;
+                        values[13] = stats.last_ah;
+                        values[14] = stats.last_cs;
+                        values[15] = stats.last_ip;
+                        values[16] = stats.file_count;
+                        values[17] = offset;
+                        values[18] = stats.virtual_8086;
+                        values[19] = stats.vector_checks;
+                        values[20] = stats.last_cur;
+                        values[21] = stats.last_vec;
+                        values[22] = stats.last_vector_offset;
+                        values[23] = stats.last_vector_segment;
+                        values[24] = stats.last_cpu_cs;
+                        values[25] = stats.last_cpu_eip;
+                        for (k = 0; k < 26u; ++k) {
+                            payload[k * 4u] = (uint8_t)values[k];
+                            payload[k * 4u + 1u] = (uint8_t)(values[k] >> 8);
+                            payload[k * 4u + 2u] = (uint8_t)(values[k] >> 16);
+                            payload[k * 4u + 3u] = (uint8_t)(values[k] >> 24);
                         }
                     }
-                    payload[pos + 44u] = (uint8_t)flags;
-                    payload[pos + 45u] = (uint8_t)(flags >> 8);
-                    pos += 46u;
-                    ++returned;
+                    for (slot = offset;
+                         slot < NP2DN_DOS_FILE_TRACKER_MAX_FILES &&
+                         slot < offset + requested; ++slot) {
+                        NP2DN_DosFileInfo info;
+                        uint16_t flags = 0;
+                        uint32_t j;
+                        if (!np2dn_dos_file_tracker_get_file(slot, &info)) continue;
+                        if (info.closed) flags |= 0x0001u;
+                        if (info.mapping_seen) flags |= 0x0002u;
+                        if (info.mapping_valid) flags |= 0x0004u;
+                        if (info.size_known) flags |= 0x0008u;
+                        if (info.fully_loaded) flags |= 0x0010u;
+                        payload[pos] = (uint8_t)slot;
+                        payload[pos + 1u] = (uint8_t)(slot >> 8);
+                        CopyMemory(payload + pos + 2u, info.name, 16u);
+                        payload[pos + 18u] = (uint8_t)info.handle;
+                        payload[pos + 19u] = (uint8_t)(info.handle >> 8);
+                        payload[pos + 20u] = (uint8_t)info.segment;
+                        payload[pos + 21u] = (uint8_t)(info.segment >> 8);
+                        payload[pos + 22u] = (uint8_t)info.base_offset;
+                        payload[pos + 23u] = (uint8_t)(info.base_offset >> 8);
+                        {
+                            uint32_t fields[5];
+                            fields[0] = info.file_position;
+                            fields[1] = info.file_size;
+                            fields[2] = info.loaded_size;
+                            fields[3] = info.coverage_prefix;
+                            fields[4] = info.sequence;
+                            for (j = 0; j < 5u; ++j) {
+                                payload[pos + 24u + j * 4u] = (uint8_t)fields[j];
+                                payload[pos + 25u + j * 4u] = (uint8_t)(fields[j] >> 8);
+                                payload[pos + 26u + j * 4u] = (uint8_t)(fields[j] >> 16);
+                                payload[pos + 27u + j * 4u] = (uint8_t)(fields[j] >> 24);
+                            }
+                        }
+                        payload[pos + 44u] = (uint8_t)flags;
+                        payload[pos + 45u] = (uint8_t)(flags >> 8);
+                        pos += 46u;
+                        ++returned;
+                    }
+                    payload[104] = (uint8_t)returned;
+                    payload[105] = (uint8_t)(returned >> 8);
+                    payload[106] = (uint8_t)(returned >> 16);
+                    payload[107] = (uint8_t)(returned >> 24);
+                    result = 1;
+                    payload_length = pos;
                 }
-                payload[104] = (uint8_t)returned;
-                payload[105] = (uint8_t)(returned >> 8);
-                payload[106] = (uint8_t)(returned >> 16);
-                payload[107] = (uint8_t)(returned >> 24);
-                result = 1;
-                payload_length = pos;
             }
         }
         else if (command.type == NP2DN_CMD_JUMP_TRACE) {
