@@ -19,6 +19,7 @@ EXPECTED_TOOLS = {
     "cpu_registers", "breakpoints_list",
     "dialogue_catalog_refresh", "dialogue_catalog_entry", "dialogue_catalog",
     "dialogue_jump_request", "dialogue_jump_status", "dialogue_operation_cancel",
+    "dialogue_tracker_status",
 }
 
 
