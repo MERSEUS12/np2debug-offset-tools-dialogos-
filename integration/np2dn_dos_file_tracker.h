@@ -10,6 +10,26 @@ extern "C" {
 #define NP2DN_DOS_FILE_TRACKER_MAX_FILES 16u
 #define NP2DN_DOS_FILE_NAME_MAX 32u
 
+typedef struct NP2DN_DosTrackerStats {
+    uint32_t int21_hits;
+    uint32_t ah_3d;
+    uint32_t ah_3f;
+    uint32_t ah_42;
+    uint32_t ah_3e;
+    uint32_t ah_other;
+    uint32_t begin_open;
+    uint32_t begin_read;
+    uint32_t begin_seek;
+    uint32_t begin_close;
+    uint32_t completed_ok;
+    uint32_t completed_error;
+    uint32_t file_count;
+    uint16_t last_cs;
+    uint16_t last_ip;
+    uint8_t last_ah;
+    uint8_t pending_type;
+} NP2DN_DosTrackerStats;
+
 typedef struct NP2DN_DosFileInfo {
     uint16_t handle;
     uint16_t segment;
@@ -32,6 +52,9 @@ typedef struct NP2DN_DosFileInfo {
 
 /* DOS INT 21h calls are observed as entry/return pairs. */
 void np2dn_dos_file_tracker_reset(void);
+void np2dn_dos_file_tracker_note_int21(uint8_t ah, uint16_t cs, uint16_t ip);
+void np2dn_dos_file_tracker_get_stats(NP2DN_DosTrackerStats *stats);
+uint32_t np2dn_dos_file_tracker_file_count(void);
 int np2dn_dos_file_tracker_begin_open(uint16_t return_cs,
                                       uint16_t return_ip,
                                       const char *name);
