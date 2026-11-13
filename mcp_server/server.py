@@ -246,7 +246,7 @@ def dialogue_tracker_status() -> str:
                 "cpu_eip_hex": f"0x{values[25]:08X}",
                 "virtual_8086_mode": bool(values[18] & 1),
             }
-        returned = values[18]
+        returned = struct.unpack_from("<I", payload, 104)[0]
         if returned != (len(payload) - 108) // 46 or returned > 3:
             raise RuntimeError("Número de registros incoherente en el diagnóstico DOS")
         for i in range(returned):
