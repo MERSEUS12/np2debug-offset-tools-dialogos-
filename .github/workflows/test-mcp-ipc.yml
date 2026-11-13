@@ -38,7 +38,7 @@ jobs:
       - name: Probar máquina de estados de la cola C real
         shell: pwsh
         run: |
-          cl /nologo /W4 /I mcp_server/tests/queue_unit/stubs /I integration mcp_server/tests/queue_unit/test_command_queue.c integration/np2dn_command_queue.c user32.lib /Fe:mcp_server/tests/queue_unit/queue_unit_tests.exe
+          cl /nologo /W4 /I mcp_server/tests/queue_unit/stubs /I integration mcp_server/tests/queue_unit/test_command_queue.c integration/np2dn_command_queue.c integration/np2dn_dos_file_tracker.c user32.lib /Fe:mcp_server/tests/queue_unit/queue_unit_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & mcp_server/tests/queue_unit/queue_unit_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
