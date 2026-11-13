@@ -177,7 +177,7 @@ def _send_command(
         raise RuntimeError("Respuesta IPC inválida: payload de instrucción debe ocupar 96 bytes")
     if command_type == CMD_CPU_REGISTERS and payload_length != 53:
         raise RuntimeError("Respuesta IPC inválida: payload de registros debe ocupar 53 bytes")
-    if command_type == CMD_DOS_TRACKER_STATUS and (payload_length < 76 or (payload_length - 76) % 46 != 0):
+    if command_type == CMD_DOS_TRACKER_STATUS and (payload_length < 112 or (payload_length - 112) % 46 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload del rastreador DOS incoherente")
     if command_type == CMD_BREAKPOINTS_LIST and (result != 1 or payload_length < 12 or (payload_length - 12) % 5 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload de breakpoints incoherente")
