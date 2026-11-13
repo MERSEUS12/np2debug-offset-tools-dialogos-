@@ -30,6 +30,7 @@ static uint8_t s_coverage[NP2DN_DOS_FILE_TRACKER_MAX_FILES]
                          [NP2DN_DOS_COVERAGE_BYTES];
 static NP2DN_DosPendingCall s_pending;
 static uint32_t s_sequence;
+static NP2DN_DosTrackerStats s_stats;
 
 static void np2dn_dos_copy_name(char *destination, const char *source)
 {
@@ -116,6 +117,39 @@ void np2dn_dos_file_tracker_reset(void)
     memset(s_coverage, 0, sizeof(s_coverage));
     memset(&s_pending, 0, sizeof(s_pending));
     s_sequence = 0;
+    memset(&s_stats, 0, sizeof(s_stats));
+}
+
+void np2dn_dos_file_tracker_note_int21(uint8_t ah, uint16_t cs, uint16_t ip)
+{
+    ++s_stats.int21_hits;
+    s_stats.last_ah = ah;
+    s_stats.last_cs = cs;
+    s_stats.last_ip = ip;
+    switch (ah) {
+    case 0x3d: ++s_stats.ah_3d; break;
+    case 0x3f: ++s_stats.ah_3f; break;
+    case 0x42: ++s_stats.ah_42; break;
+    case 0x3e: ++s_stats.ah_3e; break;
+    default: ++s_stats.ah_other; break;
+    }
+}
+
+uint32_t np2dn_dos_file_tracker_file_count(void)
+{
+    uint32_t i, count = 0;
+    for (i = 0; i < NP2DN_DOS_FILE_TRACKER_MAX_FILES; ++i) {
+        if (s_files[i].used) ++count;
+    }
+    return count;
+}
+
+void np2dn_dos_file_tracker_get_stats(NP2DN_DosTrackerStats *stats)
+{
+    if (stats == NULL) return;
+    *stats = s_stats;
+    stats->pending_type = s_pending.type;
+    stats->file_count = np2dn_dos_file_tracker_file_count();
 }
 
 int np2dn_dos_file_tracker_begin_open(uint16_t return_cs,
@@ -125,6 +159,7 @@ int np2dn_dos_file_tracker_begin_open(uint16_t return_cs,
     if (s_pending.type != NP2DN_DOS_PENDING_NONE || name == NULL) {
         return 0;
     }
+    ++s_stats.begin_open;
     memset(&s_pending, 0, sizeof(s_pending));
     s_pending.type = NP2DN_DOS_PENDING_OPEN;
     s_pending.return_cs = return_cs;
@@ -150,6 +185,7 @@ int np2dn_dos_file_tracker_begin_read(uint16_t return_cs,
         return 0;
     }
 
+    ++s_stats.begin_read;
     memset(&s_pending, 0, sizeof(s_pending));
     s_pending.type = NP2DN_DOS_PENDING_READ;
     s_pending.return_cs = return_cs;
@@ -177,6 +213,7 @@ int np2dn_dos_file_tracker_begin_seek(uint16_t return_cs,
         return 0;
     }
 
+    ++s_stats.begin_seek;
     memset(&s_pending, 0, sizeof(s_pending));
     s_pending.type = NP2DN_DOS_PENDING_SEEK;
     s_pending.return_cs = return_cs;
@@ -200,6 +237,7 @@ int np2dn_dos_file_tracker_begin_close(uint16_t return_cs,
         return 0;
     }
 
+    ++s_stats.begin_close;
     memset(&s_pending, 0, sizeof(s_pending));
     s_pending.type = NP2DN_DOS_PENDING_CLOSE;
     s_pending.return_cs = return_cs;
@@ -226,8 +264,10 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
     pending = s_pending;
     memset(&s_pending, 0, sizeof(s_pending));
     if (carry) {
+        ++s_stats.completed_error;
         return 1;
     }
+    ++s_stats.completed_ok;
 
     if (pending.type == NP2DN_DOS_PENDING_OPEN) {
         index = np2dn_dos_allocate_file();
