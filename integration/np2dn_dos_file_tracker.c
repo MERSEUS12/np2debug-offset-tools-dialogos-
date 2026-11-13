@@ -68,10 +68,10 @@ static void np2dn_dos_sync_history(uint32_t index)
     history = np2dn_dos_find_history(s_file_history_sequence[index]);
     if (history != NULL) {
         history->file = s_files[index];
-        if (history->reason == NP2DN_DOS_HISTORY_REASON_UNKNOWN)
+        if (history->reason != NP2DN_DOS_HISTORY_REASON_SEGMENT_MISMATCH &&
+            history->reason != NP2DN_DOS_HISTORY_REASON_NON_CONTIGUOUS_READ) {
             history->reason = np2dn_dos_history_reason(&s_files[index]);
-        else if (s_files[index].fully_loaded)
-            history->reason = NP2DN_DOS_HISTORY_REASON_COMPLETE;
+        }
     }
 }
 
@@ -561,11 +561,12 @@ int np2dn_dos_file_tracker_get_history(uint32_t index,
         return 0;
     }
     *info = s_history[index];
-    info->reason = np2dn_dos_history_reason(&info->file) == 
-        NP2DN_DOS_HISTORY_REASON_COMPLETE ?
-        NP2DN_DOS_HISTORY_REASON_COMPLETE :
-        (s_history[index].reason != NP2DN_DOS_HISTORY_REASON_UNKNOWN ?
-         s_history[index].reason :
-         np2dn_dos_history_reason(&info->file));
+    if (s_history[index].reason == NP2DN_DOS_HISTORY_REASON_SEGMENT_MISMATCH ||
+        s_history[index].reason == NP2DN_DOS_HISTORY_REASON_NON_CONTIGUOUS_READ) {
+        info->reason = s_history[index].reason;
+    }
+    else {
+        info->reason = np2dn_dos_history_reason(&info->file);
+    }
     return 1;
 }
