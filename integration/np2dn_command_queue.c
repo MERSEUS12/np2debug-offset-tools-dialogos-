@@ -470,7 +470,7 @@ void np2dn_command_queue_pump(void)
                 }
                 for (slot = offset;
                      slot < NP2DN_DOS_FILE_TRACKER_MAX_FILES &&
-                     returned < requested; ++slot) {
+                     slot < offset + requested; ++slot) {
                     NP2DN_DosFileInfo info;
                     uint16_t flags = 0;
                     uint32_t j;
