@@ -46,6 +46,7 @@ CMD_DIALOGUE_CATALOG_GET = 26
 CMD_DIALOGUE_JUMP_REQUEST = 27
 CMD_DIALOGUE_JUMP_CANCEL = 28
 CMD_DIALOGUE_STATUS_QUERY = 29
+CMD_DOS_TRACKER_STATUS = 30
 
 mcp = FastMCP("np2debug-next")
 
@@ -160,7 +161,7 @@ def _send_command(
         raise RuntimeError("El emulador rechazó la lectura de memoria: dirección, tamaño o espacio inválido")
     if command_type == CMD_DIALOGUE_CURRENT and result not in (0, 1):
         raise RuntimeError("Respuesta IPC inválida para seguimiento de diálogo")
-    if command_type in (CMD_DIALOGUE_CATALOG_REFRESH, CMD_DIALOGUE_STATUS_QUERY) and result != 1:
+    if command_type in (CMD_DIALOGUE_CATALOG_REFRESH, CMD_DIALOGUE_STATUS_QUERY, CMD_DOS_TRACKER_STATUS) and result != 1:
         raise RuntimeError("El emulador no pudo completar la consulta del catálogo/estado de diálogos")
     if command_type == CMD_DIALOGUE_CATALOG_GET and result not in (0, 1):
         raise RuntimeError("Respuesta inválida al consultar una entrada del catálogo")
@@ -176,6 +177,8 @@ def _send_command(
         raise RuntimeError("Respuesta IPC inválida: payload de instrucción debe ocupar 96 bytes")
     if command_type == CMD_CPU_REGISTERS and payload_length != 53:
         raise RuntimeError("Respuesta IPC inválida: payload de registros debe ocupar 53 bytes")
+    if command_type == CMD_DOS_TRACKER_STATUS and (payload_length < 76 or (payload_length - 76) % 46 != 0):
+        raise RuntimeError("Respuesta IPC inválida: payload del rastreador DOS incoherente")
     if command_type == CMD_BREAKPOINTS_LIST and (result != 1 or payload_length < 12 or (payload_length - 12) % 5 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload de breakpoints incoherente")
     if command_type == CMD_SCENE_HISTORY and (payload_length < 12 or (payload_length - 12) % 41 != 0):
@@ -198,6 +201,59 @@ def _send_command(
         response_data["payload_hex"] = payload[:payload_length].hex().upper()
         response_data["payload_length"] = payload_length
     return json.dumps(response_data, ensure_ascii=False)
+
+
+@mcp.tool()
+def dialogue_tracker_status() -> str:
+    """Diagnóstico de solo lectura del rastreador DOS: entradas INT 21h, operaciones y archivos registrados."""
+    stats = None
+    files = []
+    pending_names = {0: "NONE", 1: "OPEN", 2: "READ", 3: "SEEK", 4: "CLOSE"}
+    for offset in range(0, 16, 3):
+        response = json.loads(_send_command(CMD_DOS_TRACKER_STATUS, offset, 3))
+        payload = bytes.fromhex(response.get("payload_hex", ""))
+        if len(payload) != response.get("payload_length") or len(payload) < 76 or (len(payload) - 76) % 46:
+            raise RuntimeError("Payload inválido del diagnóstico del rastreador DOS")
+        values = struct.unpack_from("<19I", payload, 0)
+        if values[17] != offset:
+            raise RuntimeError("Paginación incoherente en el diagnóstico del rastreador DOS")
+        if stats is None:
+            names = ("int21_hits", "ah_3d_open", "ah_3f_read", "ah_42_seek",
+                     "ah_3e_close", "ah_other", "begin_open", "begin_read",
+                     "begin_seek", "begin_close", "completed_ok", "completed_error")
+            stats = {name: value for name, value in zip(names, values[:12])}
+            stats.update({
+                "pending_operation": pending_names.get(values[12], f"UNKNOWN_{values[12]}"),
+                "last_ah": values[13],
+                "last_ah_hex": f"0x{values[13]:02X}",
+                "last_cs": values[14],
+                "last_ip": values[15],
+                "tracked_file_count": values[16],
+            })
+        returned = values[18]
+        if returned != (len(payload) - 76) // 46 or returned > 3:
+            raise RuntimeError("Número de registros incoherente en el diagnóstico DOS")
+        for i in range(returned):
+            record = struct.unpack_from("<H16sHHHIIIIIH", payload, 76 + i * 46)
+            slot, raw_name, handle, segment, base_offset, file_position, file_size, loaded_size, coverage_prefix, sequence, flags = record
+            name = raw_name.split(b"\\0", 1)[0].decode("ascii", errors="replace")
+            files.append({
+                "slot": slot, "name": name, "handle": handle,
+                "segment": segment, "segment_hex": f"0x{segment:04X}",
+                "base_offset": base_offset, "base_offset_hex": f"0x{base_offset:04X}",
+                "file_position": file_position, "file_size": file_size,
+                "loaded_size": loaded_size, "coverage_prefix": coverage_prefix,
+                "sequence": sequence, "closed": bool(flags & 1),
+                "mapping_seen": bool(flags & 2), "mapping_valid": bool(flags & 4),
+                "size_known": bool(flags & 8), "fully_loaded": bool(flags & 16),
+            })
+    stats = stats or {}
+    return json.dumps({
+        "stats": stats,
+        "tracked_files": files,
+        "read_only": True,
+        "note": "Las estadísticas cuentan únicamente llamadas que alcanzan el vector INT 21h detectado por el hook; no alteran el estado del emulador.",
+    }, ensure_ascii=False)
 
 
 @mcp.tool()
