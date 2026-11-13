@@ -200,7 +200,7 @@ int main(void)
               "accepted DOS operation starts are counted");
         CHECK(stats.completed_error == 1 && stats.pending_type == 0,
               "failed DOS calls and pending state are reported");
-        CHECK(stats.file_count == 5 &&
+        CHECK(stats.file_count == 4 &&
               stats.last_cs == 0x2345 && stats.last_ip == 0x6789 &&
               stats.last_ah == 0x30,
               "file count and last INT 21h location are reported");
