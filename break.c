@@ -266,6 +266,7 @@ static void np2scene_check(void)
 	if (cur != vec) {
 		return;
 	}
+	np2dn_dos_file_tracker_note_int21((UINT8)CPU_AH, (UINT16)CPU_CS, (UINT16)CPU_EIP);
 	stk = ((UINT32)(UINT16)CPU_SS << 4) + (UINT32)(UINT16)CPU_SP;
 	ret_ip = memp_read16(stk);
 	ret_cs = memp_read16(stk + 2);
