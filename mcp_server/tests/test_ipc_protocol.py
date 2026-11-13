@@ -134,7 +134,7 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(len(record), 46)
         payload = header + record
         self.assertEqual(struct.unpack_from("<26I", payload, 0), values)
-        decoded = struct.unpack_from("<H16sHHHIIIIIH", payload, 104)
+        decoded = struct.unpack_from("<H16sHHHIIIIIH", payload, 108)
         self.assertEqual(decoded[0], 2)
         self.assertEqual(decoded[2:5], (5, 0x4458, 0x0100))
         self.assertEqual(decoded[-1], 0x1E)
