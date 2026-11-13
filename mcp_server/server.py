@@ -271,7 +271,7 @@ def dialogue_tracker_status() -> str:
         "stats": stats,
         "tracked_files": files,
         "read_only": True,
-        "note": "Las estadísticas cuentan únicamente llamadas que alcanzan el vector INT 21h detectado por el hook; no alteran el estado del emulador.",
+        "note": "vector_diagnostic.check_count cuenta las comprobaciones del vector; int21_hits cuenta las coincidencias exactas. La consulta es de solo lectura y no altera el estado del emulador.",
     }, ensure_ascii=False)
 
 
