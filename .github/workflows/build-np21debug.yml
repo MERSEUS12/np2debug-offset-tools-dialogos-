@@ -47,7 +47,7 @@ jobs:
         run: |
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $devCmd = Join-Path $vs 'Common7\Tools\VsDevCmd.bat'
-          $command = "`"$devCmd`" -arch=x64 -host_arch=x64 && cl /nologo /W4 /I integration integration\tests\dos_file_tracker_unit\test_dos_file_tracker.c integration\np2dn_dos_file_tracker.c /Fe:dos_tracker_tests.exe && dos_tracker_tests.exe"
+          $command = "call `"$devCmd`" -arch=x64 -host_arch=x64 && cl /nologo /W4 /I integration integration\tests\dos_file_tracker_unit\test_dos_file_tracker.c integration\np2dn_dos_file_tracker.c /Fe:dos_tracker_tests.exe && dos_tracker_tests.exe"
           cmd.exe /c $command
           if ($LASTEXITCODE -ne 0) { throw "Fallaron las pruebas unitarias del rastreador DOS (codigo $LASTEXITCODE)" }
 
