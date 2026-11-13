@@ -212,9 +212,9 @@ def dialogue_tracker_status() -> str:
     for offset in range(0, 16, 3):
         response = json.loads(_send_command(CMD_DOS_TRACKER_STATUS, offset, 3))
         payload = bytes.fromhex(response.get("payload_hex", ""))
-        if len(payload) != response.get("payload_length") or len(payload) < 76 or (len(payload) - 76) % 46:
+        if len(payload) != response.get("payload_length") or len(payload) < 112 or (len(payload) - 112) % 46:
             raise RuntimeError("Payload inválido del diagnóstico del rastreador DOS")
-        values = struct.unpack_from("<19I", payload, 0)
+        values = struct.unpack_from("<28I", payload, 0)
         if values[17] != offset:
             raise RuntimeError("Paginación incoherente en el diagnóstico del rastreador DOS")
         if stats is None:
@@ -230,11 +230,30 @@ def dialogue_tracker_status() -> str:
                 "last_ip": values[15],
                 "tracked_file_count": values[16],
             })
+            stats["vector_diagnostic"] = {
+                "check_count": values[19],
+                "last_current_linear": values[20],
+                "last_current_linear_hex": f"0x{values[20]:05X}",
+                "last_vector_linear": values[21],
+                "last_vector_linear_hex": f"0x{values[21]:05X}",
+                "vector_offset": values[22],
+                "vector_offset_hex": f"0x{values[22]:04X}",
+                "vector_segment": values[23],
+                "vector_segment_hex": f"0x{values[23]:04X}",
+                "cs_base": values[24],
+                "cs_base_hex": f"0x{values[24]:05X}",
+                "cpu_cs": values[25],
+                "cpu_cs_hex": f"0x{values[25]:04X}",
+                "cpu_eip": values[26],
+                "cpu_eip_hex": f"0x{values[26]:08X}",
+                "protected_mode": bool(values[27] & 1),
+                "virtual_8086_mode": bool(values[27] & 2),
+            }
         returned = values[18]
-        if returned != (len(payload) - 76) // 46 or returned > 3:
+        if returned != (len(payload) - 112) // 46 or returned > 3:
             raise RuntimeError("Número de registros incoherente en el diagnóstico DOS")
         for i in range(returned):
-            record = struct.unpack_from("<H16sHHHIIIIIH", payload, 76 + i * 46)
+            record = struct.unpack_from("<H16sHHHIIIIIH", payload, 112 + i * 46)
             slot, raw_name, handle, segment, base_offset, file_position, file_size, loaded_size, coverage_prefix, sequence, flags = record
             name = raw_name.split(b"\0", 1)[0].decode("ascii", errors="replace")
             files.append({
