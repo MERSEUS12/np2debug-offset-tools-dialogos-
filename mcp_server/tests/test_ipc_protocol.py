@@ -140,6 +140,30 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(decoded[2:5], (5, 0x4458, 0x0100))
         self.assertEqual(decoded[-1], 0x1E)
 
+    def test_dos_tracker_history_payload_layout(self):
+        name = b"MAC_02.M".ljust(32, b"\\0")
+        record = struct.pack(
+            "<H32sHHHHBB10I4H",
+            1, name, 5, 0x4458, 0x0100, 0x001E, 4, 2,
+            15, 600, 600, 600, 600, 2, 1200, 1, 0, 600,
+            0x4458, 0x0100, 1024, 600,
+        )
+        self.assertEqual(len(record), 92)
+        payload = struct.pack("<III", 32, 0, 1) + record
+        self.assertEqual(len(payload), 104)
+        total, offset, returned = struct.unpack_from("<III", payload, 0)
+        self.assertEqual((total, offset, returned), (32, 0, 1))
+        slot, raw_name = struct.unpack_from("<H32s", payload, 12)
+        self.assertEqual(slot, 1)
+        self.assertEqual(raw_name.split(b"\\0", 1)[0], b"MAC_02.M")
+        self.assertEqual(struct.unpack_from("<HHHH", payload, 46),
+                         (5, 0x4458, 0x0100, 0x001E))
+        self.assertEqual(struct.unpack_from("<BB", payload, 54), (4, 2))
+        self.assertEqual(struct.unpack_from("<10I", payload, 56)[5:8],
+                         (2, 1200, 1))
+        self.assertEqual(struct.unpack_from("<4H", payload, 96),
+                         (0x4458, 0x0100, 1024, 600))
+
     def test_breakpoint_list_payload_layout(self):
         entries = [(0x12345, 0x04), (0x23456, 0x0B)]
         records = b"".join(struct.pack("<IB", address, flags)
