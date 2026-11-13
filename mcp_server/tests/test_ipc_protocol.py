@@ -141,7 +141,7 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(decoded[-1], 0x1E)
 
     def test_dos_tracker_history_payload_layout(self):
-        name = b"MAC_02.M".ljust(32, b"\\0")
+        name = b"MAC_02.M".ljust(32, b"\0")
         record = struct.pack(
             "<H32sHHHHBB10I4H",
             1, name, 5, 0x4458, 0x0100, 0x001E, 4, 2,
@@ -155,7 +155,7 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual((total, offset, returned), (32, 0, 1))
         slot, raw_name = struct.unpack_from("<H32s", payload, 12)
         self.assertEqual(slot, 1)
-        self.assertEqual(raw_name.split(b"\\0", 1)[0], b"MAC_02.M")
+        self.assertEqual(raw_name.split(b"\0", 1)[0], b"MAC_02.M")
         self.assertEqual(struct.unpack_from("<HHHH", payload, 46),
                          (5, 0x4458, 0x0100, 0x001E))
         self.assertEqual(struct.unpack_from("<BB", payload, 54), (4, 2))
