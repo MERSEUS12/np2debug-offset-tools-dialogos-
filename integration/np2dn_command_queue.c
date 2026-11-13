@@ -430,7 +430,7 @@ void np2dn_command_queue_pump(void)
             uint32_t requested = command.b;
             uint32_t returned = 0;
             uint32_t slot;
-            uint32_t pos = 104u;
+            uint32_t pos = 108u;
 
             ZeroMemory(payload, sizeof(payload));
             if (offset > NP2DN_DOS_FILE_TRACKER_MAX_FILES ||
@@ -460,7 +460,7 @@ void np2dn_command_queue_pump(void)
                     values[15] = stats.last_ip;
                     values[16] = stats.file_count;
                     values[17] = offset;
-                    values[18] = 0;
+                    values[18] = stats.virtual_8086;
                     values[19] = stats.vector_checks;
                     values[20] = stats.last_cur;
                     values[21] = stats.last_vec;
