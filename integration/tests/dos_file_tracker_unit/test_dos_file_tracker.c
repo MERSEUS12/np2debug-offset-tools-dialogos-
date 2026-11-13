@@ -13,6 +13,7 @@
 int main(void)
 {
     NP2DN_DosFileInfo info;
+    NP2DN_DosFileHistoryInfo history;
 
     memset(&info, 0, sizeof(info));
     np2dn_dos_file_tracker_reset();
@@ -85,6 +86,14 @@ int main(void)
     CHECK(np2dn_dos_file_tracker_get_loaded_segment(0x4458, &info),
           "closed file remains available as loaded memory");
     CHECK(info.closed, "closed state retained");
+    CHECK(np2dn_dos_file_tracker_get_history(0, &history),
+          "closed script remains in independent file history");
+    CHECK(strcmp(history.file.name, "MAC_08.M") == 0 &&
+          history.file.closed && history.file.fully_loaded &&
+          history.read_count == 2 && history.bytes_read == 1112 &&
+          history.seek_count == 2 &&
+          history.reason == NP2DN_DOS_HISTORY_REASON_COMPLETE,
+          "history preserves script mapping, coverage and I/O summary after close");
 
     CHECK(np2dn_dos_file_tracker_begin_open(
               0x1000, 0x0600, "SHORT.M"),
@@ -92,6 +101,12 @@ int main(void)
     CHECK(np2dn_dos_file_tracker_complete(
               0x1000, 0x0600, 0, 6, 0),
           "complete short file open");
+    CHECK(np2dn_dos_file_tracker_get_history(0, &history) &&
+          strcmp(history.file.name, "MAC_08.M") == 0,
+          "history survives immediate reuse of the closed active slot");
+    CHECK(np2dn_dos_file_tracker_get_history(1, &history) &&
+          strcmp(history.file.name, "SHORT.M") == 0,
+          "new open receives a separate history record");
     CHECK(np2dn_dos_file_tracker_begin_read(
               0x1000, 0x0610, 6, 0x5000, 0, 1024),
           "begin short EOF read");
