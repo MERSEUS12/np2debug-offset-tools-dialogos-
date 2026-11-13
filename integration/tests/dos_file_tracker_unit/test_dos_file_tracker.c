@@ -187,6 +187,25 @@ int main(void)
     CHECK(!np2dn_dos_file_tracker_get_by_handle(5, &info),
           "failed open does not create a file record");
 
+    {
+        NP2DN_DosTrackerStats stats;
+        np2dn_dos_file_tracker_note_int21(0x3d, 0x1234, 0x5678);
+        np2dn_dos_file_tracker_note_int21(0x30, 0x2345, 0x6789);
+        np2dn_dos_file_tracker_get_stats(&stats);
+        CHECK(stats.int21_hits == 2 && stats.ah_3d == 1 &&
+              stats.ah_other == 1,
+              "INT 21h and AH counters are observable");
+        CHECK(stats.begin_open == 6 && stats.begin_read == 7 &&
+              stats.begin_seek == 6 && stats.begin_close == 1,
+              "accepted DOS operation starts are counted");
+        CHECK(stats.completed_error == 1 && stats.pending_type == 0,
+              "failed DOS calls and pending state are reported");
+        CHECK(stats.file_count == 5 &&
+              stats.last_cs == 0x2345 && stats.last_ip == 0x6789 &&
+              stats.last_ah == 0x30,
+              "file count and last INT 21h location are reported");
+    }
+
     printf("DOS file tracker tests passed.\n");
     return 0;
 }
