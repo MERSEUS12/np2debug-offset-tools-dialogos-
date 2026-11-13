@@ -85,7 +85,7 @@ static void np2dn_dos_start_history(uint32_t index)
     history = &s_history[slot];
     memset(history, 0, sizeof(*history));
     history->file = s_files[index];
-    history->reason = NP2DN_DOS_HISTORY_REASON_NO_MAPPING;
+    history->reason = NP2DN_DOS_HISTORY_REASON_UNKNOWN;
     s_file_history_sequence[index] = s_files[index].sequence;
     s_history_next = (s_history_next + 1u) % NP2DN_DOS_FILE_HISTORY_MAX;
     if (s_history_count < NP2DN_DOS_FILE_HISTORY_MAX) ++s_history_count;
