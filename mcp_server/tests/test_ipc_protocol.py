@@ -132,8 +132,9 @@ class IpcProtocolTests(unittest.TestCase):
                              5, 0x4458, 0x0100, 512, 600, 512, 512, 1, 0x1E)
         self.assertEqual(len(header), 104)
         self.assertEqual(len(record), 46)
-        payload = header + record
+        payload = header + struct.pack("<I", 1) + record
         self.assertEqual(struct.unpack_from("<26I", payload, 0), values)
+        self.assertEqual(struct.unpack_from("<I", payload, 104)[0], 1)
         decoded = struct.unpack_from("<H16sHHHIIIIIH", payload, 108)
         self.assertEqual(decoded[0], 2)
         self.assertEqual(decoded[2:5], (5, 0x4458, 0x0100))
