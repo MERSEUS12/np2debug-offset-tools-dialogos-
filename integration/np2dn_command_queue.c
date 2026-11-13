@@ -430,7 +430,7 @@ void np2dn_command_queue_pump(void)
             uint32_t requested = command.b;
             uint32_t returned = 0;
             uint32_t slot;
-            uint32_t pos = 76u;
+            uint32_t pos = 112u;
 
             ZeroMemory(payload, sizeof(payload));
             if (offset > NP2DN_DOS_FILE_TRACKER_MAX_FILES ||
@@ -440,7 +440,9 @@ void np2dn_command_queue_pump(void)
             else {
                 np2dn_dos_file_tracker_get_stats(&stats);
                 {
-                    uint32_t values[19];
+                    uint32_t values[28];
+                    NP2DN_DosTrackerStats *unused_stats_pointer = NULL;
+                    (void)unused_stats_pointer;
                     uint32_t k;
                     values[0] = stats.int21_hits;
                     values[1] = stats.ah_3d;
@@ -461,7 +463,16 @@ void np2dn_command_queue_pump(void)
                     values[16] = stats.file_count;
                     values[17] = offset;
                     values[18] = 0;
-                    for (k = 0; k < 19u; ++k) {
+                    values[19] = stats.vector_checks;
+                    values[20] = stats.last_cur;
+                    values[21] = stats.last_vec;
+                    values[22] = stats.last_vector_offset;
+                    values[23] = stats.last_vector_segment;
+                    values[24] = stats.last_cs_base;
+                    values[25] = stats.last_cpu_cs;
+                    values[26] = stats.last_cpu_eip;
+                    values[27] = stats.cpu_mode_flags;
+                    for (k = 0; k < 28u; ++k) {
                         payload[k * 4u] = (uint8_t)values[k];
                         payload[k * 4u + 1u] = (uint8_t)(values[k] >> 8);
                         payload[k * 4u + 2u] = (uint8_t)(values[k] >> 16);
@@ -508,10 +519,10 @@ void np2dn_command_queue_pump(void)
                     pos += 46u;
                     ++returned;
                 }
-                payload[72] = (uint8_t)returned;
-                payload[73] = (uint8_t)(returned >> 8);
-                payload[74] = (uint8_t)(returned >> 16);
-                payload[75] = (uint8_t)(returned >> 24);
+                payload[108] = (uint8_t)returned;
+                payload[109] = (uint8_t)(returned >> 8);
+                payload[110] = (uint8_t)(returned >> 16);
+                payload[111] = (uint8_t)(returned >> 24);
                 result = 1;
                 payload_length = pos;
             }
