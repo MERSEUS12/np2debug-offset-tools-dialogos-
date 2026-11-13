@@ -53,10 +53,11 @@ static uint8_t np2dn_dos_history_reason(const NP2DN_DosFileInfo *file)
 {
     if (file->fully_loaded) return NP2DN_DOS_HISTORY_REASON_COMPLETE;
     if (!file->mapping_seen) return NP2DN_DOS_HISTORY_REASON_NO_MAPPING;
+    if (file->size_known &&
+        (uint32_t)file->base_offset + file->file_size > 0x10000u)
+        return NP2DN_DOS_HISTORY_REASON_ADDRESS_OUT_OF_RANGE;
     if (!file->mapping_valid) return NP2DN_DOS_HISTORY_REASON_MAPPING_INVALID;
     if (!file->size_known) return NP2DN_DOS_HISTORY_REASON_SIZE_UNKNOWN;
-    if ((uint32_t)file->base_offset + file->file_size > 0x10000u)
-        return NP2DN_DOS_HISTORY_REASON_ADDRESS_OUT_OF_RANGE;
     return NP2DN_DOS_HISTORY_REASON_INCOMPLETE_COVERAGE;
 }
 
