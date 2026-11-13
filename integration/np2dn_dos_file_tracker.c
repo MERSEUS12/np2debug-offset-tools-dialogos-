@@ -26,11 +26,68 @@ typedef struct NP2DN_DosPendingCall {
 } NP2DN_DosPendingCall;
 
 static NP2DN_DosFileInfo s_files[NP2DN_DOS_FILE_TRACKER_MAX_FILES];
+static NP2DN_DosFileHistoryInfo s_history[NP2DN_DOS_FILE_HISTORY_MAX];
+static uint32_t s_file_history_sequence[NP2DN_DOS_FILE_TRACKER_MAX_FILES];
+static uint32_t s_history_next;
+static uint32_t s_history_count;
 static uint8_t s_coverage[NP2DN_DOS_FILE_TRACKER_MAX_FILES]
                          [NP2DN_DOS_COVERAGE_BYTES];
 static NP2DN_DosPendingCall s_pending;
 static uint32_t s_sequence;
 static NP2DN_DosTrackerStats s_stats;
+
+
+static NP2DN_DosFileHistoryInfo *np2dn_dos_find_history(uint32_t sequence)
+{
+    uint32_t i;
+    for (i = 0; i < NP2DN_DOS_FILE_HISTORY_MAX; ++i) {
+        if (s_history[i].file.used &&
+            s_history[i].file.sequence == sequence) {
+            return &s_history[i];
+        }
+    }
+    return NULL;
+}
+
+static uint8_t np2dn_dos_history_reason(const NP2DN_DosFileInfo *file)
+{
+    if (file->fully_loaded) return NP2DN_DOS_HISTORY_REASON_COMPLETE;
+    if (!file->mapping_seen) return NP2DN_DOS_HISTORY_REASON_NO_MAPPING;
+    if (!file->mapping_valid) return NP2DN_DOS_HISTORY_REASON_MAPPING_INVALID;
+    if (!file->size_known) return NP2DN_DOS_HISTORY_REASON_SIZE_UNKNOWN;
+    if ((uint32_t)file->base_offset + file->file_size > 0x10000u)
+        return NP2DN_DOS_HISTORY_REASON_ADDRESS_OUT_OF_RANGE;
+    return NP2DN_DOS_HISTORY_REASON_INCOMPLETE_COVERAGE;
+}
+
+static void np2dn_dos_sync_history(uint32_t index)
+{
+    NP2DN_DosFileHistoryInfo *history;
+    if (index >= NP2DN_DOS_FILE_TRACKER_MAX_FILES ||
+        !s_files[index].used) return;
+    history = np2dn_dos_find_history(s_file_history_sequence[index]);
+    if (history != NULL) {
+        history->file = s_files[index];
+        if (history->reason == NP2DN_DOS_HISTORY_REASON_UNKNOWN)
+            history->reason = np2dn_dos_history_reason(&s_files[index]);
+        else if (s_files[index].fully_loaded)
+            history->reason = NP2DN_DOS_HISTORY_REASON_COMPLETE;
+    }
+}
+
+static void np2dn_dos_start_history(uint32_t index)
+{
+    NP2DN_DosFileHistoryInfo *history;
+    uint32_t slot = s_history_next;
+    if (index >= NP2DN_DOS_FILE_TRACKER_MAX_FILES) return;
+    history = &s_history[slot];
+    memset(history, 0, sizeof(*history));
+    history->file = s_files[index];
+    history->reason = NP2DN_DOS_HISTORY_REASON_NO_MAPPING;
+    s_file_history_sequence[index] = s_files[index].sequence;
+    s_history_next = (s_history_next + 1u) % NP2DN_DOS_FILE_HISTORY_MAX;
+    if (s_history_count < NP2DN_DOS_FILE_HISTORY_MAX) ++s_history_count;
+}
 
 static void np2dn_dos_copy_name(char *destination, const char *source)
 {
@@ -115,6 +172,10 @@ void np2dn_dos_file_tracker_reset(void)
 {
     memset(s_files, 0, sizeof(s_files));
     memset(s_coverage, 0, sizeof(s_coverage));
+    memset(s_history, 0, sizeof(s_history));
+    memset(s_file_history_sequence, 0, sizeof(s_file_history_sequence));
+    s_history_next = 0;
+    s_history_count = 0;
     memset(&s_pending, 0, sizeof(s_pending));
     s_sequence = 0;
     memset(&s_stats, 0, sizeof(s_stats));
@@ -297,6 +358,7 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
             s_files[index].sequence = ++s_sequence;
         }
         np2dn_dos_copy_name(s_files[index].name, pending.name);
+        np2dn_dos_start_history((uint32_t)index);
         return 1;
     }
 
@@ -317,6 +379,19 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
             return 1;
         }
         end_offset = pending.file_offset + bytes_read;
+        {
+            NP2DN_DosFileHistoryInfo *history =
+                np2dn_dos_find_history(file->sequence);
+            if (history != NULL) {
+                ++history->read_count;
+                history->bytes_read += bytes_read;
+                history->last_file_offset = pending.file_offset;
+                history->last_buffer_segment = pending.buffer_segment;
+                history->last_buffer_offset = pending.buffer_offset;
+                history->last_requested = pending.requested;
+                history->last_received = (uint16_t)bytes_read;
+            }
+        }
 
         if (!file->mapping_seen) {
             file->mapping_seen = 1;
@@ -326,6 +401,12 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
                     pending.buffer_offset - pending.file_offset);
                 file->mapping_valid = 1;
             }
+            else {
+                NP2DN_DosFileHistoryInfo *history =
+                    np2dn_dos_find_history(file->sequence);
+                if (history != NULL)
+                    history->reason = NP2DN_DOS_HISTORY_REASON_NO_MAPPING;
+            }
         }
         else if (file->mapping_valid) {
             uint32_t expected = (uint32_t)file->base_offset +
@@ -333,7 +414,15 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
             if (file->segment != pending.buffer_segment ||
                 expected > 0xffffu ||
                 pending.buffer_offset != expected) {
+                NP2DN_DosFileHistoryInfo *history =
+                    np2dn_dos_find_history(file->sequence);
                 file->mapping_valid = 0;
+                if (history != NULL) {
+                    history->reason =
+                        file->segment != pending.buffer_segment ?
+                        NP2DN_DOS_HISTORY_REASON_SEGMENT_MISMATCH :
+                        NP2DN_DOS_HISTORY_REASON_NON_CONTIGUOUS_READ;
+                }
             }
         }
 
@@ -358,6 +447,7 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
             file->size_known = 1;
         }
         np2dn_dos_update_complete(file);
+        np2dn_dos_sync_history((uint32_t)index);
         return 1;
     }
 
@@ -367,6 +457,15 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
             ((uint32_t)result_dx << 16) | (uint32_t)result_ax;
 
         file->file_position = new_position;
+        {
+            NP2DN_DosFileHistoryInfo *history =
+                np2dn_dos_find_history(file->sequence);
+            if (history != NULL) {
+                ++history->seek_count;
+                history->last_seek_position = new_position;
+                history->last_seek_origin = pending.seek_origin;
+            }
+        }
         if (pending.seek_origin == 2u) {
             file->file_size = new_position;
             file->size_known = 1;
@@ -376,11 +475,13 @@ int np2dn_dos_file_tracker_complete(uint16_t current_cs,
             }
         }
         np2dn_dos_update_complete(file);
+        np2dn_dos_sync_history((uint32_t)index);
         return 1;
     }
 
     if (pending.type == NP2DN_DOS_PENDING_CLOSE) {
         s_files[index].closed = 1;
+        np2dn_dos_sync_history((uint32_t)index);
         return 1;
     }
 
@@ -444,5 +545,27 @@ int np2dn_dos_file_tracker_get_file(uint32_t index,
         return 0;
     }
     *info = s_files[index];
+    return 1;
+}
+
+uint32_t np2dn_dos_file_tracker_history_count(void)
+{
+    return s_history_count;
+}
+
+int np2dn_dos_file_tracker_get_history(uint32_t index,
+                                       NP2DN_DosFileHistoryInfo *info)
+{
+    if (info == NULL || index >= NP2DN_DOS_FILE_HISTORY_MAX ||
+        !s_history[index].file.used) {
+        return 0;
+    }
+    *info = s_history[index];
+    info->reason = np2dn_dos_history_reason(&info->file) == 
+        NP2DN_DOS_HISTORY_REASON_COMPLETE ?
+        NP2DN_DOS_HISTORY_REASON_COMPLETE :
+        (s_history[index].reason != NP2DN_DOS_HISTORY_REASON_UNKNOWN ?
+         s_history[index].reason :
+         np2dn_dos_history_reason(&info->file));
     return 1;
 }
