@@ -441,8 +441,6 @@ void np2dn_command_queue_pump(void)
                 np2dn_dos_file_tracker_get_stats(&stats);
                 {
                     uint32_t values[28];
-                    NP2DN_DosTrackerStats *unused_stats_pointer = NULL;
-                    (void)unused_stats_pointer;
                     uint32_t k;
                     values[0] = stats.int21_hits;
                     values[1] = stats.ah_3d;
