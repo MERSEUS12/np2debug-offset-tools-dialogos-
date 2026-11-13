@@ -28,6 +28,15 @@ typedef struct NP2DN_DosTrackerStats {
     uint16_t last_ip;
     uint8_t last_ah;
     uint8_t pending_type;
+    uint32_t vector_checks;
+    uint32_t last_cur;
+    uint32_t last_vec;
+    uint32_t last_vector_offset;
+    uint32_t last_vector_segment;
+    uint32_t last_cs_base;
+    uint32_t last_cpu_cs;
+    uint32_t last_cpu_eip;
+    uint32_t cpu_mode_flags;
 } NP2DN_DosTrackerStats;
 
 typedef struct NP2DN_DosFileInfo {
@@ -53,6 +62,13 @@ typedef struct NP2DN_DosFileInfo {
 /* DOS INT 21h calls are observed as entry/return pairs. */
 void np2dn_dos_file_tracker_reset(void);
 void np2dn_dos_file_tracker_note_int21(uint8_t ah, uint16_t cs, uint16_t ip);
+void np2dn_dos_file_tracker_note_vector_probe(uint32_t cur, uint32_t vec,
+                                              uint16_t vector_offset,
+                                              uint16_t vector_segment,
+                                              uint32_t cs_base,
+                                              uint16_t cpu_cs,
+                                              uint32_t cpu_eip,
+                                              uint32_t mode_flags);
 void np2dn_dos_file_tracker_get_stats(NP2DN_DosTrackerStats *stats);
 uint32_t np2dn_dos_file_tracker_file_count(void);
 int np2dn_dos_file_tracker_begin_open(uint16_t return_cs,
