@@ -9,6 +9,7 @@ extern "C" {
 
 #define NP2DN_DOS_FILE_TRACKER_MAX_FILES 16u
 #define NP2DN_DOS_FILE_NAME_MAX 32u
+#define NP2DN_DOS_FILE_HISTORY_MAX 32u
 
 typedef struct NP2DN_DosTrackerStats {
     uint32_t int21_hits;
@@ -58,6 +59,34 @@ typedef struct NP2DN_DosFileInfo {
     char name[NP2DN_DOS_FILE_NAME_MAX];
 } NP2DN_DosFileInfo;
 
+
+typedef struct NP2DN_DosFileHistoryInfo {
+    NP2DN_DosFileInfo file;
+    uint32_t read_count;
+    uint32_t bytes_read;
+    uint32_t seek_count;
+    uint32_t last_file_offset;
+    uint32_t last_seek_position;
+    uint16_t last_buffer_segment;
+    uint16_t last_buffer_offset;
+    uint16_t last_requested;
+    uint16_t last_received;
+    uint8_t last_seek_origin;
+    uint8_t reason;
+} NP2DN_DosFileHistoryInfo;
+
+enum {
+    NP2DN_DOS_HISTORY_REASON_UNKNOWN = 0,
+    NP2DN_DOS_HISTORY_REASON_COMPLETE,
+    NP2DN_DOS_HISTORY_REASON_NO_MAPPING,
+    NP2DN_DOS_HISTORY_REASON_MAPPING_INVALID,
+    NP2DN_DOS_HISTORY_REASON_SIZE_UNKNOWN,
+    NP2DN_DOS_HISTORY_REASON_INCOMPLETE_COVERAGE,
+    NP2DN_DOS_HISTORY_REASON_ADDRESS_OUT_OF_RANGE,
+    NP2DN_DOS_HISTORY_REASON_SEGMENT_MISMATCH,
+    NP2DN_DOS_HISTORY_REASON_NON_CONTIGUOUS_READ
+};
+
 /* DOS INT 21h calls are observed as entry/return pairs. */
 void np2dn_dos_file_tracker_reset(void);
 void np2dn_dos_file_tracker_note_int21(uint8_t ah, uint16_t cs, uint16_t ip);
@@ -97,6 +126,9 @@ int np2dn_dos_file_tracker_get_loaded_segment(uint16_t segment,
                                               NP2DN_DosFileInfo *info);
 int np2dn_dos_file_tracker_get_file(uint32_t index,
                                     NP2DN_DosFileInfo *info);
+uint32_t np2dn_dos_file_tracker_history_count(void);
+int np2dn_dos_file_tracker_get_history(uint32_t index,
+                                       NP2DN_DosFileHistoryInfo *info);
 
 #ifdef __cplusplus
 }
