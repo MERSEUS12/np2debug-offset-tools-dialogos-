@@ -177,7 +177,10 @@ def _send_command(
         raise RuntimeError("Respuesta IPC inválida: payload de instrucción debe ocupar 96 bytes")
     if command_type == CMD_CPU_REGISTERS and payload_length != 53:
         raise RuntimeError("Respuesta IPC inválida: payload de registros debe ocupar 53 bytes")
-    if command_type == CMD_DOS_TRACKER_STATUS and (payload_length < 108 or (payload_length - 108) % 46 != 0):
+    if command_type == CMD_DOS_TRACKER_STATUS and not (
+        (payload_length >= 108 and (payload_length - 108) % 46 == 0) or
+        (payload_length >= 12 and (payload_length - 12) % 92 == 0)
+    ):
         raise RuntimeError("Respuesta IPC inválida: payload del rastreador DOS incoherente")
     if command_type == CMD_BREAKPOINTS_LIST and (result != 1 or payload_length < 12 or (payload_length - 12) % 5 != 0):
         raise RuntimeError("Respuesta IPC inválida: payload de breakpoints incoherente")
@@ -205,10 +208,17 @@ def _send_command(
 
 @mcp.tool()
 def dialogue_tracker_status() -> str:
-    """Diagnóstico de solo lectura del rastreador DOS: entradas INT 21h, operaciones y archivos registrados."""
+    """Diagnóstico de solo lectura del rastreador DOS y su historial de archivos, incluso tras reutilizar slots."""
     stats = None
     files = []
+    history = []
     pending_names = {0: "NONE", 1: "OPEN", 2: "READ", 3: "SEEK", 4: "CLOSE"}
+    reason_names = {
+        0: "UNKNOWN", 1: "COMPLETE", 2: "NO_MAPPING",
+        3: "MAPPING_INVALID", 4: "SIZE_UNKNOWN",
+        5: "INCOMPLETE_COVERAGE", 6: "ADDRESS_OUT_OF_RANGE",
+        7: "SEGMENT_MISMATCH", 8: "NON_CONTIGUOUS_READ",
+    }
     for offset in range(0, 16, 3):
         response = json.loads(_send_command(CMD_DOS_TRACKER_STATUS, offset, 3))
         payload = bytes.fromhex(response.get("payload_hex", ""))
@@ -224,10 +234,8 @@ def dialogue_tracker_status() -> str:
             stats = {name: value for name, value in zip(names, values[:12])}
             stats.update({
                 "pending_operation": pending_names.get(values[12], f"UNKNOWN_{values[12]}"),
-                "last_ah": values[13],
-                "last_ah_hex": f"0x{values[13]:02X}",
-                "last_cs": values[14],
-                "last_ip": values[15],
+                "last_ah": values[13], "last_ah_hex": f"0x{values[13]:02X}",
+                "last_cs": values[14], "last_ip": values[15],
                 "tracked_file_count": values[16],
             })
             stats["vector_diagnostic"] = {
@@ -236,14 +244,10 @@ def dialogue_tracker_status() -> str:
                 "last_current_linear_hex": f"0x{values[20]:05X}",
                 "last_vector_linear": values[21],
                 "last_vector_linear_hex": f"0x{values[21]:05X}",
-                "vector_offset": values[22],
-                "vector_offset_hex": f"0x{values[22]:04X}",
-                "vector_segment": values[23],
-                "vector_segment_hex": f"0x{values[23]:04X}",
-                "cpu_cs": values[24],
-                "cpu_cs_hex": f"0x{values[24]:04X}",
-                "cpu_eip": values[25],
-                "cpu_eip_hex": f"0x{values[25]:08X}",
+                "vector_offset": values[22], "vector_offset_hex": f"0x{values[22]:04X}",
+                "vector_segment": values[23], "vector_segment_hex": f"0x{values[23]:04X}",
+                "cpu_cs": values[24], "cpu_cs_hex": f"0x{values[24]:04X}",
+                "cpu_eip": values[25], "cpu_eip_hex": f"0x{values[25]:08X}",
                 "virtual_8086_mode": bool(values[18] & 1),
             }
         returned = struct.unpack_from("<I", payload, 104)[0]
@@ -263,12 +267,48 @@ def dialogue_tracker_status() -> str:
                 "mapping_seen": bool(flags & 2), "mapping_valid": bool(flags & 4),
                 "size_known": bool(flags & 8), "fully_loaded": bool(flags & 16),
             })
-    stats = stats or {}
+
+    for offset in range(0, 32, 2):
+        response = json.loads(_send_command(CMD_DOS_TRACKER_STATUS, offset, 2, 1))
+        payload = bytes.fromhex(response.get("payload_hex", ""))
+        if len(payload) != response.get("payload_length") or len(payload) < 12 or (len(payload) - 12) % 92:
+            raise RuntimeError("Payload inválido del historial de archivos DOS")
+        total, returned_offset, returned = struct.unpack_from("<III", payload, 0)
+        if total != 32 or returned_offset != offset or returned > 2 or len(payload) != 12 + returned * 92:
+            raise RuntimeError("Paginación incoherente del historial de archivos DOS")
+        for i in range(returned):
+            pos = 12 + i * 92
+            slot, raw_name = struct.unpack_from("<H32s", payload, pos)
+            handle, segment, base_offset, flags = struct.unpack_from("<HHHH", payload, pos + 34)
+            reason, last_seek_origin = struct.unpack_from("<BB", payload, pos + 42)
+            sequence, file_position, file_size, loaded_size, coverage_prefix, read_count, bytes_read, seek_count, last_file_offset, last_seek_position = struct.unpack_from("<10I", payload, pos + 44)
+            last_buffer_segment, last_buffer_offset, last_requested, last_received = struct.unpack_from("<4H", payload, pos + 84)
+            name = raw_name.split(b"\0", 1)[0].decode("ascii", errors="replace")
+            history.append({
+                "history_slot": slot, "name": name, "handle": handle,
+                "sequence": sequence, "closed": bool(flags & 1),
+                "mapping_seen": bool(flags & 2), "mapping_valid": bool(flags & 4),
+                "size_known": bool(flags & 8), "fully_loaded": bool(flags & 16),
+                "segment": segment, "segment_hex": f"0x{segment:04X}",
+                "base_offset": base_offset, "file_position": file_position,
+                "file_size": file_size, "loaded_size": loaded_size,
+                "coverage_prefix": coverage_prefix,
+                "read_count": read_count, "bytes_read": bytes_read,
+                "seek_count": seek_count, "last_file_offset": last_file_offset,
+                "last_seek_position": last_seek_position,
+                "last_seek_origin": last_seek_origin,
+                "last_buffer_segment": last_buffer_segment,
+                "last_buffer_offset": last_buffer_offset,
+                "last_requested": last_requested, "last_received": last_received,
+                "completion_reason": reason_names.get(reason, f"UNKNOWN_{reason}"),
+            })
+
+    history.sort(key=lambda item: item["sequence"])
     return json.dumps({
-        "stats": stats,
-        "tracked_files": files,
+        "stats": stats or {}, "tracked_files": files,
+        "file_history": history, "file_history_capacity": 32,
         "read_only": True,
-        "note": "vector_diagnostic.check_count cuenta las comprobaciones del vector; int21_hits cuenta las coincidencias exactas. La consulta es de solo lectura y no altera el estado del emulador.",
+        "note": "file_history conserva resúmenes por apertura aunque el slot activo se cierre o reutilice. La consulta no modifica el estado del emulador.",
     }, ensure_ascii=False)
 
 
