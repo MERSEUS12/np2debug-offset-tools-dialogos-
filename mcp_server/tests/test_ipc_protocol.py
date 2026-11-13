@@ -128,7 +128,7 @@ class IpcProtocolTests(unittest.TestCase):
     def test_dos_tracker_status_payload_layout(self):
         values = tuple(range(19))
         header = struct.pack("<19I", *values)
-        record = struct.pack("<H16sHHHIIIIIH", 2, b"MAC_08.M".ljust(16, b"\\0"),
+        record = struct.pack("<H16sHHHIIIIIH", 2, b"MAC_08.M".ljust(16, b"\0"),
                              5, 0x4458, 0x0100, 512, 600, 512, 512, 1, 0x1E)
         self.assertEqual(len(header), 76)
         self.assertEqual(len(record), 46)
