@@ -257,6 +257,10 @@ static void np2scene_check(void)
 
 	cur = ((UINT32)(UINT16)CPU_CS << 4) + (CPU_EIP & 0xffff);
 	vec = ((UINT32)memp_read16(0x86) << 4) + (UINT32)memp_read16(0x84);
+	np2dn_dos_file_tracker_note_vector_probe(
+		cur, vec, memp_read16(0x84), memp_read16(0x86),
+		CS_BASE, (UINT16)CPU_CS, CPU_EIP,
+		(CPU_STAT_PM ? 1u : 0u) | ((CPU_EFLAG & 0x00020000u) ? 2u : 0u));
 
 	/* Complete the previous DOS INT 21h call when execution returns. */
 	np2dn_dos_file_tracker_complete(
