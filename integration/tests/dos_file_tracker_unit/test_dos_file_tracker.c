@@ -189,12 +189,24 @@ int main(void)
 
     {
         NP2DN_DosTrackerStats stats;
+        np2dn_dos_file_tracker_note_vector_probe(
+            0x12345, 0x45678, 0x5678, 0x4567, 0x12340,
+            0x1234, 0x00005678, 1u);
         np2dn_dos_file_tracker_note_int21(0x3d, 0x1234, 0x5678);
         np2dn_dos_file_tracker_note_int21(0x30, 0x2345, 0x6789);
         np2dn_dos_file_tracker_get_stats(&stats);
         CHECK(stats.int21_hits == 2 && stats.ah_3d == 1 &&
               stats.ah_other == 1,
               "INT 21h and AH counters are observable");
+        CHECK(stats.vector_checks == 1 && stats.last_cur == 0x12345 &&
+              stats.last_vec == 0x45678 &&
+              stats.last_vector_offset == 0x5678 &&
+              stats.last_vector_segment == 0x4567 &&
+              stats.last_cs_base == 0x12340 &&
+              stats.last_cpu_cs == 0x1234 &&
+              stats.last_cpu_eip == 0x5678 &&
+              stats.cpu_mode_flags == 1u,
+              "INT 21h vector probe values are observable");
         CHECK(stats.begin_open == 6 && stats.begin_read == 7 &&
               stats.begin_seek == 6 && stats.begin_close == 1,
               "accepted DOS operation starts are counted");
