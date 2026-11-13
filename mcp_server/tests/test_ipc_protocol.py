@@ -123,6 +123,21 @@ class IpcProtocolTests(unittest.TestCase):
         self.assertEqual(server.CMD_DIALOGUE_JUMP_REQUEST, 27)
         self.assertEqual(server.CMD_DIALOGUE_JUMP_CANCEL, 28)
         self.assertEqual(server.CMD_DIALOGUE_STATUS_QUERY, 29)
+        self.assertEqual(server.CMD_DOS_TRACKER_STATUS, 30)
+
+    def test_dos_tracker_status_payload_layout(self):
+        values = tuple(range(19))
+        header = struct.pack("<19I", *values)
+        record = struct.pack("<H16sHHHIIIIIH", 2, b"MAC_08.M".ljust(16, b"\\0"),
+                             5, 0x4458, 0x0100, 512, 600, 512, 512, 1, 0x1E)
+        self.assertEqual(len(header), 76)
+        self.assertEqual(len(record), 46)
+        payload = header + record
+        self.assertEqual(struct.unpack_from("<19I", payload, 0), values)
+        decoded = struct.unpack_from("<H16sHHHIIIIIH", payload, 76)
+        self.assertEqual(decoded[0], 2)
+        self.assertEqual(decoded[2:5], (5, 0x4458, 0x0100))
+        self.assertEqual(decoded[-1], 0x1E)
 
     def test_breakpoint_list_payload_layout(self):
         entries = [(0x12345, 0x04), (0x23456, 0x0B)]
